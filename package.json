@@ -4,7 +4,7 @@
   "description": "",
   "homepage": "https://github.com/Gandum2077/Ehentai-Parser",
   "bugs": "https://github.com/Gandum2077/Ehentai-Parser/issues",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
