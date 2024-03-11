@@ -1,0 +1,21 @@
+{
+  "name": "ehentai-parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "url-parse": "^1.5.10"
+  },
+  "devDependencies": {
+    "@types/url-parse": "^1.4.11",
+    "@types/cheerio": "^0.22.35",
+    "jsbox-types": "^1.0.20"
+  }
+}
