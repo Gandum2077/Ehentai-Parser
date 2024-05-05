@@ -74,7 +74,7 @@ interface EHListItem {
   taglist?: EHTagListItem[];
 }
 
-interface EHGallery {
+export interface EHGallery {
   gid: number;
   token: string;
   apiuid: number;
@@ -103,6 +103,7 @@ interface EHGallery {
 
   taglist?: EHTagListItem[];
   newer_versions?: EHGalleryNewerVersion[];
+  thumbnail_size: "normal" | "large";
   images: EHGalleryImageItem[];
   comments?: EHGalleryCommentItem[];
 }
@@ -125,7 +126,7 @@ interface EHGalleryImageItem {
   thumbnail_url: string;
 }
 
-interface EHGalleryCommentItem {
+export interface EHGalleryCommentItem {
   posted_time: Date;
   comment_div: string;
   commenter?: string;
@@ -401,22 +402,47 @@ export function parseGallery(html: string): EHGallery {
 
   // image
   const images: EHGalleryImageItem[] = [];
-  $("div#gdt div.gdtl").each((i, elem) => {
-    const img = $(elem).find("img");
-    const title = img.attr("title") || "";
-    const r = /Page (\d+): (.*)/.exec(title);
-    const page = parseInt(r?.at(1) || "0");
-    const name = r?.at(2) || "";
-    const thumbnail_url = img.attr("src") || "";
-    const page_url = $(elem).find("a").attr("href") || "";
-    images.push({
-      page,
-      name,
-      page_url,
-      thumbnail_url
+  let thumbnail_size: "normal" | "large";
+  // 分为两种情况，大图和小图
+  // 大图
+  if ($("div#gdt div.gdtl").length > 0) {
+    thumbnail_size = "large";
+    $("div#gdt div.gdtl").each((i, elem) => {
+      const img = $(elem).find("img");
+      const title = img.attr("title") || "";
+      const r = /Page (\d+): (.*)/.exec(title);
+      const page = parseInt(r?.at(1) || "0");
+      const name = r?.at(2) || "";
+      const thumbnail_url = img.attr("src") || "";
+      const page_url = $(elem).find("a").attr("href") || "";
+      images.push({
+        page,
+        name,
+        page_url,
+        thumbnail_url
+      });
     });
-  });
-
+  } else {
+    // 小图
+    thumbnail_size = "normal";
+    $("div#gdt div.gdtm").each((i, elem) => {
+      const img = $(elem).find("img");
+      const title = img.attr("title") || "";
+      const r = /Page (\d+): (.*)/.exec(title);
+      const page = parseInt(r?.at(1) || "0");
+      const name = r?.at(2) || "";
+      const page_url = $(elem).find("a").attr("href") || "";
+      const style = $(elem).find("div").attr("style") || "";
+      const r2 = /transparent url\((.*)\)/.exec(style);
+      const thumbnail_url = r2?.at(1) || ""; // 小图情况下，thumbnail_url是20合1的图，需要自行裁剪出需要的那部分
+      images.push({
+        page,
+        name,
+        page_url,
+        thumbnail_url
+      });
+    });
+  }
   // comments
   const comments: EHGalleryCommentItem[] = [];
   if ($("#cdiv .c1").length > 0) {
@@ -536,6 +562,7 @@ export function parseGallery(html: string): EHGallery {
 
     taglist: taglist.length > 0 ? taglist : undefined,
     newer_versions: newer_versions.length > 0 ? newer_versions : undefined,
+    thumbnail_size,
     images,
     comments: comments.length > 0 ? comments : undefined
   }
