@@ -425,11 +425,11 @@ function parseGallery(html) {
         favorited,
         favcat,
         favcat_title,
-        taglist: taglist.length > 0 ? taglist : undefined,
-        newer_versions: newer_versions.length > 0 ? newer_versions : undefined,
+        taglist,
+        newer_versions,
         thumbnail_size,
         images,
-        comments: comments.length > 0 ? comments : undefined
+        comments
     };
 }
 exports.parseGallery = parseGallery;

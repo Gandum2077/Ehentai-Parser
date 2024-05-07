@@ -71,7 +71,7 @@ interface EHListItem {
   favcat?: number;
   favcat_title?: string;
   favoritd_time?: string;
-  taglist?: EHTagListItem[];
+  taglist: EHTagListItem[];
 }
 
 export interface EHGallery {
@@ -101,11 +101,11 @@ export interface EHGallery {
   favcat?: number;
   favcat_title?: string;
 
-  taglist?: EHTagListItem[];
-  newer_versions?: EHGalleryNewerVersion[];
+  taglist: EHTagListItem[];
+  newer_versions: EHGalleryNewerVersion[];
   thumbnail_size: "normal" | "large";
   images: EHGalleryImageItem[];
-  comments?: EHGalleryCommentItem[];
+  comments: EHGalleryCommentItem[];
 }
 
 interface EHTagListItem {
@@ -560,11 +560,11 @@ export function parseGallery(html: string): EHGallery {
     favcat,
     favcat_title,
 
-    taglist: taglist.length > 0 ? taglist : undefined,
-    newer_versions: newer_versions.length > 0 ? newer_versions : undefined,
+    taglist,
+    newer_versions,
     thumbnail_size,
     images,
-    comments: comments.length > 0 ? comments : undefined
+    comments
   }
 }
 
