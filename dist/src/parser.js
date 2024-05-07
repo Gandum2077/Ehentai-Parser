@@ -172,7 +172,7 @@ function _parseListItems($) {
             title,
             thumbnail_url,
             category,
-            posted_time,
+            posted_time: posted_time.toISOString(),
             visible,
             estimated_display_rating,
             is_my_rating,
@@ -183,7 +183,7 @@ function _parseListItems($) {
             favcat,
             favcat_title,
             taglist,
-            favoritd_time
+            favoritd_time: favoritd_time?.toISOString()
         });
     });
     return items;
@@ -265,27 +265,54 @@ function parseGallery(html) {
             newer_versions.push({
                 url: urlArray[i],
                 title: titleArray[i],
-                posted_time: new Date(postedTimeTextArray[i])
+                posted_time: new Date(postedTimeTextArray[i]).toISOString()
             });
         }
     }
     // image
     const images = [];
-    $("div#gdt div.gdtl").each((i, elem) => {
-        const img = $(elem).find("img");
-        const title = img.attr("title") || "";
-        const r = /Page (\d+): (.*)/.exec(title);
-        const page = parseInt(r?.at(1) || "0");
-        const name = r?.at(2) || "";
-        const thumbnail_url = img.attr("src") || "";
-        const page_url = $(elem).find("a").attr("href") || "";
-        images.push({
-            page,
-            name,
-            page_url,
-            thumbnail_url
+    let thumbnail_size;
+    // 分为两种情况，大图和小图
+    // 大图
+    if ($("div#gdt div.gdtl").length > 0) {
+        thumbnail_size = "large";
+        $("div#gdt div.gdtl").each((i, elem) => {
+            const img = $(elem).find("img");
+            const title = img.attr("title") || "";
+            const r = /Page (\d+): (.*)/.exec(title);
+            const page = parseInt(r?.at(1) || "0");
+            const name = r?.at(2) || "";
+            const thumbnail_url = img.attr("src") || "";
+            const page_url = $(elem).find("a").attr("href") || "";
+            images.push({
+                page,
+                name,
+                page_url,
+                thumbnail_url
+            });
         });
-    });
+    }
+    else {
+        // 小图
+        thumbnail_size = "normal";
+        $("div#gdt div.gdtm").each((i, elem) => {
+            const img = $(elem).find("img");
+            const title = img.attr("title") || "";
+            const r = /Page (\d+): (.*)/.exec(title);
+            const page = parseInt(r?.at(1) || "0");
+            const name = r?.at(2) || "";
+            const page_url = $(elem).find("a").attr("href") || "";
+            const style = $(elem).find("div").attr("style") || "";
+            const r2 = /transparent url\((.*)\)/.exec(style);
+            const thumbnail_url = r2?.at(1) || ""; // 小图情况下，thumbnail_url是20合1的图，需要自行裁剪出需要的那部分
+            images.push({
+                page,
+                name,
+                page_url,
+                thumbnail_url
+            });
+        });
+    }
     // comments
     const comments = [];
     if ($("#cdiv .c1").length > 0) {
@@ -360,7 +387,7 @@ function parseGallery(html) {
                 }
             }
             comments.push({
-                posted_time,
+                posted_time: posted_time.toISOString(),
                 commenter,
                 comment_id,
                 is_uploader,
@@ -383,7 +410,7 @@ function parseGallery(html) {
         thumbnail_url,
         category,
         uploader,
-        posted_time,
+        posted_time: posted_time.toISOString(),
         parent_url,
         visible,
         language,
@@ -400,6 +427,7 @@ function parseGallery(html) {
         favcat_title,
         taglist: taglist.length > 0 ? taglist : undefined,
         newer_versions: newer_versions.length > 0 ? newer_versions : undefined,
+        thumbnail_size,
         images,
         comments: comments.length > 0 ? comments : undefined
     };

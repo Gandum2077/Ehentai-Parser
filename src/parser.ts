@@ -60,7 +60,7 @@ interface EHListItem {
   title: string;
   thumbnail_url: string;
   category: EHCategory;
-  posted_time: Date;
+  posted_time: string;
   visible: boolean;
   estimated_display_rating: number;
   is_my_rating: boolean;
@@ -70,7 +70,7 @@ interface EHListItem {
   favorited: boolean;
   favcat?: number;
   favcat_title?: string;
-  favoritd_time?: Date;
+  favoritd_time?: string;
   taglist?: EHTagListItem[];
 }
 
@@ -85,7 +85,7 @@ export interface EHGallery {
   thumbnail_url: string;
   category: EHCategory;
   uploader?: string;
-  posted_time: Date;
+  posted_time: string;
   parent_url?: string;
   visible: boolean;
   language: string;
@@ -116,7 +116,7 @@ interface EHTagListItem {
 interface EHGalleryNewerVersion {
   url: string;
   title: string;
-  posted_time: Date;
+  posted_time: string;
 }
 
 interface EHGalleryImageItem {
@@ -127,7 +127,7 @@ interface EHGalleryImageItem {
 }
 
 export interface EHGalleryCommentItem {
-  posted_time: Date;
+  posted_time: string;
   comment_div: string;
   commenter?: string;
   comment_id?: number;
@@ -296,7 +296,7 @@ function _parseListItems($: cheerio.Root): EHListItem[] {
       title,
       thumbnail_url,
       category,
-      posted_time,
+      posted_time: posted_time.toISOString(),
       visible,
       estimated_display_rating,
       is_my_rating,
@@ -307,7 +307,7 @@ function _parseListItems($: cheerio.Root): EHListItem[] {
       favcat,
       favcat_title,
       taglist,
-      favoritd_time
+      favoritd_time: favoritd_time?.toISOString()
     });
   });
   return items;
@@ -395,7 +395,7 @@ export function parseGallery(html: string): EHGallery {
       newer_versions.push({
         url: urlArray[i],
         title: titleArray[i],
-        posted_time: new Date(postedTimeTextArray[i])
+        posted_time: new Date(postedTimeTextArray[i]).toISOString()
       })
     }
   }
@@ -520,7 +520,7 @@ export function parseGallery(html: string): EHGallery {
         }
       }
       comments.push({
-        posted_time,
+        posted_time: posted_time.toISOString(),
         commenter,
         comment_id,
         is_uploader,
@@ -544,7 +544,7 @@ export function parseGallery(html: string): EHGallery {
     thumbnail_url,
     category,
     uploader,
-    posted_time,
+    posted_time: posted_time.toISOString(),
     parent_url,
     visible,
     language,
