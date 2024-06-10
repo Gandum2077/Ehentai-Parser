@@ -238,7 +238,12 @@ function parseGallery(html) {
             const tr = $(elem);
             const namespace = tr.find("td").eq(0).text().slice(0, -1);
             const tags = [];
-            tr.find("td").eq(1).find("a").each((i, e) => tags.push($(e).text()));
+            tr.find("td").eq(1).find("a").each((i, e) => {
+                let text = $(e).text();
+                if (text.includes("|"))
+                    text = text.split("|")[0].trim();
+                tags.push(text);
+            });
             taglist.push({
                 namespace,
                 tags
