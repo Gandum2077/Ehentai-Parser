@@ -166,13 +166,12 @@ class EHentaiApiHandler {
             "User-Agent": this.ua,
             "Cookie": this.cookie
         };
-        const resp = await (0, request_1.get)(url, header, 10);
+        const resp = await (0, request_1.get)(url, header, 20);
         const text = await resp.text();
         return text;
     }
     async getFrontPageInfo(options = {}) {
         const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true);
-        console.log(url);
         const text = await this._getHtml(url);
         return (0, parser_1.parseList)(text);
     }
@@ -187,7 +186,6 @@ class EHentaiApiHandler {
     }
     async getFavoritesInfo(options = {}) {
         const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true);
-        console.log(url);
         const text = await this._getHtml(url);
         return (0, parser_1.parseList)(text);
     }
@@ -205,6 +203,11 @@ class EHentaiApiHandler {
         const url = this.urls.default + `s/${imgkey}/${gid}-${page}`;
         const text = await this._getHtml(url);
         return (0, parser_1.parsePageInfo)(text);
+    }
+    async getArchiverInfo(gid, token, or) {
+        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+        const text = await this._getHtml(url);
+        return (0, parser_1.parseArchiverInfo)(text);
     }
     /**
      * 重要参数：
@@ -474,6 +477,40 @@ class EHentaiApiHandler {
             const resp = await (0, request_1.get)(url, header, 30);
             return await resp.data();
         }
+    }
+    async startHathDownload(gid, token, or, xres) {
+        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Cookie: this.cookie
+        };
+        const body = {
+            hathdl_xres: xres,
+        };
+        const resp = await (0, request_1.post)(url, header, body, 10);
+        if (resp.statusCode !== 200) {
+            return {
+                success: false
+            };
+        }
+        const html = await resp.text();
+        const { message } = (0, parser_1.parseArchiveResult)(html);
+        let result;
+        if (message === 'You must have a H@H client assigned to your account to use this feature.') {
+            result = "no-hath";
+        }
+        else if (message === 'Your H@H client appears to be offline.') {
+            result = "offline";
+        }
+        else {
+            result = "success";
+        }
+        return {
+            success: true,
+            message: result,
+            rawMessage: message
+        };
     }
 }
 exports.EHentaiApiHandler = EHentaiApiHandler;

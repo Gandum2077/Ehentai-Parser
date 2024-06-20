@@ -1,12 +1,22 @@
 import * as cheerio from "cheerio";
-
-export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
-  | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass"
-
-export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
-
-export type EHCategory = "Doujinshi" | "Manga" | "Artist CG" | "Game CG" | "Western"
-  | "Non-H" | "Image Set" | "Cosplay" | "Asian Porn" | "Misc"
+import { 
+  TagNamespace, 
+  EHQualifier,
+  EHCategory,
+  EHFrontPageList,
+  EHWatchedList,
+  EHPopularList,
+  EHFavoritesList,
+  EHListItem,
+  EHGallery,
+  EHTagListItem,
+  EHGalleryNewerVersion,
+  EHGalleryImageItem,
+  EHGalleryCommentItem,
+  EHMPV,
+  EHMPVImageItem,
+  EHArchive,
+} from "./types";
 
 const _favcatColors = [
   "#000",
@@ -21,144 +31,6 @@ const _favcatColors = [
   "#e8e"
 ]
 
-export interface EHFrontPageList {
-  type: "front_page";
-  prev_page_available: boolean;
-  next_page_available: boolean;
-  total_item_count: number;
-  items: EHListItem[];
-}
-
-export interface EHWatchedList {
-  type: "watched";
-  prev_page_available: boolean;
-  next_page_available: boolean;
-  items: EHListItem[];
-}
-
-export interface EHPopularList {
-  type: "popular";
-  items: EHListItem[];
-}
-
-export interface EHFavoritesList {
-  type: "favorites";
-  prev_page_available: boolean;
-  next_page_available: boolean;
-  sort_order: "favorited_time" | "published_time";
-  items: EHListItem[];
-  favcat_infos: {
-    count: number;
-    title: string;
-  }[];
-}
-
-interface EHListItem {
-  gid: number;
-  token: string;
-  url: string;
-  title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  posted_time: string;
-  visible: boolean;
-  estimated_display_rating: number;
-  is_my_rating: boolean;
-  uploader?: string;
-  length: number;
-  torrent_available: boolean;
-  favorited: boolean;
-  favcat?: number;
-  favcat_title?: string;
-  favoritd_time?: string;
-  taglist: EHTagListItem[];
-}
-
-export interface EHGallery {
-  gid: number;
-  token: string;
-  apiuid: number;
-  apikey: string;
-
-  english_title: string;
-  japanese_title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  uploader?: string;
-  posted_time: string;
-  parent_url?: string;
-  visible: boolean;
-  language: string;
-  translated: boolean;
-  file_size: string;
-  length: number;
-  rating_count: number;
-  average_rating: number;
-  display_rating: number;
-  is_my_rating: boolean;
-  favorite_count: number;
-  favorited: boolean;
-  favcat?: number;
-  favcat_title?: string;
-
-  taglist: EHTagListItem[];
-  newer_versions: EHGalleryNewerVersion[];
-  thumbnail_size: "normal" | "large";
-  images: EHGalleryImageItem[];
-  comments: EHGalleryCommentItem[];
-}
-
-interface EHTagListItem {
-  namespace: TagNamespace;
-  tags: string[];
-}
-
-interface EHGalleryNewerVersion {
-  url: string;
-  title: string;
-  posted_time: string;
-}
-
-interface EHGalleryImageItem {
-  page: number;
-  name: string;
-  page_url: string;
-  thumbnail_url: string;
-}
-
-export interface EHGalleryCommentItem {
-  posted_time: string;
-  comment_div: string;
-  commenter?: string;
-  comment_id?: number;
-  is_uploader: boolean;
-  score?: number;
-  votes?: {
-    base: number;
-    voters: {
-      voter: string;
-      score: number;
-    }[];
-    remaining_voter_count: number;
-  };
-  is_my_comment?: boolean;
-  voteable?: boolean;
-  my_vote?: number;
-}
-
-interface EHMPV {
-  gid: number;
-  token: string;
-  mpvkey: string;
-  length: number;
-  images: EHMPVImageItem[];
-}
-
-interface EHMPVImageItem {
-  key: string;
-  name: string;
-  thumbnail_url: string;
-}
 
 function extractGidToken(url: string): { gid: number, token: string } {
   const patt = /https:\/\/e[-x]hentai\.org\/\w+\/(\d+)\/(\w+)\/?/;
@@ -322,7 +194,7 @@ export function parseGallery(html: string): EHGallery {
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
   const average_rating = parseInt(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
   const display_rating = parseInt(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
-
+  const archiver_or = /&or=([^']*)/.exec($("#gd5 > .g2 a").eq(0).attr("onclick") || "")?.at(1) || "";
   // metadata
   const english_title = $("#gn").text();
   const japanese_title = $("#gj").text();
@@ -543,6 +415,7 @@ export function parseGallery(html: string): EHGallery {
     token,
     apiuid,
     apikey,
+    archiver_or,
     english_title,
     japanese_title,
     thumbnail_url,
@@ -702,4 +575,42 @@ export function parsePageInfo(html: string): {
     fullFileSize,
     reloadParamKey
   };
+}
+
+export function parseArchiverInfo(html: string): EHArchive {
+  const $ = cheerio.load(html);
+  const url = $("form").attr("action") || "";
+  const r = /gid=(\d+)&token=(\w+)&or=(.*)/.exec(url);
+  if (!r || r.length < 4) throw new Error("Invalid url");
+  const gid = parseInt(r[1]);
+  const token = r[2];
+  const or = r[3];
+  const download_options: EHArchive["download_options"] = []
+  $("table td").each((i, elem) => {
+    const td = $(elem);
+    const solution = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
+    const size = td.find("p:nth-child(2)").text()
+    const price = td.find("p:nth-child(3)").text()
+    download_options.push({ solution, size, price })
+  })
+  return {
+    gid,
+    token,
+    or,
+    download_options
+  }
+}
+
+/**
+ * message 存在三种可能的值：
+ * - 'You must have a H@H client assigned to your account to use this feature.'
+ * - 'Your H@H client appears to be offline.'
+ * - 'A 780x resolution download has been queued for client #48384'
+ */
+export function parseArchiveResult(html: string): {
+  message: string;
+} {
+  const $ = cheerio.load(html);
+  const message = $("p").eq(0).text();
+  return { message };
 }

@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseList = void 0;
+exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -197,6 +197,7 @@ function parseGallery(html) {
     const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
     const average_rating = parseInt(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
     const display_rating = parseInt(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
+    const archiver_or = /&or=([^']*)/.exec($("#gd5 > .g2 a").eq(0).attr("onclick") || "")?.at(1) || "";
     // metadata
     const english_title = $("#gn").text();
     const japanese_title = $("#gj").text();
@@ -410,6 +411,7 @@ function parseGallery(html) {
         token,
         apiuid,
         apikey,
+        archiver_or,
         english_title,
         japanese_title,
         thumbnail_url,
@@ -551,3 +553,40 @@ function parsePageInfo(html) {
     };
 }
 exports.parsePageInfo = parsePageInfo;
+function parseArchiverInfo(html) {
+    const $ = cheerio.load(html);
+    const url = $("form").attr("action") || "";
+    const r = /gid=(\d+)&token=(\w+)&or=(.*)/.exec(url);
+    if (!r || r.length < 4)
+        throw new Error("Invalid url");
+    const gid = parseInt(r[1]);
+    const token = r[2];
+    const or = r[3];
+    const download_options = [];
+    $("table td").each((i, elem) => {
+        const td = $(elem);
+        const solution = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
+        const size = td.find("p:nth-child(2)").text();
+        const price = td.find("p:nth-child(3)").text();
+        download_options.push({ solution, size, price });
+    });
+    return {
+        gid,
+        token,
+        or,
+        download_options
+    };
+}
+exports.parseArchiverInfo = parseArchiverInfo;
+/**
+ * message 存在三种可能的值：
+ * - 'You must have a H@H client assigned to your account to use this feature.'
+ * - 'Your H@H client appears to be offline.'
+ * - 'A 780x resolution download has been queued for client #48384'
+ */
+function parseArchiveResult(html) {
+    const $ = cheerio.load(html);
+    const message = $("p").eq(0).text();
+    return { message };
+}
+exports.parseArchiveResult = parseArchiveResult;

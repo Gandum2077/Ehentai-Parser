@@ -1,89 +1,18 @@
 import Url from 'url-parse'
 import { get, post } from './request'
-import { parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, EHCategory, EHQualifier, TagNamespace } from './parser'
+import { parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo, parseArchiveResult } from './parser'
+import {
+  EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, EHCategory, EHQualifier, TagNamespace,
+  SearchOptions, FavoriteSearchOptions, SearchParams, FavoriteSearchParams
+} from './types'
 
 function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
   const u = new Url(url, true)
-  const newQuery = (removeUndefined) 
-  ? Object.fromEntries(Object.entries(query).filter(([k, v]) =>  v !== undefined))
-  : query
+  const newQuery = (removeUndefined)
+    ? Object.fromEntries(Object.entries(query).filter(([k, v]) => v !== undefined))
+    : query
   u.set('query', newQuery)
   return u.toString()
-}
-
-interface SearchOptions {
-  searchTerms?: {
-    namespace?: TagNamespace | EHQualifier;
-    term: string;
-    exact: boolean;
-    exclude: boolean;
-    or: boolean;
-  }[]
-  filteredCategories?: EHCategory[];
-  browseExpungedGalleries?: boolean;
-  requireGalleryTorrent?: boolean;
-  minimumPages?: number;
-  maximumPages?: number;
-  minimumRating?: number;
-  disableLanguageFilters?: boolean;
-  disableUploaderFilters?: boolean;
-  disableTagFilters?: boolean;
-  range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
-  minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
-  maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
-  jump?: {
-    value: number;
-    unit: "d" | "w" | "m" | "y";
-  }; // 必须和prev或next一起使用，基点是prev或next的图库的日期
-  seek?: Date; // 必须和prev或next一起使用
-}
-
-interface FavoriteSearchOptions {
-  searchTerms?: {
-    namespace?: TagNamespace | EHQualifier;
-    term: string;
-    exact: boolean;
-    exclude: boolean;
-    or: boolean;
-  }[]
-  favcat?: number;
-  range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
-  minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
-  maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
-  jump?: {
-    value: number;
-    unit: "d" | "w" | "m" | "y";
-  }; // 必须和prev或next一起使用，基点是prev或next的图库的日期
-  seek?: Date; // 必须和prev或next一起使用
-}
-
-interface SearchParams {
-  f_cats?: number;
-  f_search?: string;
-  advsearch?: 1;
-  f_sh?: "on"; // Browse Expunged Galleries
-  f_sto?: "on"; // Require Gallery Torrent
-  f_spf?: number; // Minimum Pages
-  f_spt?: number; // Maximum Pages
-  f_srdd?: number; // Minimum Rating
-  f_sfl?: "on"; // Disable custom filters for: Language
-  f_sfu?: "on"; // Disable custom filters for: Uploader
-  f_sft?: "on"; // Disable custom filters for: Tags
-  range?: number // range 1-99
-  prev?: number; // gid must be greater than prev
-  next?: number; // gid must be smaller than next
-  jump?: string; // 1d 1w 1m 1y
-  seek?: string; // 2024-03-04
-}
-
-interface FavoriteSearchParams {
-  f_search?: string;
-  favcat?: number;
-  range?: number // range 1-99
-  prev?: number; // gid must be greater than prev
-  next?: number; // gid must be smaller than next
-  jump?: string; // 1d 1w 1m 1y
-  seek?: string; // 2024-03-04
 }
 
 const EHCategoryNumber = {
@@ -130,24 +59,24 @@ function _searchOptionsToParams(options: SearchOptions) {
   if ((options.jump || options.seek) && !(options.minimumGid || options.maximumGid)) {
     throw new Error("jump和seek参数必须和prev或next参数一起使用");
   }
-  if(options.jump && options.seek) {
+  if (options.jump && options.seek) {
     throw new Error("jump和seek参数不能同时使用");
   }
 
   let f_cats: number | undefined
-  if (options.filteredCategories && options.filteredCategories.length > 0) 
+  if (options.filteredCategories && options.filteredCategories.length > 0)
     f_cats = options.filteredCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
   if (f_cats === 1023) f_cats = undefined;
   const f_search = _assembleSearchTerms(options.searchTerms);
   // 只要用到了高级搜索，就要设置advsearch参数
-  const usingAdvancedSearch = options.browseExpungedGalleries 
-  || options.requireGalleryTorrent 
-  || options.minimumPages 
-  || options.maximumPages 
-  || options.minimumRating 
-  || options.disableLanguageFilters 
-  || options.disableUploaderFilters 
-  || options.disableTagFilters;
+  const usingAdvancedSearch = options.browseExpungedGalleries
+    || options.requireGalleryTorrent
+    || options.minimumPages
+    || options.maximumPages
+    || options.minimumRating
+    || options.disableLanguageFilters
+    || options.disableUploaderFilters
+    || options.disableTagFilters;
   const advsearch = usingAdvancedSearch ? 1 : undefined;
   const f_sh = options.browseExpungedGalleries ? "on" : undefined;
   const f_sto = options.requireGalleryTorrent ? "on" : undefined;
@@ -196,7 +125,7 @@ function _favoriteSearchOptionsToParams(options: FavoriteSearchOptions) {
   if ((options.jump || options.seek) && !(options.minimumGid || options.maximumGid)) {
     throw new Error("jump和seek参数必须和prev或next参数一起使用");
   }
-  if(options.jump && options.seek) {
+  if (options.jump && options.seek) {
     throw new Error("jump和seek参数不能同时使用");
   }
 
@@ -250,14 +179,13 @@ export class EHentaiApiHandler {
       "User-Agent": this.ua,
       "Cookie": this.cookie
     }
-    const resp = await get(url, header, 10)
+    const resp = await get(url, header, 20)
     const text = await resp.text()
     return text
   }
 
   async getFrontPageInfo(options: SearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true)
-    console.log(url)
     const text = await this._getHtml(url)
     return parseList(text) as EHFrontPageList
   }
@@ -274,7 +202,6 @@ export class EHentaiApiHandler {
 
   async getFavoritesInfo(options: FavoriteSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true)
-    console.log(url)
     const text = await this._getHtml(url)
     return parseList(text) as EHFavoritesList
   }
@@ -295,6 +222,12 @@ export class EHentaiApiHandler {
     const url = this.urls.default + `s/${imgkey}/${gid}-${page}`;
     const text = await this._getHtml(url)
     return parsePageInfo(text)
+  }
+
+  async getArchiverInfo(gid: number, token: string, or: string) {
+    const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+    const text = await this._getHtml(url)
+    return parseArchiverInfo(text)
   }
 
   /**
@@ -605,7 +538,7 @@ export class EHentaiApiHandler {
       const resp = await $http.download({
         url: url,
         timeout: 30,
-        showsProgress: false, 
+        showsProgress: false,
         header
       });
       return resp.data;
@@ -613,5 +546,43 @@ export class EHentaiApiHandler {
       const resp = await get(url, header, 30)
       return await resp.data()
     }
+  }
+
+  async startHathDownload(
+    gid: number, 
+    token: string, 
+    or: string, 
+    xres: string
+  ): Promise<{ success: boolean; message?: string, rawMessage?: string }> {
+    const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body = {
+      hathdl_xres: xres,
+    };
+    const resp = await post(url, header, body, 10);
+    if (resp.statusCode !== 200) {
+      return {
+        success: false
+      };
+    }
+    const html = await resp.text();
+    const { message } = parseArchiveResult(html);
+    let result: "success" | "offline" | "no-hath";
+    if (message === 'You must have a H@H client assigned to your account to use this feature.') {
+      result = "no-hath";
+    } else if (message === 'Your H@H client appears to be offline.') {
+      result = "offline";
+    } else {
+      result = "success";
+    }
+    return {
+      success: true,
+      message: result,
+      rawMessage: message
+    };
   }
 }
