@@ -588,6 +588,7 @@ export function parseArchiverInfo(html: string): EHArchive {
   const download_options: EHArchive["download_options"] = []
   $("table td").each((i, elem) => {
     const td = $(elem);
+    if (td.find("a").length === 0) return;
     const solution = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
     const size = td.find("p:nth-child(2)").text()
     const price = td.find("p:nth-child(3)").text()
