@@ -73,6 +73,7 @@ export interface EHGallery {
   posted_time: string;
   parent_url?: string;
   visible: boolean;
+  invisible_cause?: "expunged" | "replaced" | "unknown";
   language: string;
   translated: boolean;
   file_size: string;

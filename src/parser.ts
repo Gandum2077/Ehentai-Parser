@@ -205,8 +205,17 @@ export function parseGallery(html: string): EHGallery {
   const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + " GMT+0000");
   const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)")
   const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
-  const visible = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text() === "Yes";
-
+  const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
+  const visible = visible_text === "Yes";
+  let invisible_cause: "expunged" | "replaced" | "unknown" | undefined;
+  const invisible_cause_tmp = /\((.*)\)/.exec(visible_text)?.at(1)?.toLowerCase();
+  if (visible) {
+    invisible_cause = undefined;
+  } else if (invisible_cause_tmp === "expunged" || invisible_cause_tmp === "replaced") {
+    invisible_cause = invisible_cause_tmp as "expunged" | "replaced";
+  } else {
+    invisible_cause = "unknown";
+  }
   const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)")
   const language = languageElement.contents().eq(0).text().trim();
   const translated = languageElement.find("span").length > 0;
@@ -424,6 +433,7 @@ export function parseGallery(html: string): EHGallery {
     posted_time: posted_time.toISOString(),
     parent_url,
     visible,
+    invisible_cause,
     language,
     translated,
     file_size,
