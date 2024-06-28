@@ -158,7 +158,9 @@ class EHentaiApiHandler {
             favorites: `https://e${t}hentai.org/favorites.php`,
             config: `https://e${t}hentai.org/uconfig.php`,
             api: `https://e${t}hentai.org/api.php`,
-            gallerypopups: `https://e${t}hentai.org/gallerypopups.php`
+            gallerypopups: `https://e${t}hentai.org/gallerypopups.php`,
+            toplist: "https://e-hentai.org/toplist.php",
+            upload: `https://upld.e-hentai.org/manage?ss=d&sd=d` // 自带按时间降序排序
         };
     }
     async _getHtml(url) {
@@ -188,6 +190,21 @@ class EHentaiApiHandler {
         const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true);
         const text = await this._getHtml(url);
         return (0, parser_1.parseList)(text);
+    }
+    async getTopListInfo(timeRange, page) {
+        const map = {
+            "yesterday": 15,
+            "past_month": 13,
+            "past_year": 12,
+            "all": 11
+        };
+        const url = _updateUrlQuery(this.urls.toplist, { p: page - 1 || undefined, tl: map[timeRange] }, true);
+        const text = await this._getHtml(url);
+        return (0, parser_1.parseList)(text);
+    }
+    async getUploadInfo() {
+        const text = await this._getHtml(this.urls.upload);
+        return (0, parser_1.parseMyUpload)(text);
     }
     async getGalleryInfo(gid, token, fullComments = true) {
         const url = fullComments ? this.urls.default + `g/${gid}/${token}/?hc=1` : this.urls.default + `g/${gid}/${token}/`;

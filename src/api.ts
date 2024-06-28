@@ -1,9 +1,12 @@
 import Url from 'url-parse'
 import { get, post } from './request'
-import { parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo, parseArchiveResult } from './parser'
+import { 
+  parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo, 
+  parseArchiveResult, parseMyUpload 
+} from './parser'
 import {
   EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, EHCategory, EHQualifier, TagNamespace,
-  SearchOptions, FavoriteSearchOptions, SearchParams, FavoriteSearchParams
+  EHSearchOptions, EHFavoriteSearchOptions, EHSearchParams, EHFavoriteSearchParams
 } from './types'
 
 function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
@@ -28,7 +31,7 @@ const EHCategoryNumber = {
   Misc: 1
 }
 
-function _assembleSearchTerms(searchTerms: SearchOptions['searchTerms']) {
+function _assembleSearchTerms(searchTerms: EHSearchOptions['searchTerms']) {
   if (!searchTerms || searchTerms.length === 0) return;
   return searchTerms.map(searchTerm => {
     let result = "";
@@ -48,7 +51,7 @@ function _formatUTCDate(date: Date) {
 }
 
 // SearchOptions to SearchParams
-function _searchOptionsToParams(options: SearchOptions) {
+function _searchOptionsToParams(options: EHSearchOptions) {
   // 检查搜索参数是否合法
   if (options.range && (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
     throw new Error("range参数与prev、next、jump、seek参数不兼容");
@@ -93,7 +96,7 @@ function _searchOptionsToParams(options: SearchOptions) {
   const seek = options.seek ? _formatUTCDate(options.seek) : undefined;
 
   // 返回搜索参数，但是要删除所有值为undefined的键
-  const params: SearchParams = {
+  const params: EHSearchParams = {
     f_cats,
     f_search,
     advsearch,
@@ -114,7 +117,7 @@ function _searchOptionsToParams(options: SearchOptions) {
   return params;
 }
 
-function _favoriteSearchOptionsToParams(options: FavoriteSearchOptions) {
+function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   // 检查搜索参数是否合法
   if (options.range && (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
     throw new Error("range参数与prev、next、jump、seek参数不兼容");
@@ -137,7 +140,7 @@ function _favoriteSearchOptionsToParams(options: FavoriteSearchOptions) {
   const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
   const seek = options.seek ? _formatUTCDate(options.seek) : undefined;
 
-  const params: FavoriteSearchParams = {
+  const params: EHFavoriteSearchParams = {
     f_search,
     favcat,
     range,
@@ -170,7 +173,9 @@ export class EHentaiApiHandler {
       favorites: `https://e${t}hentai.org/favorites.php`,
       config: `https://e${t}hentai.org/uconfig.php`,
       api: `https://e${t}hentai.org/api.php`,
-      gallerypopups: `https://e${t}hentai.org/gallerypopups.php`
+      gallerypopups: `https://e${t}hentai.org/gallerypopups.php`,
+      toplist: "https://e-hentai.org/toplist.php",
+      upload: `https://upld.e-hentai.org/manage?ss=d&sd=d` // 自带按时间降序排序
     }
   }
 
@@ -184,12 +189,12 @@ export class EHentaiApiHandler {
     return text
   }
 
-  async getFrontPageInfo(options: SearchOptions = {}) {
+  async getFrontPageInfo(options: EHSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFrontPageList
   }
-  async getWatchedInfo(options: SearchOptions = {}) {
+  async getWatchedInfo(options: EHSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHWatchedList
@@ -200,10 +205,27 @@ export class EHentaiApiHandler {
     return parseList(text) as EHPopularList
   }
 
-  async getFavoritesInfo(options: FavoriteSearchOptions = {}) {
+  async getFavoritesInfo(options: EHFavoriteSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFavoritesList
+  }
+
+  async getTopListInfo(timeRange: "yesterday" | "past_month" | "past_year" | "all", page: number) {
+    const map = {
+      "yesterday": 15,
+      "past_month": 13,
+      "past_year": 12,
+      "all": 11
+    }
+    const url = _updateUrlQuery(this.urls.toplist, { p: page - 1 || undefined, tl: map[timeRange] }, true)
+    const text = await this._getHtml(url)
+    return parseList(text)
+  }
+
+  async getUploadInfo() {
+    const text = await this._getHtml(this.urls.upload)
+    return parseMyUpload(text)
   }
 
   async getGalleryInfo(gid: number, token: string, fullComments: boolean = true) {

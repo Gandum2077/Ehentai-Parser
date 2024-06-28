@@ -1,13 +1,15 @@
 import * as cheerio from "cheerio";
 import { 
   TagNamespace, 
-  EHQualifier,
   EHCategory,
   EHFrontPageList,
   EHWatchedList,
   EHPopularList,
   EHFavoritesList,
-  EHListItem,
+  EHListMinimalItem,
+  EHListCompactItem,
+  EHListExtendedItem,
+  EHListThumbnailItem,
   EHGallery,
   EHTagListItem,
   EHGalleryNewerVersion,
@@ -16,6 +18,9 @@ import {
   EHMPV,
   EHMPVImageItem,
   EHArchive,
+  EHListDisplayMode,
+  EHTopList,
+  EHUploadList,
 } from "./types";
 
 const _favcatColors = [
@@ -45,14 +50,13 @@ function extractGidToken(url: string): { gid: number, token: string } {
   }
 }
 
-export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPopularList | EHFavoritesList {
+export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPopularList | EHFavoritesList | EHTopList {
   const $ = cheerio.load(html);
 
-  if ($("option[selected='selected'][value='e']").length === 0) throw new Error("display mode is not extended");
-
-  let type: "front_page" | "watched" | "popular" | "favorites";
+  let type: "front_page" | "watched" | "popular" | "favorites" | "toplist";
+  let display_mode: EHListDisplayMode;
   const h1Text = $("h1").text();
-  if (h1Text.includes("entai.org")) {
+  if (h1Text.includes("Hentai")) {
     type = "front_page";
   } else if (h1Text.includes("Watched")) {
     type = "watched";
@@ -60,20 +64,42 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
     type = "popular";
   } else if (h1Text.includes("Favorites")) {
     type = "favorites";
+  } else if (h1Text.includes("Toplists")) {
+    type = "toplist";
   } else {
-    throw new Error("Unknown type");
+    throw new Error("ParseList Error: Unknown type");
   }
-  const prev_page_available = Boolean($("#uprev").attr("href"))
-  const next_page_available = Boolean($("#unext").attr("href"))
-  const items = _parseListItems($);
+  // 获取显示模式
+  if (type !== "toplist") {
+    const val = $("option[value='e']").parent("select").val()  // 结果可能是 m, p, l, e, t
+    if (val === "m" || val === "p") {
+      display_mode = "minimal";
+    } else if (val === "l") {
+      display_mode = "compact";
+    } else if (val === "e") {
+      display_mode = "extended";
+    } else if (val === "t") {
+      display_mode = "thumbnail";
+    }  else {
+      // 如果没有搜索结果，那么也没有这个select，此参数将没有意义。简化处理，默认为compact
+      display_mode = "compact";
+    }
+  } else {
+    display_mode = "compact";
+  }
+
+  const items = _parseListItems($, display_mode);
 
   switch (type) {
     case "front_page": {
+      const prev_page_available = Boolean($("#uprev").attr("href"))
+      const next_page_available = Boolean($("#unext").attr("href"))
       const total_item_count = $(".searchtext").length > 0
         ? parseInt($(".searchtext").text().slice(6).replaceAll(",", "")) || 0
         : 0;
       return {
         type,
+        display_mode,
         prev_page_available,
         next_page_available,
         total_item_count,
@@ -81,8 +107,11 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
       }
     }
     case "watched": {
+      const prev_page_available = Boolean($("#uprev").attr("href"))
+      const next_page_available = Boolean($("#unext").attr("href"))
       return {
         type,
+        display_mode,
         prev_page_available,
         next_page_available,
         items
@@ -91,10 +120,13 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
     case "popular": {
       return {
         type,
+        display_mode,
         items
       }
     }
     case "favorites": {
+      const prev_page_available = Boolean($("#uprev").attr("href"))
+      const next_page_available = Boolean($("#unext").attr("href"))
       const sort_order = $("select").eq(0).val() === "p" ? "published_time" : "favorited_time"
       const favcat_infos: {
         count: number;
@@ -114,54 +146,92 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         prev_page_available,
         next_page_available,
         sort_order,
+        display_mode,
         items,
         favcat_infos
+      }
+    }
+    case "toplist": {
+      const rangeText = $("h1 a").eq(1).text();
+      let time_range: "all" | "past_month" | "past_year" | "yesterday";
+      if (rangeText.includes("Yesterday")) {
+        time_range = "yesterday";
+      } else if (rangeText.includes("Past Year")) {
+        time_range = "past_year";
+      } else if (rangeText.includes("Past Month")) {
+        time_range = "past_month";
+      } else {
+        time_range = "all";
+      }
+      const current_page = parseInt($("table.ptt .ptds").text()) || 1;
+      const total_page = parseInt($("table.ptt td").eq(-2).text()) || 200;
+      return {
+        type,
+        time_range,
+        current_page,
+        total_page,
+        items: items as EHListCompactItem[]
       }
     }
     default:
       throw new Error("Unknown type");
   }
-
 }
 
-function _parseListItems($: cheerio.Root): EHListItem[] {
-  const items: EHListItem[] = [];
-  if ($("table.itg.glte td").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-  $("table.itg.glte > tbody > tr").each((i, elem) => {
+function _parseListItems($: cheerio.Root, displayMode: EHListDisplayMode) {
+  switch (displayMode) {
+    case "minimal":
+      return _parseListMinimalItems($);
+    case "compact":
+      return _parseListCompactItems($);
+    case "extended":
+      return _parseListExtendedItems($);
+    case "thumbnail":
+      return _parseListThumbnailItems($);
+    default:
+      throw new Error("parseList Error: Unknown display mode");
+  }
+}
+
+function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
+  const items: EHListMinimalItem[] = [];
+  if ($("table.itg.gltm > tbody > tr").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("table.itg.gltm > tbody > tr").slice(1).each((i, elem) => {
     const tr = $(elem);
-    const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
-    const gl3eDivs = tr.find(".gl3e > div");
-    const category = gl3eDivs.eq(0).text() as EHCategory;
-    const postedDiv = gl3eDivs.eq(1);
+    const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+    const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
+    const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
     const posted_time = new Date(postedDiv.text() + " GMT+0000");
     const visible = postedDiv.find("s").length === 0;
-    const favcat_title = postedDiv.attr("title")?.toLocaleLowerCase()
+    const favcat_title = postedDiv.attr("title")
     const favorited = Boolean(favcat_title);
     const favcatColor = postedDiv.attr("style")?.slice(13, 17);
     const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined
-    const starStyle = gl3eDivs.eq(2).attr("style") || "";
+    const starStyle = tr.find(".glthumb .ir").attr("style") || "";
     const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
     const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
-    const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb")
-    const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
-    const length = parseInt(gl3eDivs.eq(4).text());
-    const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-    const favoritd_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
+    const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb")
+    const length = parseInt(tr.find(".glthumb .ir").next().text());
+    const torrent_available = tr.find(".gldown a").length > 0;
     const title = tr.find(".glink").text();
-    const url = tr.find(".gl2e > div > a").attr("href") || "";
-    const taglist: EHTagListItem[] = [];
-    tr.find(".gl2e > div > a table tr").each((i, el) => {
-      const tr = $(el);
-      const namespace = tr.find("td").eq(0).text().slice(0, -1) as TagNamespace;
-      const tags: string[] = [];
-      tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
-      taglist.push({
-        namespace,
-        tags
-      });
-    });
+    const url = tr.find(".glname a").attr("href") || "";
     const { gid, token } = extractGidToken(url);
+    const taglist: { namespace?: TagNamespace, tag: string }[] = []
+    tr.find(".gltm .gt").each((i, el) => {
+      const text = $(el).attr("title") || "";
+      if (!text.includes(":")) return;
+      const [a, b] = text.split(":");
+      taglist.push({
+        namespace: a as TagNamespace,
+        tag: b
+      });
+    })
+    // 只有favorites页面有favorited_time
+    const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
+    // favorites页面没有uploader
+    const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
     items.push({
+      type: "minimal",
       gid,
       token,
       url,
@@ -179,10 +249,233 @@ function _parseListItems($: cheerio.Root): EHListItem[] {
       favcat,
       favcat_title,
       taglist,
-      favoritd_time: favoritd_time?.toISOString()
+      favorited_time: favorited_time?.toISOString()
+    });
+  })
+  return items
+}
+
+function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
+const items: EHListCompactItem[] = [];
+  if ($("table.itg.gltc > tbody > tr").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("table.itg.gltc > tbody > tr").slice(1).each((i, elem) => {
+    const tr = $(elem);
+    const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+    const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
+    const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
+    const posted_time = new Date(postedDiv.text() + " GMT+0000");
+    const visible = postedDiv.find("s").length === 0;
+    const favcat_title = postedDiv.attr("title")
+    const favorited = Boolean(favcat_title);
+    const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+    const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined
+    const starStyle = tr.find(".glthumb .ir").attr("style") || "";
+    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
+    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
+    const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb")
+    const length = parseInt(tr.find(".glthumb .ir").next().text());
+    const torrent_available = tr.find(".gldown a").length > 0;
+    const title = tr.find(".glink").text();
+    const url = tr.find(".glname a").attr("href") || "";
+    const { gid, token } = extractGidToken(url);
+    const taglist: { namespace?: TagNamespace, tag: string }[] = []
+    tr.find(".glink").next().find(".gt").each((i, el) => {
+      const text = $(el).attr("title") || "";
+      if (!text.includes(":")) return;
+      const [a, b] = text.split(":");
+      taglist.push({
+        namespace: a as TagNamespace,
+        tag: b
+      });
+    })
+    // 只有favorites页面有favorited_time
+    const favorited_time = (tr.find(".glfav").length > 0) 
+      ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + " GMT+0000") 
+      : undefined;
+    // favorites页面没有uploader
+    const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
+    items.push({
+      type: "compact",
+      gid,
+      token,
+      url,
+      title,
+      thumbnail_url,
+      category,
+      posted_time: posted_time.toISOString(),
+      visible,
+      estimated_display_rating,
+      is_my_rating,
+      uploader,
+      length,
+      torrent_available,
+      favorited,
+      favcat,
+      favcat_title,
+      taglist,
+      favorited_time: favorited_time?.toISOString()
+    });
+  })
+  return items
+}
+
+function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
+  const items: EHListExtendedItem[] = [];
+  if ($("table.itg.glte td").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("table.itg.glte > tbody > tr").each((i, elem) => {
+    const tr = $(elem);
+    const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
+    const gl3eDivs = tr.find(".gl3e > div");
+    const category = gl3eDivs.eq(0).text() as EHCategory;
+    const postedDiv = gl3eDivs.eq(1);
+    const posted_time = new Date(postedDiv.text() + " GMT+0000");
+    const visible = postedDiv.find("s").length === 0;
+    const favcat_title = postedDiv.attr("title")
+    const favorited = Boolean(favcat_title);
+    const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+    const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined
+    const starStyle = gl3eDivs.eq(2).attr("style") || "";
+    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
+    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
+    const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb")
+    const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
+    const length = parseInt(gl3eDivs.eq(4).text());
+    const torrent_available = gl3eDivs.find(".gldown a").length > 0;
+    const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
+    const title = tr.find(".glink").text();
+    const url = tr.find(".gl2e > div > a").attr("href") || "";
+    const taglist: EHTagListItem[] = [];
+    tr.find(".gl2e > div > a table tr").each((i, el) => {
+      const tr = $(el);
+      const namespace = tr.find("td").eq(0).text().slice(0, -1) as TagNamespace;
+      const tags: string[] = [];
+      tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
+      taglist.push({
+        namespace,
+        tags
+      });
+    });
+    const { gid, token } = extractGidToken(url);
+    items.push({
+      type: "extended",
+      gid,
+      token,
+      url,
+      title,
+      thumbnail_url,
+      category,
+      posted_time: posted_time.toISOString(),
+      visible,
+      estimated_display_rating,
+      is_my_rating,
+      uploader,
+      length,
+      torrent_available,
+      favorited,
+      favcat,
+      favcat_title,
+      taglist,
+      favorited_time: favorited_time?.toISOString()
     });
   });
   return items;
+}
+
+function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
+  const items: EHListThumbnailItem[] = [];
+  if ($("div.itg.gld > div").length <= 0) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("div.itg.gld > div").each((i, elem) => {
+    const div = $(elem);
+    const thumbnail_url = div.find(".gl3t img").attr("src") || "";
+    const category = div.find(".gl5t .cs").text() as EHCategory;
+    const postedDiv = div.find(".gl5t .cs").next();
+    const posted_time = new Date(postedDiv.text() + " GMT+0000");
+    const visible = postedDiv.find("s").length === 0;
+    const favcat_title = postedDiv.attr("title")
+    const favorited = Boolean(favcat_title);
+    const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+    const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined
+    const starStyle = div.find(".ir").attr("style") || "";
+    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
+    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
+    const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb")
+    const length = parseInt(div.find(".ir").next().text());
+    const torrent_available = div.find(".gldown a").length > 0;
+    const title = div.find(".glname a").text();
+    const url = div.find(".glname a").attr("href") || "";
+    const { gid, token } = extractGidToken(url);
+    const taglist: { namespace?: TagNamespace, tag: string }[] = [];
+    div.find(".gl6t .gt").each((i, el) => {
+      const text = $(el).attr("title") || "";
+      if (!text.includes(":")) return;
+      const [a, b] = text.split(":");
+      taglist.push({
+        namespace: a as TagNamespace,
+        tag: b
+      });
+    })
+    items.push({
+      type: "thumbnail",
+      gid,
+      token,
+      url,
+      title,
+      thumbnail_url,
+      category,
+      posted_time: posted_time.toISOString(),
+      visible,
+      estimated_display_rating,
+      is_my_rating,
+      length,
+      torrent_available,
+      favorited,
+      favcat,
+      favcat_title,
+      taglist
+    });
+  })
+  return items
+}
+
+export function parseMyUpload(html: string): EHUploadList {
+  const $ = cheerio.load(html);
+  const items: EHUploadList["items"] = []
+  let folder_name = "";
+  $("form .s table > tbody > tr").slice(1).each((i, elem) => {
+    const tr = $(elem);
+    if (tr.attr("class")?.includes("gtr")) {
+      folder_name = tr.find("span").eq(0).text();
+      return;
+    } else {
+      const title = tr.find(".gtc1 a").text();
+      const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
+      const { gid, token } = extractGidToken(url);
+      const added_time = new Date(tr.find(".gtc2").text() + " GMT+0000");
+      const length = parseInt(tr.find(".gtc3").text());
+      let public_category: EHCategory;
+      const public_category_text = tr.find(".gtc4").text();
+      if (public_category_text === "-") {
+        public_category = "Private"
+      } else {
+        public_category = public_category_text as EHCategory;
+      }
+      items.push({
+        folder_name,
+        gid,
+        token,
+        url,
+        title,
+        added_time: added_time.toISOString(),
+        length,
+        public_category
+      })
+    }
+  })
+
+  return {
+    type: "upload",
+    items
+  }
 }
 
 export function parseGallery(html: string): EHGallery {
@@ -207,18 +500,23 @@ export function parseGallery(html: string): EHGallery {
   const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
   const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
   const visible = visible_text === "Yes";
-  let invisible_cause: "expunged" | "replaced" | "unknown" | undefined;
+  let invisible_cause: EHGallery["invisible_cause"];
   const invisible_cause_tmp = /\((.*)\)/.exec(visible_text)?.at(1)?.toLowerCase();
   if (visible) {
     invisible_cause = undefined;
-  } else if (invisible_cause_tmp === "expunged" || invisible_cause_tmp === "replaced") {
-    invisible_cause = invisible_cause_tmp as "expunged" | "replaced";
+  } else if (
+    invisible_cause_tmp === "expunged" 
+    || invisible_cause_tmp === "replaced"
+    || invisible_cause_tmp === "private"
+  ) {
+    invisible_cause = invisible_cause_tmp;
   } else {
     invisible_cause = "unknown";
   }
   const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)")
   const language = languageElement.contents().eq(0).text().trim();
-  const translated = languageElement.find("span").length > 0;
+  const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
+  const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
 
   const file_size = $("#gdd tr:nth-of-type(5) td:nth-of-type(2)").text();
   const length = parseInt($("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6));
@@ -227,7 +525,15 @@ export function parseGallery(html: string): EHGallery {
   const ratingImageClassAttr = $("#rating_image").attr("class") || "";
   const is_my_rating = ratingImageClassAttr.includes("irb");
 
-  const favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
+  let favorite_count: number;
+  const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
+  if (favorite_count_text === "Never") {
+    favorite_count = 0;
+  } else if (favorite_count_text === "Once") {
+    favorite_count = 1;
+  } else {
+    favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
+  }
   let favorited: boolean;
   let favcat: number | undefined;
   let favcat_title: string | undefined;
@@ -436,6 +742,7 @@ export function parseGallery(html: string): EHGallery {
     invisible_cause,
     language,
     translated,
+    rewrited,
     file_size,
     length,
     rating_count,

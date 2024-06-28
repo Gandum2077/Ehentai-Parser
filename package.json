@@ -6,7 +6,7 @@
   "bugs": "https://github.com/Gandum2077/Ehentai-Parser/issues",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc && node dist/src/test.js"
   },
   "keywords": [],
   "author": "Gandum2077",

@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseList = void 0;
+exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -52,11 +52,10 @@ function extractGidToken(url) {
 }
 function parseList(html) {
     const $ = cheerio.load(html);
-    if ($("option[selected='selected'][value='e']").length === 0)
-        throw new Error("display mode is not extended");
     let type;
+    let display_mode;
     const h1Text = $("h1").text();
-    if (h1Text.includes("entai.org")) {
+    if (h1Text.includes("Hentai")) {
         type = "front_page";
     }
     else if (h1Text.includes("Watched")) {
@@ -68,19 +67,46 @@ function parseList(html) {
     else if (h1Text.includes("Favorites")) {
         type = "favorites";
     }
-    else {
-        throw new Error("Unknown type");
+    else if (h1Text.includes("Toplists")) {
+        type = "toplist";
     }
-    const prev_page_available = Boolean($("#uprev").attr("href"));
-    const next_page_available = Boolean($("#unext").attr("href"));
-    const items = _parseListItems($);
+    else {
+        throw new Error("ParseList Error: Unknown type");
+    }
+    // 获取显示模式
+    if (type !== "toplist") {
+        const val = $("option[value='e']").parent("select").val(); // 结果可能是 m, p, l, e, t
+        if (val === "m" || val === "p") {
+            display_mode = "minimal";
+        }
+        else if (val === "l") {
+            display_mode = "compact";
+        }
+        else if (val === "e") {
+            display_mode = "extended";
+        }
+        else if (val === "t") {
+            display_mode = "thumbnail";
+        }
+        else {
+            // 如果没有搜索结果，那么也没有这个select，此参数将没有意义。简化处理，默认为compact
+            display_mode = "compact";
+        }
+    }
+    else {
+        display_mode = "compact";
+    }
+    const items = _parseListItems($, display_mode);
     switch (type) {
         case "front_page": {
+            const prev_page_available = Boolean($("#uprev").attr("href"));
+            const next_page_available = Boolean($("#unext").attr("href"));
             const total_item_count = $(".searchtext").length > 0
                 ? parseInt($(".searchtext").text().slice(6).replaceAll(",", "")) || 0
                 : 0;
             return {
                 type,
+                display_mode,
                 prev_page_available,
                 next_page_available,
                 total_item_count,
@@ -88,8 +114,11 @@ function parseList(html) {
             };
         }
         case "watched": {
+            const prev_page_available = Boolean($("#uprev").attr("href"));
+            const next_page_available = Boolean($("#unext").attr("href"));
             return {
                 type,
+                display_mode,
                 prev_page_available,
                 next_page_available,
                 items
@@ -98,10 +127,13 @@ function parseList(html) {
         case "popular": {
             return {
                 type,
+                display_mode,
                 items
             };
         }
         case "favorites": {
+            const prev_page_available = Boolean($("#uprev").attr("href"));
+            const next_page_available = Boolean($("#unext").attr("href"));
             const sort_order = $("select").eq(0).val() === "p" ? "published_time" : "favorited_time";
             const favcat_infos = [];
             $(".ido .nosel .fp").slice(0, -1).each((i, elem) => {
@@ -118,8 +150,34 @@ function parseList(html) {
                 prev_page_available,
                 next_page_available,
                 sort_order,
+                display_mode,
                 items,
                 favcat_infos
+            };
+        }
+        case "toplist": {
+            const rangeText = $("h1 a").eq(1).text();
+            let time_range;
+            if (rangeText.includes("Yesterday")) {
+                time_range = "yesterday";
+            }
+            else if (rangeText.includes("Past Year")) {
+                time_range = "past_year";
+            }
+            else if (rangeText.includes("Past Month")) {
+                time_range = "past_month";
+            }
+            else {
+                time_range = "all";
+            }
+            const current_page = parseInt($("table.ptt .ptds").text()) || 1;
+            const total_page = parseInt($("table.ptt td").eq(-2).text()) || 200;
+            return {
+                type,
+                time_range,
+                current_page,
+                total_page,
+                items: items
             };
         }
         default:
@@ -127,45 +185,61 @@ function parseList(html) {
     }
 }
 exports.parseList = parseList;
-function _parseListItems($) {
+function _parseListItems($, displayMode) {
+    switch (displayMode) {
+        case "minimal":
+            return _parseListMinimalItems($);
+        case "compact":
+            return _parseListCompactItems($);
+        case "extended":
+            return _parseListExtendedItems($);
+        case "thumbnail":
+            return _parseListThumbnailItems($);
+        default:
+            throw new Error("parseList Error: Unknown display mode");
+    }
+}
+function _parseListMinimalItems($) {
     const items = [];
-    if ($("table.itg.glte td").length <= 1)
+    if ($("table.itg.gltm > tbody > tr").length <= 1)
         return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-    $("table.itg.glte > tbody > tr").each((i, elem) => {
+    $("table.itg.gltm > tbody > tr").slice(1).each((i, elem) => {
         const tr = $(elem);
-        const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
-        const gl3eDivs = tr.find(".gl3e > div");
-        const category = gl3eDivs.eq(0).text();
-        const postedDiv = gl3eDivs.eq(1);
+        const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+        const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
+        const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
         const posted_time = new Date(postedDiv.text() + " GMT+0000");
         const visible = postedDiv.find("s").length === 0;
-        const favcat_title = postedDiv.attr("title")?.toLocaleLowerCase();
+        const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
         const favcatColor = postedDiv.attr("style")?.slice(13, 17);
         const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
-        const starStyle = gl3eDivs.eq(2).attr("style") || "";
+        const starStyle = tr.find(".glthumb .ir").attr("style") || "";
         const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
         const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
-        const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
-        const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
-        const length = parseInt(gl3eDivs.eq(4).text());
-        const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-        const favoritd_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
+        const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
+        const length = parseInt(tr.find(".glthumb .ir").next().text());
+        const torrent_available = tr.find(".gldown a").length > 0;
         const title = tr.find(".glink").text();
-        const url = tr.find(".gl2e > div > a").attr("href") || "";
+        const url = tr.find(".glname a").attr("href") || "";
+        const { gid, token } = extractGidToken(url);
         const taglist = [];
-        tr.find(".gl2e > div > a table tr").each((i, el) => {
-            const tr = $(el);
-            const namespace = tr.find("td").eq(0).text().slice(0, -1);
-            const tags = [];
-            tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
+        tr.find(".gltm .gt").each((i, el) => {
+            const text = $(el).attr("title") || "";
+            if (!text.includes(":"))
+                return;
+            const [a, b] = text.split(":");
             taglist.push({
-                namespace,
-                tags
+                namespace: a,
+                tag: b
             });
         });
-        const { gid, token } = extractGidToken(url);
+        // 只有favorites页面有favorited_time
+        const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
+        // favorites页面没有uploader
+        const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
         items.push({
+            type: "minimal",
             gid,
             token,
             url,
@@ -183,11 +257,237 @@ function _parseListItems($) {
             favcat,
             favcat_title,
             taglist,
-            favoritd_time: favoritd_time?.toISOString()
+            favorited_time: favorited_time?.toISOString()
         });
     });
     return items;
 }
+function _parseListCompactItems($) {
+    const items = [];
+    if ($("table.itg.gltc > tbody > tr").length <= 1)
+        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+    $("table.itg.gltc > tbody > tr").slice(1).each((i, elem) => {
+        const tr = $(elem);
+        const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+        const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
+        const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
+        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const visible = postedDiv.find("s").length === 0;
+        const favcat_title = postedDiv.attr("title");
+        const favorited = Boolean(favcat_title);
+        const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const starStyle = tr.find(".glthumb .ir").attr("style") || "";
+        const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
+        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
+        const length = parseInt(tr.find(".glthumb .ir").next().text());
+        const torrent_available = tr.find(".gldown a").length > 0;
+        const title = tr.find(".glink").text();
+        const url = tr.find(".glname a").attr("href") || "";
+        const { gid, token } = extractGidToken(url);
+        const taglist = [];
+        tr.find(".glink").next().find(".gt").each((i, el) => {
+            const text = $(el).attr("title") || "";
+            if (!text.includes(":"))
+                return;
+            const [a, b] = text.split(":");
+            taglist.push({
+                namespace: a,
+                tag: b
+            });
+        });
+        // 只有favorites页面有favorited_time
+        const favorited_time = (tr.find(".glfav").length > 0)
+            ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + " GMT+0000")
+            : undefined;
+        // favorites页面没有uploader
+        const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
+        items.push({
+            type: "compact",
+            gid,
+            token,
+            url,
+            title,
+            thumbnail_url,
+            category,
+            posted_time: posted_time.toISOString(),
+            visible,
+            estimated_display_rating,
+            is_my_rating,
+            uploader,
+            length,
+            torrent_available,
+            favorited,
+            favcat,
+            favcat_title,
+            taglist,
+            favorited_time: favorited_time?.toISOString()
+        });
+    });
+    return items;
+}
+function _parseListExtendedItems($) {
+    const items = [];
+    if ($("table.itg.glte td").length <= 1)
+        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+    $("table.itg.glte > tbody > tr").each((i, elem) => {
+        const tr = $(elem);
+        const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
+        const gl3eDivs = tr.find(".gl3e > div");
+        const category = gl3eDivs.eq(0).text();
+        const postedDiv = gl3eDivs.eq(1);
+        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const visible = postedDiv.find("s").length === 0;
+        const favcat_title = postedDiv.attr("title");
+        const favorited = Boolean(favcat_title);
+        const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const starStyle = gl3eDivs.eq(2).attr("style") || "";
+        const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
+        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
+        const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
+        const length = parseInt(gl3eDivs.eq(4).text());
+        const torrent_available = gl3eDivs.find(".gldown a").length > 0;
+        const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
+        const title = tr.find(".glink").text();
+        const url = tr.find(".gl2e > div > a").attr("href") || "";
+        const taglist = [];
+        tr.find(".gl2e > div > a table tr").each((i, el) => {
+            const tr = $(el);
+            const namespace = tr.find("td").eq(0).text().slice(0, -1);
+            const tags = [];
+            tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
+            taglist.push({
+                namespace,
+                tags
+            });
+        });
+        const { gid, token } = extractGidToken(url);
+        items.push({
+            type: "extended",
+            gid,
+            token,
+            url,
+            title,
+            thumbnail_url,
+            category,
+            posted_time: posted_time.toISOString(),
+            visible,
+            estimated_display_rating,
+            is_my_rating,
+            uploader,
+            length,
+            torrent_available,
+            favorited,
+            favcat,
+            favcat_title,
+            taglist,
+            favorited_time: favorited_time?.toISOString()
+        });
+    });
+    return items;
+}
+function _parseListThumbnailItems($) {
+    const items = [];
+    if ($("div.itg.gld > div").length <= 0)
+        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+    $("div.itg.gld > div").each((i, elem) => {
+        const div = $(elem);
+        const thumbnail_url = div.find(".gl3t img").attr("src") || "";
+        const category = div.find(".gl5t .cs").text();
+        const postedDiv = div.find(".gl5t .cs").next();
+        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const visible = postedDiv.find("s").length === 0;
+        const favcat_title = postedDiv.attr("title");
+        const favorited = Boolean(favcat_title);
+        const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const starStyle = div.find(".ir").attr("style") || "";
+        const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
+        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb");
+        const length = parseInt(div.find(".ir").next().text());
+        const torrent_available = div.find(".gldown a").length > 0;
+        const title = div.find(".glname a").text();
+        const url = div.find(".glname a").attr("href") || "";
+        const { gid, token } = extractGidToken(url);
+        const taglist = [];
+        div.find(".gl6t .gt").each((i, el) => {
+            const text = $(el).attr("title") || "";
+            if (!text.includes(":"))
+                return;
+            const [a, b] = text.split(":");
+            taglist.push({
+                namespace: a,
+                tag: b
+            });
+        });
+        items.push({
+            type: "thumbnail",
+            gid,
+            token,
+            url,
+            title,
+            thumbnail_url,
+            category,
+            posted_time: posted_time.toISOString(),
+            visible,
+            estimated_display_rating,
+            is_my_rating,
+            length,
+            torrent_available,
+            favorited,
+            favcat,
+            favcat_title,
+            taglist
+        });
+    });
+    return items;
+}
+function parseMyUpload(html) {
+    const $ = cheerio.load(html);
+    const items = [];
+    let folder_name = "";
+    $("form .s table > tbody > tr").slice(1).each((i, elem) => {
+        const tr = $(elem);
+        if (tr.attr("class")?.includes("gtr")) {
+            folder_name = tr.find("span").eq(0).text();
+            return;
+        }
+        else {
+            const title = tr.find(".gtc1 a").text();
+            const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
+            const { gid, token } = extractGidToken(url);
+            const added_time = new Date(tr.find(".gtc2").text() + " GMT+0000");
+            const length = parseInt(tr.find(".gtc3").text());
+            let public_category;
+            const public_category_text = tr.find(".gtc4").text();
+            if (public_category_text === "-") {
+                public_category = "Private";
+            }
+            else {
+                public_category = public_category_text;
+            }
+            items.push({
+                folder_name,
+                gid,
+                token,
+                url,
+                title,
+                added_time: added_time.toISOString(),
+                length,
+                public_category
+            });
+        }
+    });
+    return {
+        type: "upload",
+        items
+    };
+}
+exports.parseMyUpload = parseMyUpload;
 function parseGallery(html) {
     const $ = cheerio.load(html);
     const scriptText = $("script").eq(1).text();
@@ -214,7 +514,9 @@ function parseGallery(html) {
     if (visible) {
         invisible_cause = undefined;
     }
-    else if (invisible_cause_tmp === "expunged" || invisible_cause_tmp === "replaced") {
+    else if (invisible_cause_tmp === "expunged"
+        || invisible_cause_tmp === "replaced"
+        || invisible_cause_tmp === "private") {
         invisible_cause = invisible_cause_tmp;
     }
     else {
@@ -222,13 +524,24 @@ function parseGallery(html) {
     }
     const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)");
     const language = languageElement.contents().eq(0).text().trim();
-    const translated = languageElement.find("span").length > 0;
+    const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
+    const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
     const file_size = $("#gdd tr:nth-of-type(5) td:nth-of-type(2)").text();
     const length = parseInt($("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6));
     const rating_count = parseInt($("#rating_count").text());
     const ratingImageClassAttr = $("#rating_image").attr("class") || "";
     const is_my_rating = ratingImageClassAttr.includes("irb");
-    const favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
+    let favorite_count;
+    const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
+    if (favorite_count_text === "Never") {
+        favorite_count = 0;
+    }
+    else if (favorite_count_text === "Once") {
+        favorite_count = 1;
+    }
+    else {
+        favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
+    }
     let favorited;
     let favcat;
     let favcat_title;
@@ -435,6 +748,7 @@ function parseGallery(html) {
         invisible_cause,
         language,
         translated,
+        rewrited,
         file_size,
         length,
         rating_count,

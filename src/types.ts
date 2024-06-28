@@ -3,27 +3,34 @@ export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
 
 export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
 
-export type EHCategory = "Doujinshi" | "Manga" | "Artist CG" | "Game CG" | "Western"
+export type EHSearchedCategory = "Doujinshi" | "Manga" | "Artist CG" | "Game CG" | "Western"
   | "Non-H" | "Image Set" | "Cosplay" | "Asian Porn" | "Misc"
+
+export type EHCategory = EHSearchedCategory | "Private"
+
+export type EHListDisplayMode = "minimal" | "compact" | "extended" | "thumbnail"
 
 export interface EHFrontPageList {
   type: "front_page";
   prev_page_available: boolean;
   next_page_available: boolean;
   total_item_count: number;
-  items: EHListItem[];
+  display_mode: EHListDisplayMode;
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHWatchedList {
   type: "watched";
   prev_page_available: boolean;
   next_page_available: boolean;
-  items: EHListItem[];
+  display_mode: EHListDisplayMode;
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHPopularList {
   type: "popular";
-  items: EHListItem[];
+  display_mode: EHListDisplayMode;
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHFavoritesList {
@@ -31,14 +38,83 @@ export interface EHFavoritesList {
   prev_page_available: boolean;
   next_page_available: boolean;
   sort_order: "favorited_time" | "published_time";
-  items: EHListItem[];
+  display_mode: EHListDisplayMode;
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
   favcat_infos: {
     count: number;
     title: string;
   }[];
 }
 
-export interface EHListItem {
+export interface EHTopList {
+  type: "toplist";
+  time_range: "yesterday" | "past_month" | "past_year" | "all";
+  current_page: number; // 从1开始
+  total_page: number;
+  items: EHListCompactItem[];
+}
+
+export interface EHUploadList {
+  type: "upload";
+  items: {
+    folder_name: string;
+    gid: number;
+    token: string;
+    url: string;
+    title: string;
+    added_time: string;
+    length: number;
+    public_category: EHCategory; // 上传时的分类，有可能和正式的分类不同
+  }[];
+}
+
+export interface EHListMinimalItem {
+  // 同时作用于minimal和minimal+
+  type: "minimal";
+  gid: number;
+  token: string;
+  url: string;
+  title: string;
+  thumbnail_url: string;
+  category: EHCategory;
+  posted_time: string;
+  visible: boolean;
+  estimated_display_rating: number;
+  is_my_rating: boolean;
+  uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  length: number;
+  torrent_available: boolean;
+  favorited: boolean;
+  favcat?: number;
+  favcat_title?: string;
+  favorited_time?: string;
+  taglist: { namespace?: TagNamespace, tag: string }[]; // 只显示你关注的标签
+}
+
+export interface EHListCompactItem {
+  type: "compact";
+  gid: number;
+  token: string;
+  url: string;
+  title: string;
+  thumbnail_url: string;
+  category: EHCategory;
+  posted_time: string;
+  visible: boolean;
+  estimated_display_rating: number;
+  is_my_rating: boolean;
+  uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  length: number;
+  torrent_available: boolean;
+  favorited: boolean;
+  favcat?: number;
+  favcat_title?: string;
+  favorited_time?: string;
+  taglist: { namespace?: TagNamespace, tag: string }[]; // 他会显示你关注的标签，和一些其他标签但是不全
+}
+
+export interface EHListExtendedItem {
+  type: "extended";
   gid: number;
   token: string;
   url: string;
@@ -55,8 +131,30 @@ export interface EHListItem {
   favorited: boolean;
   favcat?: number;
   favcat_title?: string;
-  favoritd_time?: string;
+  favorited_time?: string;
   taglist: EHTagListItem[];
+}
+
+export interface EHListThumbnailItem {
+  type: "thumbnail";
+  gid: number;
+  token: string;
+  url: string;
+  title: string;
+  thumbnail_url: string;
+  category: EHCategory;
+  posted_time: string;
+  visible: boolean;
+  estimated_display_rating: number;
+  is_my_rating: boolean;
+ // uploader?: string; // ThumbnailItem不显示uploader
+  length: number;
+  torrent_available: boolean;
+  favorited: boolean;
+  favcat?: number;
+  favcat_title?: string;
+  // favorited_time?: string; // ThumbnailItem不显示favorited_time
+  taglist: { namespace?: TagNamespace, tag: string }[]; // 只会显示你关注的标签
 }
 
 export interface EHGallery {
@@ -64,7 +162,7 @@ export interface EHGallery {
   token: string;
   apiuid: number;
   apikey: string;
-  archiver_or: string;
+  archiver_or: string; // 用于打开归档页面的参数
   english_title: string;
   japanese_title: string;
   thumbnail_url: string;
@@ -73,9 +171,10 @@ export interface EHGallery {
   posted_time: string;
   parent_url?: string;
   visible: boolean;
-  invisible_cause?: "expunged" | "replaced" | "unknown";
+  invisible_cause?: "expunged" | "replaced" | "private" | "unknown";
   language: string;
   translated: boolean;
+  rewrited: boolean;
   file_size: string;
   length: number;
   rating_count: number;
@@ -157,7 +256,7 @@ export interface EHArchive {
   }[]
 }
 
-export interface SearchOptions {
+export interface EHSearchOptions {
   searchTerms?: {
     namespace?: TagNamespace | EHQualifier;
     term: string;
@@ -165,7 +264,7 @@ export interface SearchOptions {
     exclude: boolean;
     or: boolean;
   }[]
-  filteredCategories?: EHCategory[];
+  filteredCategories?: EHSearchedCategory[];
   browseExpungedGalleries?: boolean;
   requireGalleryTorrent?: boolean;
   minimumPages?: number;
@@ -184,7 +283,7 @@ export interface SearchOptions {
   seek?: Date; // 必须和prev或next一起使用
 }
 
-export interface FavoriteSearchOptions {
+export interface EHFavoriteSearchOptions {
   searchTerms?: {
     namespace?: TagNamespace | EHQualifier;
     term: string;
@@ -203,7 +302,7 @@ export interface FavoriteSearchOptions {
   seek?: Date; // 必须和prev或next一起使用
 }
 
-export interface SearchParams {
+export interface EHSearchParams {
   f_cats?: number;
   f_search?: string;
   advsearch?: 1;
@@ -222,7 +321,7 @@ export interface SearchParams {
   seek?: string; // 2024-03-04
 }
 
-export interface FavoriteSearchParams {
+export interface EHFavoriteSearchParams {
   f_search?: string;
   favcat?: number;
   range?: number // range 1-99
