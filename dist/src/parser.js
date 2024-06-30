@@ -507,6 +507,13 @@ function parseGallery(html) {
     const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + " GMT+0000");
     const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
     const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
+    let parent_gid = undefined;
+    let parent_token = undefined;
+    if (parent_url) {
+        const r = extractGidToken(parent_url);
+        parent_gid = r.gid;
+        parent_token = r.token;
+    }
     const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
     const visible = visible_text === "Yes";
     let invisible_cause;
@@ -743,7 +750,8 @@ function parseGallery(html) {
         category,
         uploader,
         posted_time: posted_time.toISOString(),
-        parent_url,
+        parent_gid,
+        parent_token,
         visible,
         invisible_cause,
         language,

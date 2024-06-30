@@ -169,7 +169,8 @@ export interface EHGallery {
   category: EHCategory;
   uploader?: string;
   posted_time: string;
-  parent_url?: string;
+  parent_gid?: number;
+  parent_token?: string;
   visible: boolean;
   invisible_cause?: "expunged" | "replaced" | "private" | "unknown";
   language: string;
