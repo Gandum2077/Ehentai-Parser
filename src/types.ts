@@ -85,7 +85,7 @@ export interface EHListMinimalItem {
   length: number;
   torrent_available: boolean;
   favorited: boolean;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   favcat_title?: string;
   favorited_time?: string;
   taglist: { namespace?: TagNamespace, tag: string }[]; // 只显示你关注的标签
@@ -107,7 +107,7 @@ export interface EHListCompactItem {
   length: number;
   torrent_available: boolean;
   favorited: boolean;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   favcat_title?: string;
   favorited_time?: string;
   taglist: { namespace?: TagNamespace, tag: string }[]; // 他会显示你关注的标签，和一些其他标签但是不全
@@ -129,7 +129,7 @@ export interface EHListExtendedItem {
   length: number;
   torrent_available: boolean;
   favorited: boolean;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   favcat_title?: string;
   favorited_time?: string;
   taglist: EHTagListItem[];
@@ -151,7 +151,7 @@ export interface EHListThumbnailItem {
   length: number;
   torrent_available: boolean;
   favorited: boolean;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   favcat_title?: string;
   // favorited_time?: string; // ThumbnailItem不显示favorited_time
   taglist: { namespace?: TagNamespace, tag: string }[]; // 只会显示你关注的标签
@@ -184,7 +184,7 @@ export interface EHGallery {
   is_my_rating: boolean;
   favorite_count: number;
   favorited: boolean;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   favcat_title?: string;
 
   taglist: EHTagListItem[];
@@ -292,7 +292,7 @@ export interface EHFavoriteSearchOptions {
     exclude: boolean;
     or: boolean;
   }[]
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
   minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
   maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
@@ -324,7 +324,7 @@ export interface EHSearchParams {
 
 export interface EHFavoriteSearchParams {
   f_search?: string;
-  favcat?: number;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   range?: number // range 1-99
   prev?: number; // gid must be greater than prev
   next?: number; // gid must be smaller than next
