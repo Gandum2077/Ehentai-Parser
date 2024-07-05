@@ -238,6 +238,7 @@ function _parseListMinimalItems($) {
         const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
         // favorites页面没有uploader
         const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
+        const disowned = Boolean(favorited_time) && !Boolean(uploader);
         items.push({
             type: "minimal",
             gid,
@@ -251,6 +252,7 @@ function _parseListMinimalItems($) {
             estimated_display_rating,
             is_my_rating,
             uploader,
+            disowned,
             length,
             torrent_available,
             favorited,
@@ -303,6 +305,7 @@ function _parseListCompactItems($) {
             : undefined;
         // favorites页面没有uploader
         const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
+        const disowned = Boolean(favorited_time) && !Boolean(uploader);
         items.push({
             type: "compact",
             gid,
@@ -316,6 +319,7 @@ function _parseListCompactItems($) {
             estimated_display_rating,
             is_my_rating,
             uploader,
+            disowned,
             length,
             torrent_available,
             favorited,
@@ -348,6 +352,7 @@ function _parseListExtendedItems($) {
         const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
         const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
         const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
+        const disowned = !Boolean(uploader);
         const length = parseInt(gl3eDivs.eq(4).text());
         const torrent_available = gl3eDivs.find(".gldown a").length > 0;
         const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
@@ -378,6 +383,7 @@ function _parseListExtendedItems($) {
             estimated_display_rating,
             is_my_rating,
             uploader,
+            disowned,
             length,
             torrent_available,
             favorited,
@@ -504,6 +510,7 @@ function parseGallery(html) {
     const thumbnail_url = /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
     const category = $("#gdc").text();
     const uploader = ($("#gdn a").length > 0) ? $("#gdn a").text() : undefined;
+    const disowned = !Boolean(uploader);
     const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + " GMT+0000");
     const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
     const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
@@ -749,6 +756,7 @@ function parseGallery(html) {
         thumbnail_url,
         category,
         uploader,
+        disowned,
         posted_time: posted_time.toISOString(),
         parent_gid,
         parent_token,

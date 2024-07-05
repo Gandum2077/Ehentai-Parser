@@ -82,6 +82,7 @@ export interface EHListMinimalItem {
   estimated_display_rating: number;
   is_my_rating: boolean;
   uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  disowned: boolean;
   length: number;
   torrent_available: boolean;
   favorited: boolean;
@@ -104,6 +105,7 @@ export interface EHListCompactItem {
   estimated_display_rating: number;
   is_my_rating: boolean;
   uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  disowned: boolean;
   length: number;
   torrent_available: boolean;
   favorited: boolean;
@@ -126,6 +128,7 @@ export interface EHListExtendedItem {
   estimated_display_rating: number;
   is_my_rating: boolean;
   uploader?: string;
+  disowned: boolean;
   length: number;
   torrent_available: boolean;
   favorited: boolean;
@@ -168,6 +171,7 @@ export interface EHGallery {
   thumbnail_url: string;
   category: EHCategory;
   uploader?: string;
+  disowned: boolean;
   posted_time: string;
   parent_gid?: number;
   parent_token?: string;
