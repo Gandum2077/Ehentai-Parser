@@ -50,6 +50,18 @@ function extractGidToken(url) {
         };
     }
 }
+function sortTaglist(unsorted) {
+    const taglist = [];
+    const namespaces = [...new Set(unsorted.map(x => x.namespace))];
+    for (const namespace of namespaces) {
+        const tags = unsorted.filter(x => x.namespace === namespace).map(x => x.tag);
+        taglist.push({
+            namespace,
+            tags
+        });
+    }
+    return taglist;
+}
 function parseList(html) {
     const $ = cheerio.load(html);
     let type;
@@ -223,13 +235,13 @@ function _parseListMinimalItems($) {
         const title = tr.find(".glink").text();
         const url = tr.find(".glname a").attr("href") || "";
         const { gid, token } = extractGidToken(url);
-        const taglist = [];
+        const taglistUnsorted = [];
         tr.find(".gltm .gt").each((i, el) => {
             const text = $(el).attr("title") || "";
             if (!text.includes(":"))
                 return;
             const [a, b] = text.split(":");
-            taglist.push({
+            taglistUnsorted.push({
                 namespace: a,
                 tag: b
             });
@@ -258,7 +270,7 @@ function _parseListMinimalItems($) {
             favorited,
             favcat,
             favcat_title,
-            taglist,
+            taglist: sortTaglist(taglistUnsorted),
             favorited_time: favorited_time?.toISOString()
         });
     });
@@ -288,13 +300,13 @@ function _parseListCompactItems($) {
         const title = tr.find(".glink").text();
         const url = tr.find(".glname a").attr("href") || "";
         const { gid, token } = extractGidToken(url);
-        const taglist = [];
+        const taglistUnsorted = [];
         tr.find(".glink").next().find(".gt").each((i, el) => {
             const text = $(el).attr("title") || "";
             if (!text.includes(":"))
                 return;
             const [a, b] = text.split(":");
-            taglist.push({
+            taglistUnsorted.push({
                 namespace: a,
                 tag: b
             });
@@ -325,7 +337,7 @@ function _parseListCompactItems($) {
             favorited,
             favcat,
             favcat_title,
-            taglist,
+            taglist: sortTaglist(taglistUnsorted),
             favorited_time: favorited_time?.toISOString()
         });
     });
@@ -419,13 +431,13 @@ function _parseListThumbnailItems($) {
         const title = div.find(".glname a").text();
         const url = div.find(".glname a").attr("href") || "";
         const { gid, token } = extractGidToken(url);
-        const taglist = [];
+        const taglistUnsorted = [];
         div.find(".gl6t .gt").each((i, el) => {
             const text = $(el).attr("title") || "";
             if (!text.includes(":"))
                 return;
             const [a, b] = text.split(":");
-            taglist.push({
+            taglistUnsorted.push({
                 namespace: a,
                 tag: b
             });
@@ -442,12 +454,13 @@ function _parseListThumbnailItems($) {
             visible,
             estimated_display_rating,
             is_my_rating,
+            disowned: false,
             length,
             torrent_available,
             favorited,
             favcat,
             favcat_title,
-            taglist
+            taglist: sortTaglist(taglistUnsorted)
         });
     });
     return items;

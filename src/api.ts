@@ -125,20 +125,19 @@ function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   if (options.minimumGid && options.maximumGid) {
     throw new Error("prev和next参数不能同时使用");
   }
-  if ((options.jump || options.seek) && !(options.minimumGid || options.maximumGid)) {
-    throw new Error("jump和seek参数必须和prev或next参数一起使用");
-  }
   if (options.jump && options.seek) {
     throw new Error("jump和seek参数不能同时使用");
   }
-
+  if (options.seek && /^\d\d\d\d-\d\d-\d\d$/.exec(options.seek) === null) {
+    throw new Error("seek参数必须是一个符合格式的日期字符串");
+  }
   const f_search = _assembleSearchTerms(options.searchTerms);
   const favcat = options.favcat;
   const range = options.range || undefined;
   const prev = options.minimumGid || undefined;
   const next = options.maximumGid || undefined;
   const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
-  const seek = options.seek ? _formatUTCDate(options.seek) : undefined;
+  const seek = options.seek
 
   const params: EHFavoriteSearchParams = {
     f_search,

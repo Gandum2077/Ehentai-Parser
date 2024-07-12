@@ -50,6 +50,18 @@ function extractGidToken(url: string): { gid: number, token: string } {
   }
 }
 
+function sortTaglist(unsorted: { namespace: TagNamespace, tag: string }[]): EHTagListItem[] {
+  const taglist: EHTagListItem[] = [];
+  const namespaces = [...new Set(unsorted.map(x => x.namespace))]
+  for (const namespace of namespaces) {
+    const tags = unsorted.filter(x => x.namespace === namespace).map(x => x.tag);
+    taglist.push({
+      namespace,
+      tags
+    });
+  }
+  return taglist;
+}
 export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPopularList | EHFavoritesList | EHTopList {
   const $ = cheerio.load(html);
 
@@ -216,16 +228,17 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
     const title = tr.find(".glink").text();
     const url = tr.find(".glname a").attr("href") || "";
     const { gid, token } = extractGidToken(url);
-    const taglist: { namespace?: TagNamespace, tag: string }[] = []
+    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = []
     tr.find(".gltm .gt").each((i, el) => {
       const text = $(el).attr("title") || "";
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
-      taglist.push({
+      taglistUnsorted.push({
         namespace: a as TagNamespace,
         tag: b
       });
     })
+
     // 只有favorites页面有favorited_time
     const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
     // favorites页面没有uploader
@@ -250,7 +263,7 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
       favorited,
       favcat,
       favcat_title,
-      taglist,
+      taglist: sortTaglist(taglistUnsorted),
       favorited_time: favorited_time?.toISOString()
     });
   })
@@ -280,12 +293,12 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
     const title = tr.find(".glink").text();
     const url = tr.find(".glname a").attr("href") || "";
     const { gid, token } = extractGidToken(url);
-    const taglist: { namespace?: TagNamespace, tag: string }[] = []
+    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = []
     tr.find(".glink").next().find(".gt").each((i, el) => {
       const text = $(el).attr("title") || "";
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
-      taglist.push({
+      taglistUnsorted.push({
         namespace: a as TagNamespace,
         tag: b
       });
@@ -316,7 +329,7 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
       favorited,
       favcat,
       favcat_title,
-      taglist,
+      taglist: sortTaglist(taglistUnsorted),
       favorited_time: favorited_time?.toISOString()
     });
   })
@@ -410,12 +423,12 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
     const title = div.find(".glname a").text();
     const url = div.find(".glname a").attr("href") || "";
     const { gid, token } = extractGidToken(url);
-    const taglist: { namespace?: TagNamespace, tag: string }[] = [];
+    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = [];
     div.find(".gl6t .gt").each((i, el) => {
       const text = $(el).attr("title") || "";
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
-      taglist.push({
+      taglistUnsorted.push({
         namespace: a as TagNamespace,
         tag: b
       });
@@ -432,12 +445,13 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
       visible,
       estimated_display_rating,
       is_my_rating,
+      disowned: false,
       length,
       torrent_available,
       favorited,
       favcat,
       favcat_title,
-      taglist
+      taglist: sortTaglist(taglistUnsorted)
     });
   })
   return items

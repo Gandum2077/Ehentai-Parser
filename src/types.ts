@@ -68,96 +68,56 @@ export interface EHUploadList {
   }[];
 }
 
-export interface EHListMinimalItem {
+interface EHItemBase {
+  type: string;
+  gid: number;
+  token: string;
+  url: string;
+  title: string;
+  thumbnail_url: string;
+  category: EHCategory;
+  posted_time: string;
+  visible: boolean;
+  estimated_display_rating: number;
+  is_my_rating: boolean;
+  length: number;
+  torrent_available: boolean;
+  favorited: boolean;
+  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  favcat_title?: string;
+}
+
+export interface EHListMinimalItem extends EHItemBase {
   // 同时作用于minimal和minimal+
   type: "minimal";
-  gid: number;
-  token: string;
-  url: string;
-  title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  posted_time: string;
-  visible: boolean;
-  estimated_display_rating: number;
-  is_my_rating: boolean;
   uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
   disowned: boolean;
-  length: number;
-  torrent_available: boolean;
-  favorited: boolean;
-  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  favcat_title?: string;
   favorited_time?: string;
-  taglist: { namespace?: TagNamespace, tag: string }[]; // 只显示你关注的标签
+  taglist: EHTagListItem[]; // 只显示你关注的标签
 }
 
-export interface EHListCompactItem {
+export interface EHListCompactItem extends EHItemBase {
   type: "compact";
-  gid: number;
-  token: string;
-  url: string;
-  title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  posted_time: string;
-  visible: boolean;
-  estimated_display_rating: number;
-  is_my_rating: boolean;
   uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
   disowned: boolean;
-  length: number;
-  torrent_available: boolean;
-  favorited: boolean;
-  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  favcat_title?: string;
   favorited_time?: string;
-  taglist: { namespace?: TagNamespace, tag: string }[]; // 他会显示你关注的标签，和一些其他标签但是不全
+  taglist: EHTagListItem[]; // 会显示你关注的标签，和一些其他标签但是不全
 }
 
-export interface EHListExtendedItem {
+export interface EHListExtendedItem extends EHItemBase {
   type: "extended";
-  gid: number;
-  token: string;
-  url: string;
-  title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  posted_time: string;
-  visible: boolean;
-  estimated_display_rating: number;
-  is_my_rating: boolean;
   uploader?: string;
   disowned: boolean;
-  length: number;
-  torrent_available: boolean;
-  favorited: boolean;
-  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  favcat_title?: string;
   favorited_time?: string;
   taglist: EHTagListItem[];
 }
 
-export interface EHListThumbnailItem {
+export interface EHListThumbnailItem extends EHItemBase {
   type: "thumbnail";
-  gid: number;
-  token: string;
-  url: string;
-  title: string;
-  thumbnail_url: string;
-  category: EHCategory;
-  posted_time: string;
-  visible: boolean;
-  estimated_display_rating: number;
-  is_my_rating: boolean;
- // uploader?: string; // ThumbnailItem不显示uploader
-  length: number;
-  torrent_available: boolean;
-  favorited: boolean;
-  favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  favcat_title?: string;
+  // uploader?: string; // ThumbnailItem不显示uploader
+  disowned: boolean; // ThumbnailItem不显示disowned，为保持兼容其值为false
   // favorited_time?: string; // ThumbnailItem不显示favorited_time
-  taglist: { namespace?: TagNamespace, tag: string }[]; // 只会显示你关注的标签
+  taglist: EHTagListItem[]; // 只会显示你关注的标签
 }
 
 export interface EHGallery {
@@ -303,8 +263,8 @@ export interface EHFavoriteSearchOptions {
   jump?: {
     value: number;
     unit: "d" | "w" | "m" | "y";
-  }; // 必须和prev或next一起使用，基点是prev或next的图库的日期
-  seek?: Date; // 必须和prev或next一起使用
+  }; // 如果和prev或next一起使用，基点是prev或next的图库的日期
+  seek?: string; // 2024-03-04
 }
 
 export interface EHSearchParams {
