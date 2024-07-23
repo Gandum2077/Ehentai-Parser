@@ -193,7 +193,7 @@ export interface EHGalleryCommentItem {
   };
   is_my_comment?: boolean;
   voteable?: boolean;
-  my_vote?: number;
+  my_vote?: 1 | -1;
 }
 
 export interface EHMPV {
@@ -210,6 +210,31 @@ export interface EHMPVImageItem {
   thumbnail_url: string;
 }
 
+export interface EHPage {
+  imageUrl: string;
+  size: {
+    width: number;
+    height: number;
+  };
+  fileSize: string;
+  fullSizeUrl: string;
+  fullSize: {
+    width: number;
+    height: number;
+  };
+  fullFileSize: string;
+  reloadKey: string;
+}
+
+export interface EHFavoriteInfo {
+  favcat_titles: string[];
+  favorited: boolean;
+  selected_favcat: number;
+  favnote: string;
+  num_of_favnote_slots: number;
+  num_of_favnote_slots_used: number;
+}
+
 export interface EHArchive {
   gid: number;
   token: string;
@@ -218,6 +243,24 @@ export interface EHArchive {
     solution: string;
     size: string;
     price: string;
+  }[]
+}
+
+export interface EHMyTags {
+  tagsets: {
+    value: number;
+    name: string;
+    selected: boolean
+  }[];
+  enabled: boolean;
+  defaultColorHexCode?: string;
+  tags: {
+    namespace: TagNamespace;
+    tag: string;
+    watched: boolean;
+    hidden: boolean;
+    colorHexCode?: string;
+    weight: number;
   }[]
 }
 
@@ -245,7 +288,7 @@ export interface EHSearchOptions {
     value: number;
     unit: "d" | "w" | "m" | "y";
   }; // 必须和prev或next一起使用，基点是prev或next的图库的日期
-  seek?: Date; // 必须和prev或next一起使用
+  seek?: string; // 2024-03-04
 }
 
 export interface EHFavoriteSearchOptions {

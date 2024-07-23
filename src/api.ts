@@ -1,13 +1,18 @@
 import Url from 'url-parse'
 import { get, post } from './request'
-import { 
-  parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo, 
-  parseArchiveResult, parseMyUpload 
+import {
+  parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo,
+  parseArchiveResult, parseMyUpload,
+  parseMytags
 } from './parser'
 import {
   EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, EHCategory, EHQualifier, TagNamespace,
-  EHSearchOptions, EHFavoriteSearchOptions, EHSearchParams, EHFavoriteSearchParams
+  EHSearchOptions, EHFavoriteSearchOptions, EHSearchParams, EHFavoriteSearchParams,
+  EHPage,
+  EHTopList,
+  EHUploadList
 } from './types'
+import { EHAPIError } from './error'
 
 function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
   const u = new Url(url, true)
@@ -41,13 +46,6 @@ function _assembleSearchTerms(searchTerms: EHSearchOptions['searchTerms']) {
     if (searchTerm.or) result = `~${result}`;
     return result;
   }).join(" ");
-}
-
-function _formatUTCDate(date: Date) {
-  const year = date.getUTCFullYear(); // 获取年份
-  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0'); // 获取月份，加1后转为两位字符串
-  const day = date.getUTCDate().toString().padStart(2, '0'); // 获取日期，转为两位字符串
-  return `${year}-${month}-${day}`; // 使用模板字符串拼接
 }
 
 // SearchOptions to SearchParams
@@ -93,7 +91,7 @@ function _searchOptionsToParams(options: EHSearchOptions) {
   const prev = options.minimumGid || undefined;
   const next = options.maximumGid || undefined;
   const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
-  const seek = options.seek ? _formatUTCDate(options.seek) : undefined;
+  const seek = options.seek || undefined;
 
   // 返回搜索参数，但是要删除所有值为undefined的键
   const params: EHSearchParams = {
@@ -174,7 +172,8 @@ export class EHentaiApiHandler {
       api: `https://e${t}hentai.org/api.php`,
       gallerypopups: `https://e${t}hentai.org/gallerypopups.php`,
       toplist: "https://e-hentai.org/toplist.php",
-      upload: `https://upld.e-hentai.org/manage?ss=d&sd=d` // 自带按时间降序排序
+      upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
+      mytags: `https://e${t}hentai.org/mytags`
     }
   }
 
@@ -188,28 +187,54 @@ export class EHentaiApiHandler {
     return text
   }
 
+  /**
+   * 获取首页信息 https://e-hentai.org/
+   * @param options EHSearchOptions
+   * @returns EHFrontPageList
+   */
   async getFrontPageInfo(options: EHSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFrontPageList
   }
+
+  /**
+   * 获取订阅信息 https://e-hentai.org/watched
+   * @param options EHSearchOptions
+   * @returns EHWatchedList
+   */
   async getWatchedInfo(options: EHSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHWatchedList
   }
 
+  /**
+   * 获取当前热门信息 https://e-hentai.org/popular
+   * @returns EHPopularList
+   */
   async getPopularInfo() {
     const text = await this._getHtml(this.urls.watched)
     return parseList(text) as EHPopularList
   }
 
+  /**
+   * 获取收藏页信息 https://e-hentai.org/favorites.php
+   * @param options EHFavoriteSearchOptions
+   * @returns EHFavoritesList
+   */
   async getFavoritesInfo(options: EHFavoriteSearchOptions = {}) {
     const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFavoritesList
   }
 
+  /**
+   * 获取排行榜信息 https://e-hentai.org/toplist.php
+   * @param timeRange "yesterday" | "past_month" | "past_year" | "all"
+   * @param page 从0开始
+   * @returns EHTopList
+   */
   async getTopListInfo(timeRange: "yesterday" | "past_month" | "past_year" | "all", page: number) {
     const map = {
       "yesterday": 15,
@@ -217,34 +242,68 @@ export class EHentaiApiHandler {
       "past_year": 12,
       "all": 11
     }
-    const url = _updateUrlQuery(this.urls.toplist, { p: page - 1 || undefined, tl: map[timeRange] }, true)
+    const url = _updateUrlQuery(this.urls.toplist, { p: page || undefined, tl: map[timeRange] }, true)
     const text = await this._getHtml(url)
-    return parseList(text)
+    return parseList(text) as EHTopList
   }
 
+  /**
+   * 获取我的上传信息 https://upld.e-hentai.org/manage?ss=d&sd=d
+   * @returns EHUploadList
+   */
   async getUploadInfo() {
     const text = await this._getHtml(this.urls.upload)
-    return parseMyUpload(text)
+    return parseMyUpload(text) as EHUploadList
   }
 
-  async getGalleryInfo(gid: number, token: string, fullComments: boolean = true) {
-    const url = fullComments ? this.urls.default + `g/${gid}/${token}/?hc=1` : this.urls.default + `g/${gid}/${token}/`;
+  /**
+   * 获取画廊信息 https://e-hentai.org/g/{gid}/{token}/
+   * @param gid
+   * @param token
+   * @param fullComments 是否获取完整评论
+   * @param page 缩略图页码，从0开始
+   * @returns EHGallery
+   */
+  async getGalleryInfo(gid: number, token: string, fullComments: boolean, page: number = 0) {
+    const baseUrl = this.urls.default + `g/${gid}/${token}/`;
+    const url = _updateUrlQuery(baseUrl, { hc: fullComments ? 1 : undefined, p: page || undefined }, true)
     const text = await this._getHtml(url)
     return parseGallery(text)
   }
 
+  /**
+   * 获取MPV页面信息 https://e-hentai.org/mpv/{gid}/{token}/
+   * @param gid
+   * @param token
+   * @returns EHMPV
+   */
   async getMPVInfo(gid: number, token: string) {
     const url = this.urls.default + `mpv/${gid}/${token}/`;
     const text = await this._getHtml(url)
     return parseMPV(text)
   }
 
-  async getPageInfo(gid: number, imgkey: string, page: number) {
-    const url = this.urls.default + `s/${imgkey}/${gid}-${page}`;
+  /**
+   * 获取某一页信息 https://e-hentai.org/s/{imgkey}/{gid}-{page}
+   * @param gid
+   * @param imgkey
+   * @param page
+   * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
+   * @returns EHPage
+   */
+  async getPageInfo(gid: number, imgkey: string, page: number, reloadKey?: string) {
+    const url = this.urls.default + `s/${imgkey}/${gid}-${page}` + (reloadKey ? `?nl=${reloadKey}` : "");
     const text = await this._getHtml(url)
     return parsePageInfo(text)
   }
 
+  /**
+   * 获取归档页信息 https://e-hentai.org/archiver.php?gid={gid}&token={token}&or={or}
+   * @param gid
+   * @param token
+   * @param or 此or参数是从getGalleryInfo中获取的
+   * @returns EHArchive
+   */
   async getArchiverInfo(gid: number, token: string, or: string) {
     const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
     const text = await this._getHtml(url)
@@ -252,9 +311,60 @@ export class EHentaiApiHandler {
   }
 
   /**
-   * 重要参数：
+   * 启动Hath下载 https://e-hentai.org/archiver.php?gid={gid}&token={token}&or={or}
+   * @param gid 
+   * @param token 
+   * @param or 此or参数是从getArchiverInfo中获取的，和getGalleryInfo中的or参数不同
+   * @param xres 
+   * @returns 
+   */
+  async startHathDownload(
+    gid: number,
+    token: string,
+    or: string,
+    xres: string
+  ): Promise<"success" | "offline" | "no-hath"> {
+    const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body = {
+      hathdl_xres: xres,
+    };
+    const resp = await post(url, header, body, 10);
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "启动Hath下载失败",
+      resp.statusCode,
+      `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`
+    )
+    const html = await resp.text();
+    const { message } = parseArchiveResult(html);
+    let result: "success" | "offline" | "no-hath";
+    if (message === 'You must have a H@H client assigned to your account to use this feature.') {
+      result = "no-hath";
+    } else if (message === 'Your H@H client appears to be offline.') {
+      result = "offline";
+    } else if (message.includes("download has been queued")) {
+      result = "success";
+    } else {
+      throw new EHAPIError(
+        "启动Hath下载失败",
+        resp.statusCode,
+        `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\n原始回复: ${message}`
+      )
+    }
+    return result
+  }
+
+  /**
+   * 获取配置信息 https://e-hentai.org/uconfig.php
+   * 返回值中的重要参数：
    * dm: "2" 代表使用Extended模式
    * ts: "1" 代表thumbnail的size为large
+   * xu: string 每一行代表一个屏蔽的上传者
+   * favorite_0: string 收藏夹名称（后续的数字代表favcat）
    */
   async getConfig() {
     const header = {
@@ -266,6 +376,12 @@ export class EHentaiApiHandler {
     return parseConfig(text)
   }
 
+  /**
+   * 提交配置信息 https://e-hentai.org/uconfig.php
+   * 需要提交全部参数。所以需要先获取配置信息，然后修改后再提交
+   * @param config
+   * @returns boolean
+   */
   async postConfig(config: Record<string, string>) {
     const header = {
       "User-Agent": this.ua,
@@ -273,22 +389,56 @@ export class EHentaiApiHandler {
       "Cookie": this.cookie
     }
     const resp = await post(this.urls.config, header, config, 10)
-    return resp.statusCode === 200
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "提交配置信息失败",
+      resp.statusCode,
+      `提交配置信息失败，状态码：${resp.statusCode}，提交的配置信息：\n${JSON.stringify(config, null, 2)}`
+    )
+    return true
   }
 
-  async setFavoritesSortOrder(sortOrder: "f" | "p") {
+  /**
+   * 获取我的标签信息 https://e-hentai.org/mytags
+   * @returns EHMytags
+   */
+  async getMytags() {
+    const header = {
+      "User-Agent": this.ua,
+      "Cookie": this.cookie
+    }
+    const resp = await get(this.urls.mytags, header, 10)
+    const text = await resp.text()
+    return parseMytags(text)
+  }
+
+  /**
+   * 设置收藏页排序方式
+   * @param sortOrder "favorited_time" 代表按收藏时间排序，"published_time" 代表按发布时间排序
+   * @returns boolean
+   */
+  async setFavoritesSortOrder(sortOrder: "favorited_time" | "published_time") {
     const url = _updateUrlQuery(this.urls.favorites, {
-      inline_set: sortOrder === "f" ? "fs_f" : "fs_p"
+      inline_set: sortOrder === "favorited_time" ? "fs_f" : "fs_p"
     });
     const header = {
       "User-Agent": this.ua,
       "Cookie": this.cookie
     }
     var resp = await get(url, header, 10);
-    return resp.statusCode === 200;
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "设置收藏页排序方式失败",
+      resp.statusCode,
+      `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}`
+    )
+    return true;
   }
 
-
+  /**
+   * 获取收藏页的favcat和favnote信息
+   * @param gid
+   * @param token
+   * @returns EHFavoriteInfo
+   */
   async getFavcatFavnote(gid: number, token: string) {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
@@ -303,8 +453,15 @@ export class EHentaiApiHandler {
     const text = await resp.text()
     return parseFavcatFavnote(text);
   }
-
-  async addFav(gid: number, token: string, favcat: number, favnote: string = "") {
+  /**
+   * 添加或修改收藏
+   * @param gid 
+   * @param token 
+   * @param favcat 
+   * @param favnote 
+   * @returns boolean
+   */
+  async addOrModifyFav(gid: number, token: string, favcat: number, favnote: string = "") {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
       t: token,
@@ -321,9 +478,20 @@ export class EHentaiApiHandler {
       update: "1"
     }
     const resp = await post(url, header, body, 10);
-    return resp.statusCode === 200;
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "添加或修改收藏失败",
+      resp.statusCode,
+      `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`
+    )
+    return true;
   }
 
+  /**
+   * 删除收藏
+   * @param gid 
+   * @param token 
+   * @returns boolean
+   */
   async deleteFav(gid: number, token: string) {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
@@ -341,9 +509,23 @@ export class EHentaiApiHandler {
       update: "1"
     }
     const resp = await post(url, header, body, 10);
-    return resp.statusCode === 200;
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "删除收藏失败",
+      resp.statusCode,
+      `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`
+    )
+    return true;
   }
 
+  /**
+   * 给画廊评分
+   * @param gid 
+   * @param token 
+   * @param apikey
+   * @param apiuid
+   * @param rating 0.5-5，代表0.5-5星 
+   * @returns boolean
+   */
   async rateGallery(
     gid: number,
     token: string,
@@ -366,9 +548,21 @@ export class EHentaiApiHandler {
       token: token
     };
     const resp = await post(this.urls.api, header, body, 10);
-    return resp.statusCode === 200;
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "评分失败",
+      resp.statusCode,
+      `评分失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`
+    )
+    return true;
   }
 
+  /**
+   * 发布评论
+   * @param gid 
+   * @param token 
+   * @param text 
+   * @returns EHGallery
+   */
   async postNewComment(gid: number, token: string, text: string) {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const header = {
@@ -378,55 +572,68 @@ export class EHentaiApiHandler {
     };
     const body = { commenttext_new: text };
     const resp = await post(gallery_url, header, body, 10);
-    if (resp.statusCode === 200) {
-      const text = await resp.text()
-      return {
-        success: true,
-        infos: parseGallery(text)
-      };
-    } else {
-      return {
-        success: false
-      };
-    }
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "发布评论失败",
+      resp.statusCode,
+      `发布评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`
+    )
+    const html = await resp.text()
+    return parseGallery(html)
   }
 
-  async getEditComment(
-    gid: number,
-    token: string,
-    apikey: number,
-    apiuid: string,
-    comment_id: string
-  ) {
-    const header = {
-      "User-Agent": this.ua,
-      "Content-Type": "application/json",
-      Cookie: this.cookie
-    };
-    const body = {
-      method: "geteditcomment",
-      apiuid: apiuid,
-      apikey: apikey,
-      gid: gid,
-      token: token,
-      comment_id: comment_id
-    };
-    const resp = await post(this.urls.api, header, body, 10);
-    const success = resp.statusCode === 200;
-    if (success) {
-      const data = await resp.json();
-      return {
-        success: true,
-        editable_comment: data.editable_comment,
-        comment_id: data.comment_id
-      };
-    } else {
-      return {
-        success: false
-      };
-    }
-  }
+  // 此步骤是非必须的，因为在获取画廊信息时已经包含了comment_id，因此删除
+  // /**
+  //  * 获取已发表的评论
+  //  * @param gid 
+  //  * @param token 
+  //  * @param apikey
+  //  * @param apiuid
+  //  * @param comment_id 
+  //  */
+  // async getEditComment(
+  //   gid: number,
+  //   token: string,
+  //   apikey: number,
+  //   apiuid: string,
+  //   comment_id: string
+  // ) {
+  //   const header = {
+  //     "User-Agent": this.ua,
+  //     "Content-Type": "application/json",
+  //     Cookie: this.cookie
+  //   };
+  //   const body = {
+  //     method: "geteditcomment",
+  //     apiuid: apiuid,
+  //     apikey: apikey,
+  //     gid: gid,
+  //     token: token,
+  //     comment_id: comment_id
+  //   };
+  //   const resp = await post(this.urls.api, header, body, 10);
+  //   const success = resp.statusCode === 200;
+  //   if (success) {
+  //     const data = await resp.json();
+  //     return {
+  //       success: true,
+  //       editable_comment: data.editable_comment,
+  //       comment_id: data.comment_id
+  //     };
+  //   } else {
+  //     return {
+  //       success: false
+  //     };
+  //   }
+  // }
 
+  /**
+   * 发布修改后的评论
+   * @param gid 
+   * @param token 
+   * @param comment_id 
+   * @param text 
+   * @returns EHGallery
+   */
   async postEditComment(gid: number, token: string, comment_id: number, text: string) {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const body = {
@@ -439,19 +646,24 @@ export class EHentaiApiHandler {
       Cookie: this.cookie
     };
     const resp = await post(gallery_url, header, body, 10);
-    if (resp.statusCode === 200) {
-      const text = await resp.text()
-      return {
-        success: true,
-        infos: parseGallery(text)
-      };
-    } else {
-      return {
-        success: false
-      };
-    }
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "发布修改后的评论失败",
+      resp.statusCode,
+      `发布修改后的评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`
+    )
+    const html = await resp.text()
+    return parseGallery(html)
   }
 
+  /**
+   * 给评论打分
+   * @param gid 
+   * @param token 
+   * @param comment_id 
+   * @param apikey 
+   * @param apiuid 
+   * @param comment_vote // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
+   */
   async voteComment(
     gid: number,
     token: string,
@@ -475,24 +687,24 @@ export class EHentaiApiHandler {
       comment_vote: comment_vote
     };
     const resp = await post(this.urls.api, header, body, 10);
-    return resp.statusCode === 200;
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "给评论打分失败",
+      resp.statusCode,
+      `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`
+    )
+    return true;
   }
 
-  async fetchImageInfo(gid: number, key: string, mpvkey: string, page: number, nl?: string): Promise<{
-    imageUrl: string;
-    size: {
-      width: number;
-      height: number;
-    };
-    fileSize: string;
-    fullSizeUrl: string;
-    fullSize: {
-      width: number;
-      height: number;
-    };
-    fullFileSize: string;
-    reloadAPIKey: string;
-  }> {
+  /**
+   * 获取图片信息，前提是拥有mpvkey。否则应该使用getPageInfo来获取图片信息。
+   * @param gid 
+   * @param key 
+   * @param mpvkey 
+   * @param page 
+   * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
+   * @returns EHPage
+   */
+  async fetchImageInfo(gid: number, key: string, mpvkey: string, page: number, reloadKey?: string): Promise<EHPage> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -505,7 +717,7 @@ export class EHentaiApiHandler {
       imgkey: key,
       mpvkey: mpvkey
     };
-    if (nl) body["nl"] = nl;
+    if (reloadKey) body["nl"] = reloadKey;
     const resp = await post(this.urls.api, header, body, 20);
     if (resp.statusCode !== 200) throw new Error("请求失败");
     const info: {
@@ -527,7 +739,7 @@ export class EHentaiApiHandler {
     };
     const fileSize = info.d.split(" :: ")[1];
     const fullSizeUrl = this.urls.default + info.lf;
-    const reloadAPIKey = info.s;
+    const reloadKeyNext = info.s;
     const regexResult = /Download original (\d+) x (\d+) (.*) source/.exec(info.o);
     let fullSize: { width: number; height: number };
     let fullFileSize: string;
@@ -548,62 +760,45 @@ export class EHentaiApiHandler {
       fullSizeUrl,
       fullSize,
       fullFileSize,
-      reloadAPIKey
+      reloadKey: reloadKeyNext
     };
   }
 
-  async downloadImage(url: string, noCookie: boolean = false, usingDownloadAPI: boolean = false) {
-    const header: Record<string, string> = { "User-Agent": this.ua }
-    if (!noCookie) header["Cookie"] = this.cookie;
-    if (usingDownloadAPI) {
-      const resp = await $http.download({
-        url: url,
-        timeout: 30,
-        showsProgress: false,
-        header
-      });
-      return resp.data;
+  /**
+   * 下载缩略图
+   * @param url
+   * @param ehgt 是否强制使用ehgt的缩略图
+   */
+  async downloadThumbnail(url: string, ehgt: boolean = true) {
+    if (ehgt) {
+      url = url.replace("https://exhentai.org", "https://ehgt.org");
+      const header = {
+        "User-Agent": this.ua
+        // 不需要cookie
+      }
+      const resp = await get(url, header, 15)
+      return resp.rawData()
     } else {
-      const resp = await get(url, header, 30)
-      return await resp.data()
+      const header = {
+        "User-Agent": this.ua,
+        "Cookie": this.cookie
+      }
+      const resp = await get(url, header, 15)
+      return resp.rawData()
     }
   }
 
-  async startHathDownload(
-    gid: number, 
-    token: string, 
-    or: string, 
-    xres: string
-  ): Promise<{ success: boolean; message?: string, rawMessage?: string }> {
-    const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+  /**
+   * 下载大图片
+   * @param url
+   */
+  async downloadImage(url: string) {
     const header = {
-      "User-Agent": this.ua,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: this.cookie
-    };
-    const body = {
-      hathdl_xres: xres,
-    };
-    const resp = await post(url, header, body, 10);
-    if (resp.statusCode !== 200) {
-      return {
-        success: false
-      };
+      "User-Agent": this.ua
+      // 不需要cookie
     }
-    const html = await resp.text();
-    const { message } = parseArchiveResult(html);
-    let result: "success" | "offline" | "no-hath";
-    if (message === 'You must have a H@H client assigned to your account to use this feature.') {
-      result = "no-hath";
-    } else if (message === 'Your H@H client appears to be offline.') {
-      result = "offline";
-    } else {
-      result = "success";
-    }
-    return {
-      success: true,
-      message: result,
-      rawMessage: message
-    };
+    const resp = await get(url, header, 30)
+    return resp.rawData()
   }
+
 }

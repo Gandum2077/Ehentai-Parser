@@ -2,6 +2,8 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 
+import { NetworkError, ServiceUnavailableError, TimeoutError } from "./error";
+
 enum ENV {
   NODE = 0,
   JSBOX = 1
@@ -19,7 +21,7 @@ if (typeof process !== 'undefined' && process.versions && process.versions.node 
 function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   // 创建一个超时 Promise
   const timeoutPromise = new Promise((resolve, reject) => {
-    setTimeout(() => reject(new Error('Request timed out')), timeout);
+    setTimeout(() => reject(new TimeoutError(`timeout(ms): ${timeout}`)), timeout);
   });
 
   // 使用 Promise.race 竞赛，哪个 Promise 先完成就采用哪个的结果
@@ -74,16 +76,6 @@ class RequestResponse {
     }
   }
 
-  async data() {
-    if (env === ENV.NODE) {
-      return await this.buffer()
-    } else if (env === ENV.JSBOX) {
-      return this.rawData()
-    } else {
-      throw new Error('环境不支持');
-    }
-  }
-
   async text() {
     if (env === ENV.NODE && this._response) {
       return await this._response.text()
@@ -126,9 +118,10 @@ async function __request(
       }
     }
     const response = (method === "GET") 
-    ? await fetchWithTimeout(url, { method: method, headers: header }, timeout * 1000)
-    : await fetchWithTimeout(url, { method: method, headers: header, body: bodyStr }, timeout * 1000)
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    ? await fetch(url, { method: method, headers: header, signal: AbortSignal.timeout(timeout * 1000) })
+    : await fetch(url, { method: method, headers: header, body: bodyStr, signal: AbortSignal.timeout(timeout * 1000) })
+    if (response.status === 503) throw new ServiceUnavailableError(`HTTP error! status: ${response.status}\nurl: ${url}`);
+    if (!response.ok) throw new NetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`);
     statusCode = response.status
     contentType = response.headers.get('Content-Type') || '';
     return new RequestResponse({statusCode, contentType, response })
@@ -140,8 +133,16 @@ async function __request(
       body: body,
       timeout: timeout
     })
-    if (resp.error) throw new Error(`HTTP error!`);
+    if (resp.error) {
+      if (resp.error.code === HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut) {
+        throw new TimeoutError(`Timeout Error! url: ${url}`);
+      } else {
+        throw new NetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`);
+      }
+    }
     statusCode = resp.response.statusCode
+    if (statusCode === 503) throw new ServiceUnavailableError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
+    if (statusCode >= 400) throw new NetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
     contentType = resp.response.headers['Content-Type'] || '';
     return new RequestResponse({statusCode, contentType, resp })
   } else {

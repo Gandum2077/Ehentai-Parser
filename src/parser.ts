@@ -21,6 +21,9 @@ import {
   EHListDisplayMode,
   EHTopList,
   EHUploadList,
+  EHPage,
+  EHMyTags,
+  EHFavoriteInfo,
 } from "./types";
 
 const _favcatColors = [
@@ -243,7 +246,7 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
     const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
     // favorites页面没有uploader
     const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
-    const disowned =  Boolean(favorited_time) && !Boolean(uploader);
+    const disowned = Boolean(favorited_time) && !Boolean(uploader);
     items.push({
       type: "minimal",
       gid,
@@ -309,7 +312,7 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
       : undefined;
     // favorites页面没有uploader
     const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
-    const disowned =  Boolean(favorited_time) && !Boolean(uploader);
+    const disowned = Boolean(favorited_time) && !Boolean(uploader);
     items.push({
       type: "compact",
       gid,
@@ -461,12 +464,17 @@ export function parseMyUpload(html: string): EHUploadList {
   const $ = cheerio.load(html);
   const items: EHUploadList["items"] = []
   let folder_name = "";
-  $("form .s table > tbody > tr").slice(1).each((i, elem) => {
+  $("form .s table > tbody > tr").each((i, elem) => {
     const tr = $(elem);
+
     if (tr.attr("class")?.includes("gtr")) {
       folder_name = tr.find("span").eq(0).text();
       return;
     } else {
+      // 通过此链接来判断是否为已发布图库
+      const managegalleryUrl = tr.find(".gtc1 a").attr("href")
+      if (!managegalleryUrl || managegalleryUrl.includes("ulgid")) return;
+
       const title = tr.find(".gtc1 a").text();
       const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
       const { gid, token } = extractGidToken(url);
@@ -685,7 +693,7 @@ export function parseGallery(html: string): EHGallery {
       } | undefined
       let is_my_comment: boolean
       let voteable: boolean
-      let my_vote: number | undefined
+      let my_vote: 1 | -1 | undefined
       if (is_uploader) {
         score = undefined;
         comment_id = undefined;
@@ -855,40 +863,30 @@ export function parseConfig(html: string): { [key: string]: string } {
   return formData;
 }
 
-export function parseFavcatFavnote(html: string): {
-  favcat_titles: string[];
-  favorited: boolean;
-  selected_favcat: number
-  favnote: string;
-} {
+export function parseFavcatFavnote(html: string): EHFavoriteInfo {
   let favorited: boolean = false;
   const favcat_titles: string[] = [];
 
   const $ = cheerio.load(html);
-  const favcat: { title: string; count: number }[] = [];
   const divs = $(".nosel > div");
   if (divs.length === 11) favorited = true
   divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()))
   const selected_favcat = parseInt($(".nosel input[checked='checked']").val() || "0");
   const favnote = $("textarea").text();
-  return { favcat_titles, favorited, selected_favcat, favnote };
+  const favnote_used_info = $("textarea").parent().find('div').text();
+  const r = /(\d+) \/ (\d+)/.exec(favnote_used_info);
+  const num_of_favnote_slots = r ? parseInt(r[2]) : 0;
+  const num_of_favnote_slots_used = r ? parseInt(r[1]) : 0;
+  return {
+    favcat_titles,
+    favorited,
+    selected_favcat,
+    favnote, num_of_favnote_slots,
+    num_of_favnote_slots_used
+  };
 }
 
-export function parsePageInfo(html: string): {
-  imageUrl: string;
-  size: {
-    width: number;
-    height: number;
-  };
-  fileSize: string;
-  fullSizeUrl: string;
-  fullSize: {
-    width: number;
-    height: number;
-  };
-  fullFileSize: string;
-  reloadParamKey: string;
-} {
+export function parsePageInfo(html: string): EHPage {
   const $ = cheerio.load(html);
   const imageUrl = $("#img").attr("src") || "";
   const imageDescription = $("#i4 > div:nth-child(1)").text();
@@ -898,7 +896,7 @@ export function parsePageInfo(html: string): {
   const fileSize = splits[2];
   const fullSizeUrl = $("#i6 > div:nth-child(3) a").attr("href") || "";
   const downloadButtonText = $("#i6 > div:nth-child(3)").text();
-  const reloadParamKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
+  const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
   const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
@@ -919,7 +917,7 @@ export function parsePageInfo(html: string): {
     fullSizeUrl,
     fullSize,
     fullFileSize,
-    reloadParamKey
+    reloadKey
   };
 }
 
@@ -960,4 +958,54 @@ export function parseArchiveResult(html: string): {
   const $ = cheerio.load(html);
   const message = $("p").eq(0).text();
   return { message };
+}
+
+/**
+ *  
+ * @param html 
+ */
+export function parseMytags(html: string): EHMyTags {
+  const $ = cheerio.load(html);
+  const tagsets: {
+    value: number;
+    name: string;
+    selected: boolean
+  }[] = [];
+  $("#tagset_outer select option").each((i, el) => {
+    const option = $(el);
+    const name = option.text();
+    const selected = option.prop("selected");
+    tagsets.push({ value: parseInt(option.val()), name, selected });
+  })
+  const enabled = $("#tagwatch_0").prop("checked");
+  const tags: {
+    namespace: TagNamespace;
+    tag: string;
+    watched: boolean;
+    hidden: boolean;
+    colorHexCode?: string;
+    weight: number;
+  }[] = []
+  $("#usertags_outer > div").slice(1).each((i, el) => {
+    const divs = $(el).children();
+    const [a, b] = divs.eq(0).find("div").prop("title").split(":");
+    const watched = divs.eq(1).find("input").prop("checked");
+    const hidden = divs.eq(2).find("input").prop("checked");
+    const colorHexCode = divs.eq(4).find("input").val() || undefined;
+    const weight = parseInt(divs.eq(5).find("input").val());
+    tags.push({
+      namespace: a as TagNamespace,
+      tag: b as string,
+      watched,
+      hidden,
+      colorHexCode,
+      weight
+    })
+  })
+  return {
+    tagsets,
+    enabled,
+    defaultColorHexCode: $("#tagcolor").val() || undefined,
+    tags
+  }
 }

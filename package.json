@@ -16,8 +16,8 @@
     "url-parse": "^1.5.10"
   },
   "devDependencies": {
-    "@types/url-parse": "^1.4.11",
     "@types/cheerio": "^0.22.35",
-    "jsbox-types": "^1.0.20"
+    "@types/url-parse": "^1.4.11",
+    "jsbox-types": "^1.0.31"
   }
 }

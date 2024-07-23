@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
+exports.parseMytags = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -469,13 +469,17 @@ function parseMyUpload(html) {
     const $ = cheerio.load(html);
     const items = [];
     let folder_name = "";
-    $("form .s table > tbody > tr").slice(1).each((i, elem) => {
+    $("form .s table > tbody > tr").each((i, elem) => {
         const tr = $(elem);
         if (tr.attr("class")?.includes("gtr")) {
             folder_name = tr.find("span").eq(0).text();
             return;
         }
         else {
+            // 通过此链接来判断是否为已发布图库
+            const managegalleryUrl = tr.find(".gtc1 a").attr("href");
+            if (!managegalleryUrl || managegalleryUrl.includes("ulgid"))
+                return;
             const title = tr.find(".gtc1 a").text();
             const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
             const { gid, token } = extractGidToken(url);
@@ -863,14 +867,23 @@ function parseFavcatFavnote(html) {
     let favorited = false;
     const favcat_titles = [];
     const $ = cheerio.load(html);
-    const favcat = [];
     const divs = $(".nosel > div");
     if (divs.length === 11)
         favorited = true;
     divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()));
     const selected_favcat = parseInt($(".nosel input[checked='checked']").val() || "0");
     const favnote = $("textarea").text();
-    return { favcat_titles, favorited, selected_favcat, favnote };
+    const favnote_used_info = $("textarea").parent().find('div').text();
+    const r = /(\d+) \/ (\d+)/.exec(favnote_used_info);
+    const num_of_favnote_slots = r ? parseInt(r[2]) : 0;
+    const num_of_favnote_slots_used = r ? parseInt(r[1]) : 0;
+    return {
+        favcat_titles,
+        favorited,
+        selected_favcat,
+        favnote, num_of_favnote_slots,
+        num_of_favnote_slots_used
+    };
 }
 exports.parseFavcatFavnote = parseFavcatFavnote;
 function parsePageInfo(html) {
@@ -883,7 +896,7 @@ function parsePageInfo(html) {
     const fileSize = splits[2];
     const fullSizeUrl = $("#i6 > div:nth-child(3) a").attr("href") || "";
     const downloadButtonText = $("#i6 > div:nth-child(3)").text();
-    const reloadParamKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
+    const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
     const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
     let fullSize;
     let fullFileSize;
@@ -905,7 +918,7 @@ function parsePageInfo(html) {
         fullSizeUrl,
         fullSize,
         fullFileSize,
-        reloadParamKey
+        reloadKey
     };
 }
 exports.parsePageInfo = parsePageInfo;
@@ -948,3 +961,42 @@ function parseArchiveResult(html) {
     return { message };
 }
 exports.parseArchiveResult = parseArchiveResult;
+/**
+ *
+ * @param html
+ */
+function parseMytags(html) {
+    const $ = cheerio.load(html);
+    const tagsets = [];
+    $("#tagset_outer select option").each((i, el) => {
+        const option = $(el);
+        const name = option.text();
+        const selected = option.prop("selected");
+        tagsets.push({ value: parseInt(option.val()), name, selected });
+    });
+    const enabled = $("#tagwatch_0").prop("checked");
+    const tags = [];
+    $("#usertags_outer > div").slice(1).each((i, el) => {
+        const divs = $(el).children();
+        const [a, b] = divs.eq(0).find("div").prop("title").split(":");
+        const watched = divs.eq(1).find("input").prop("checked");
+        const hidden = divs.eq(2).find("input").prop("checked");
+        const colorHexCode = divs.eq(4).find("input").val() || undefined;
+        const weight = parseInt(divs.eq(5).find("input").val());
+        tags.push({
+            namespace: a,
+            tag: b,
+            watched,
+            hidden,
+            colorHexCode,
+            weight
+        });
+    });
+    return {
+        tagsets,
+        enabled,
+        defaultColorHexCode: $("#tagcolor").val() || undefined,
+        tags
+    };
+}
+exports.parseMytags = parseMytags;
