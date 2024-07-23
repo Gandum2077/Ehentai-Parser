@@ -113,33 +113,44 @@ function parseList(html) {
         case "front_page": {
             const prev_page_available = Boolean($("#uprev").attr("href"));
             const next_page_available = Boolean($("#unext").attr("href"));
-            const total_item_count = $(".searchtext").length > 0
-                ? parseInt($(".searchtext").text().slice(6).replaceAll(",", "")) || 0
-                : 0;
+            const searchtext = $(".searchtext").text().replace(/,/g, "");
+            const r1 = searchtext.match(/(\d+) result/);
+            const total_item_count = r1 && r1.length > 1 ? parseInt(r1[1]) : 0;
+            const r2 = searchtext.match(/Filtered (\d+)/);
+            const filtered_count = r2 && r2.length > 1 ? parseInt(r2[1]) : 0;
             return {
                 type,
                 display_mode,
                 prev_page_available,
                 next_page_available,
                 total_item_count,
+                filtered_count,
                 items
             };
         }
         case "watched": {
             const prev_page_available = Boolean($("#uprev").attr("href"));
             const next_page_available = Boolean($("#unext").attr("href"));
+            const searchtext = $(".searchtext").text().replace(/,/g, "");
+            const r = searchtext.match(/^Filtered (\d+)/);
+            const filtered_count = r && r.length > 1 ? parseInt(r[1]) : 0;
             return {
                 type,
                 display_mode,
+                filtered_count,
                 prev_page_available,
                 next_page_available,
                 items
             };
         }
         case "popular": {
+            const searchtext = $(".searchtext").text().replace(/,/g, "");
+            const r = searchtext.match(/^Filtered (\d+)/);
+            const filtered_count = r && r.length > 1 ? parseInt(r[1]) : 0;
             return {
                 type,
                 display_mode,
+                filtered_count,
                 items
             };
         }
@@ -675,6 +686,39 @@ function parseGallery(html) {
             });
         });
     }
+    const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text());
+    const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 0;
+    let num_of_images_on_each_page = undefined; // 如果只有1页，就没有这个字段
+    if (thumbnail_size === "normal" && total_pages > 1) {
+        // normal有4种可能：40、100、200、400
+        if (total_pages * 40 >= length) {
+            num_of_images_on_each_page = 40;
+        }
+        else if (total_pages * 100 >= length) {
+            num_of_images_on_each_page = 100;
+        }
+        else if (total_pages * 200 >= length) {
+            num_of_images_on_each_page = 200;
+        }
+        else {
+            num_of_images_on_each_page = 400;
+        }
+    }
+    else if (thumbnail_size === "large" && total_pages > 1) {
+        // large有4种可能：20、50、100、200
+        if (total_pages * 20 >= length) {
+            num_of_images_on_each_page = 20;
+        }
+        else if (total_pages * 50 >= length) {
+            num_of_images_on_each_page = 50;
+        }
+        else if (total_pages * 100 >= length) {
+            num_of_images_on_each_page = 100;
+        }
+        else {
+            num_of_images_on_each_page = 200;
+        }
+    }
     // comments
     const comments = [];
     if ($("#cdiv .c1").length > 0) {
@@ -795,6 +839,9 @@ function parseGallery(html) {
         taglist,
         newer_versions,
         thumbnail_size,
+        total_pages,
+        current_page,
+        num_of_images_on_each_page,
         images,
         comments
     };

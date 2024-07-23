@@ -14,7 +14,8 @@ export interface EHFrontPageList {
   type: "front_page";
   prev_page_available: boolean;
   next_page_available: boolean;
-  total_item_count: number;
+  total_item_count: number; // 全部数量
+  filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
   items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
@@ -23,12 +24,14 @@ export interface EHWatchedList {
   type: "watched";
   prev_page_available: boolean;
   next_page_available: boolean;
+  filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
   items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHPopularList {
   type: "popular";
+  filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
   items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
@@ -158,6 +161,9 @@ export interface EHGallery {
     posted_time: string;
   }[];
   thumbnail_size: "normal" | "large";
+  total_pages: number;
+  current_page: number; // 从0开始
+  num_of_images_on_each_page?: number; // large有4种可能：20、50、100、200；normal有4种可能：40、100、200、400，如果只有一页则没有这个字段
   images: {
     page: number; // 从1开始
     name: string;
