@@ -614,7 +614,7 @@ class EHentaiApiHandler {
      * @param gid
      * @param key
      * @param mpvkey
-     * @param page
+     * @param page 从1开始
      * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
      * @returns EHPage
      */

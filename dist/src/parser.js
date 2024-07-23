@@ -816,7 +816,8 @@ function parseMPV(html) {
         token,
         mpvkey,
         length,
-        images: imageJSON.map(v => ({
+        images: imageJSON.map((v, i) => ({
+            page: i + 1,
             key: v.k,
             name: v.n,
             thumbnail_url: v.t,

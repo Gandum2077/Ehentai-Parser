@@ -152,10 +152,37 @@ export interface EHGallery {
   favcat_title?: string;
 
   taglist: EHTagListItem[];
-  newer_versions: EHGalleryNewerVersion[];
+  newer_versions: {
+    url: string;
+    title: string;
+    posted_time: string;
+  }[];
   thumbnail_size: "normal" | "large";
-  images: EHGalleryImageItem[];
-  comments: EHGalleryCommentItem[];
+  images: {
+    page: number; // 从1开始
+    name: string;
+    page_url: string;
+    thumbnail_url: string;
+  }[];
+  comments: {
+    posted_time: string;
+    comment_div: string;
+    commenter?: string;
+    comment_id?: number;
+    is_uploader: boolean;
+    score?: number;
+    votes?: {
+      base: number;
+      voters: {
+        voter: string;
+        score: number;
+      }[];
+      remaining_voter_count: number;
+    };
+    is_my_comment?: boolean;
+    voteable?: boolean;
+    my_vote?: 1 | -1;
+  }[];
 }
 
 export interface EHTagListItem {
@@ -163,51 +190,17 @@ export interface EHTagListItem {
   tags: string[];
 }
 
-export interface EHGalleryNewerVersion {
-  url: string;
-  title: string;
-  posted_time: string;
-}
-
-export interface EHGalleryImageItem {
-  page: number;
-  name: string;
-  page_url: string;
-  thumbnail_url: string;
-}
-
-export interface EHGalleryCommentItem {
-  posted_time: string;
-  comment_div: string;
-  commenter?: string;
-  comment_id?: number;
-  is_uploader: boolean;
-  score?: number;
-  votes?: {
-    base: number;
-    voters: {
-      voter: string;
-      score: number;
-    }[];
-    remaining_voter_count: number;
-  };
-  is_my_comment?: boolean;
-  voteable?: boolean;
-  my_vote?: 1 | -1;
-}
-
 export interface EHMPV {
   gid: number;
   token: string;
   mpvkey: string;
   length: number;
-  images: EHMPVImageItem[];
-}
-
-export interface EHMPVImageItem {
-  key: string;
-  name: string;
-  thumbnail_url: string;
+  images: {
+    page: number;
+    key: string;
+    name: string;
+    thumbnail_url: string;
+  }[];
 }
 
 export interface EHPage {

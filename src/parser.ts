@@ -12,11 +12,7 @@ import {
   EHListThumbnailItem,
   EHGallery,
   EHTagListItem,
-  EHGalleryNewerVersion,
-  EHGalleryImageItem,
-  EHGalleryCommentItem,
   EHMPV,
-  EHMPVImageItem,
   EHArchive,
   EHListDisplayMode,
   EHTopList,
@@ -603,7 +599,7 @@ export function parseGallery(html: string): EHGallery {
     });
   }
   // newer versions
-  const newer_versions: EHGalleryNewerVersion[] = [];
+  const newer_versions: EHGallery["newer_versions"] = [];
   const divgnd = $("div#gnd")
   if (divgnd.length > 0) {
     const urlArray: string[] = []
@@ -627,7 +623,7 @@ export function parseGallery(html: string): EHGallery {
   }
 
   // image
-  const images: EHGalleryImageItem[] = [];
+  const images: EHGallery["images"] = [];
   let thumbnail_size: "normal" | "large";
   // 分为两种情况，大图和小图
   // 大图
@@ -670,7 +666,7 @@ export function parseGallery(html: string): EHGallery {
     });
   }
   // comments
-  const comments: EHGalleryCommentItem[] = [];
+  const comments: EHGallery['comments'] = [];
   if ($("#cdiv .c1").length > 0) {
     $("#cdiv .c1").each((i, elem) => {
       const div = $(elem);
@@ -815,7 +811,8 @@ export function parseMPV(html: string): EHMPV {
     token,
     mpvkey,
     length,
-    images: imageJSON.map(v => ({
+    images: imageJSON.map((v, i) => ({
+      page: i + 1,
       key: v.k,
       name: v.n,
       thumbnail_url: v.t,
