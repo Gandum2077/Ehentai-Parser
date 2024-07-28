@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NetworkError = exports.TimeoutError = exports.ServiceUnavailableError = exports.EHAPIError = void 0;
+exports.EHNetworkError = exports.EHTimeoutError = exports.EHServiceUnavailableError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -10,31 +10,31 @@ class EHAPIError extends Error {
     }
 }
 exports.EHAPIError = EHAPIError;
-class ServiceUnavailableError extends Error {
+class EHServiceUnavailableError extends Error {
     constructor(detail) {
         super();
-        this.name = "ServiceUnavailableError";
+        this.name = "EHServiceUnavailableError";
         this.message = "服务不可用，图像配额可能耗尽";
         this.statusCode = 503;
         this.detail = detail;
     }
 }
-exports.ServiceUnavailableError = ServiceUnavailableError;
-class TimeoutError extends Error {
+exports.EHServiceUnavailableError = EHServiceUnavailableError;
+class EHTimeoutError extends Error {
     constructor(detail) {
         super();
-        this.name = "TimeoutError";
+        this.name = "EHTimeoutError";
         this.message = "请求超时";
         this.detail = detail;
     }
 }
-exports.TimeoutError = TimeoutError;
-class NetworkError extends Error {
+exports.EHTimeoutError = EHTimeoutError;
+class EHNetworkError extends Error {
     constructor(detail) {
         super();
-        this.name = "NetworkError";
+        this.name = "EHNetworkError";
         this.message = "未知网络错误";
         this.detail = detail;
     }
 }
-exports.NetworkError = NetworkError;
+exports.EHNetworkError = EHNetworkError;

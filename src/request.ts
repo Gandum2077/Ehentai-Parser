@@ -2,7 +2,7 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 
-import { NetworkError, ServiceUnavailableError, TimeoutError } from "./error";
+import { EHNetworkError, EHServiceUnavailableError, EHTimeoutError } from "./error";
 
 enum ENV {
   NODE = 0,
@@ -21,7 +21,7 @@ if (typeof process !== 'undefined' && process.versions && process.versions.node 
 function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   // 创建一个超时 Promise
   const timeoutPromise = new Promise((resolve, reject) => {
-    setTimeout(() => reject(new TimeoutError(`timeout(ms): ${timeout}`)), timeout);
+    setTimeout(() => reject(new EHTimeoutError(`timeout(ms): ${timeout}`)), timeout);
   });
 
   // 使用 Promise.race 竞赛，哪个 Promise 先完成就采用哪个的结果
@@ -120,8 +120,8 @@ async function __request(
     const response = (method === "GET") 
     ? await fetch(url, { method: method, headers: header, signal: AbortSignal.timeout(timeout * 1000) })
     : await fetch(url, { method: method, headers: header, body: bodyStr, signal: AbortSignal.timeout(timeout * 1000) })
-    if (response.status === 503) throw new ServiceUnavailableError(`HTTP error! status: ${response.status}\nurl: ${url}`);
-    if (!response.ok) throw new NetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`);
+    if (response.status === 503) throw new EHServiceUnavailableError(`HTTP error! status: ${response.status}\nurl: ${url}`);
+    if (!response.ok) throw new EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`);
     statusCode = response.status
     contentType = response.headers.get('Content-Type') || '';
     return new RequestResponse({statusCode, contentType, response })
@@ -135,14 +135,14 @@ async function __request(
     })
     if (resp.error) {
       if (resp.error.code === HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut) {
-        throw new TimeoutError(`Timeout Error! url: ${url}`);
+        throw new EHTimeoutError(`Timeout Error! url: ${url}`);
       } else {
-        throw new NetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`);
+        throw new EHNetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`);
       }
     }
     statusCode = resp.response.statusCode
-    if (statusCode === 503) throw new ServiceUnavailableError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
-    if (statusCode >= 400) throw new NetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
+    if (statusCode === 503) throw new EHServiceUnavailableError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
+    if (statusCode >= 400) throw new EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
     contentType = resp.response.headers['Content-Type'] || '';
     return new RequestResponse({statusCode, contentType, resp })
   } else {

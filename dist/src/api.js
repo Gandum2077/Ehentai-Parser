@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHentaiApiHandler = void 0;
+exports.EHAPIHandler = void 0;
 const url_parse_1 = __importDefault(require("url-parse"));
 const request_1 = require("./request");
 const parser_1 = require("./parser");
 const error_1 = require("./error");
+const DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 function _updateUrlQuery(url, query, removeUndefined = false) {
     const u = new url_parse_1.default(url, true);
     const newQuery = (removeUndefined)
@@ -140,10 +141,10 @@ function _favoriteSearchOptionsToParams(options) {
     };
     return params;
 }
-class EHentaiApiHandler {
-    constructor(cookie, exhentai = true, ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148") {
-        this.cookie = cookie;
-        this.ua = ua;
+class EHAPIHandler {
+    constructor(exhentai = true, cookie) {
+        this.ua = DEFAULT_USER_AGENT;
+        this.cookie = cookie || "";
         const t = (exhentai) ? "x" : "-";
         this.urls = {
             default: `https://e${t}hentai.org/`,
@@ -706,4 +707,4 @@ class EHentaiApiHandler {
         return resp.rawData();
     }
 }
-exports.EHentaiApiHandler = EHentaiApiHandler;
+exports.EHAPIHandler = EHAPIHandler;

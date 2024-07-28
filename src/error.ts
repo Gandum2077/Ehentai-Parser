@@ -20,8 +20,8 @@ export class EHAPIError extends Error implements AppError {
   }
 }
 
-export class ServiceUnavailableError extends Error implements AppError {
-  name = "ServiceUnavailableError";
+export class EHServiceUnavailableError extends Error implements AppError {
+  name = "EHServiceUnavailableError";
   message = "服务不可用，图像配额可能耗尽";
   statusCode = 503;
   detail?: string;
@@ -32,8 +32,8 @@ export class ServiceUnavailableError extends Error implements AppError {
   }
 }
 
-export class TimeoutError extends Error implements AppError {
-  name = "TimeoutError";
+export class EHTimeoutError extends Error implements AppError {
+  name = "EHTimeoutError";
   message = "请求超时";
   detail?: string;
 
@@ -43,8 +43,8 @@ export class TimeoutError extends Error implements AppError {
   }
 }
 
-export class NetworkError extends Error implements AppError {
-  name = "NetworkError";
+export class EHNetworkError extends Error implements AppError {
+  name = "EHNetworkError";
   message = "未知网络错误";
   detail?: string;
 

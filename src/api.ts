@@ -14,6 +14,8 @@ import {
 } from './types'
 import { EHAPIError } from './error'
 
+const DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+
 function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
   const u = new Url(url, true)
   const newQuery = (removeUndefined)
@@ -149,18 +151,16 @@ function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   return params;
 }
 
-export class EHentaiApiHandler {
-  private ua: string
-  private cookie: string
+export class EHAPIHandler {
+  ua: string = DEFAULT_USER_AGENT
+  cookie: string
   private urls: Record<string, string>
 
   constructor(
-    cookie: string,
     exhentai: boolean = true,
-    ua: string = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    cookie?: string,
   ) {
-    this.cookie = cookie
-    this.ua = ua
+    this.cookie = cookie || ""
     const t = (exhentai) ? "x" : "-"
     this.urls = {
       default: `https://e${t}hentai.org/`,
