@@ -635,7 +635,12 @@ export function parseGallery(html: string): EHGallery {
   }
 
   // image
-  const images: EHGallery["images"] = [];
+  const images: {
+    page: number; // 从1开始
+    name: string;
+    page_url: string;
+    thumbnail_url: string;
+  }[] = [];
   let thumbnail_size: "normal" | "large";
   // 分为两种情况，大图和小图
   // 大图
@@ -831,7 +836,7 @@ export function parseGallery(html: string): EHGallery {
     total_pages,
     current_page,
     num_of_images_on_each_page,
-    images,
+    images: {[current_page]: images},
     comments
   }
 }

@@ -842,7 +842,7 @@ function parseGallery(html) {
         total_pages,
         current_page,
         num_of_images_on_each_page,
-        images,
+        images: { [current_page]: images },
         comments
     };
 }
