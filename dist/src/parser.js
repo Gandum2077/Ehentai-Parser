@@ -231,7 +231,7 @@ function _parseListMinimalItems($) {
         const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
         const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
         const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
-        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
@@ -258,7 +258,7 @@ function _parseListMinimalItems($) {
             });
         });
         // 只有favorites页面有favorited_time
-        const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + " GMT+0000") : undefined;
+        const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + "Z") : undefined;
         // favorites页面没有uploader
         const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
         const disowned = Boolean(favorited_time) && !Boolean(uploader);
@@ -296,7 +296,7 @@ function _parseListCompactItems($) {
         const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
         const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
         const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
-        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
@@ -324,7 +324,7 @@ function _parseListCompactItems($) {
         });
         // 只有favorites页面有favorited_time
         const favorited_time = (tr.find(".glfav").length > 0)
-            ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + " GMT+0000")
+            ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + "Z")
             : undefined;
         // favorites页面没有uploader
         const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
@@ -364,7 +364,7 @@ function _parseListExtendedItems($) {
         const gl3eDivs = tr.find(".gl3e > div");
         const category = gl3eDivs.eq(0).text();
         const postedDiv = gl3eDivs.eq(1);
-        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
@@ -378,7 +378,7 @@ function _parseListExtendedItems($) {
         const disowned = !Boolean(uploader);
         const length = parseInt(gl3eDivs.eq(4).text());
         const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-        const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + " GMT+0000") : undefined;
+        const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z") : undefined;
         const title = tr.find(".glink").text();
         const url = tr.find(".gl2e > div > a").attr("href") || "";
         const taglist = [];
@@ -427,7 +427,7 @@ function _parseListThumbnailItems($) {
         const thumbnail_url = div.find(".gl3t img").attr("src") || "";
         const category = div.find(".gl5t .cs").text();
         const postedDiv = div.find(".gl5t .cs").next();
-        const posted_time = new Date(postedDiv.text() + " GMT+0000");
+        const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
@@ -494,7 +494,7 @@ function parseMyUpload(html) {
             const title = tr.find(".gtc1 a").text();
             const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
             const { gid, token } = extractGidToken(url);
-            const added_time = new Date(tr.find(".gtc2").text() + " GMT+0000");
+            const added_time = new Date(tr.find(".gtc2").text() + "Z");
             const length = parseInt(tr.find(".gtc3").text());
             let public_category;
             const public_category_text = tr.find(".gtc4").text();
@@ -539,7 +539,7 @@ function parseGallery(html) {
     const category = $("#gdc").text();
     const uploader = ($("#gdn a").length > 0) ? $("#gdn a").text() : undefined;
     const disowned = !Boolean(uploader);
-    const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + " GMT+0000");
+    const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z");
     const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
     const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
     let parent_gid = undefined;
@@ -631,7 +631,7 @@ function parseGallery(html) {
                 titleArray.push($(e).text());
             }
             else if (i % 3 === 1) {
-                postedTimeTextArray.push($(e).text().slice(8) + " GMT+0000");
+                postedTimeTextArray.push($(e).text().slice(8) + "Z");
             }
         });
         for (let i = 0; i < urlArray.length; i++) {
@@ -728,7 +728,7 @@ function parseGallery(html) {
             const divc3a = divc3.find("a");
             const commenter = (divc3a.length === 1) ? divc3a.text() : undefined;
             const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
-            const posted_time = new Date(dateText + " GMT+0000");
+            const posted_time = new Date(dateText + "Z");
             const comment_div = div.find("div.c6").html() || "";
             const is_uploader = div.find("div.c4").text().includes("Uploader Comment");
             let score;
