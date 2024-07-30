@@ -728,7 +728,7 @@ function parseGallery(html) {
             const divc3a = divc3.find("a");
             const commenter = (divc3a.length === 1) ? divc3a.text() : undefined;
             const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
-            const posted_time = new Date(dateText + "Z");
+            const posted_time = new Date(dateText + " UTC");
             const comment_div = div.find("div.c6").html() || "";
             const is_uploader = div.find("div.c4").text().includes("Uploader Comment");
             let score;
