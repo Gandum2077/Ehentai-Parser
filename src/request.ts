@@ -134,7 +134,7 @@ async function __request(
       timeout: timeout
     })
     if (resp.error) {
-      if (resp.error.code === HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut) {
+      if (resp.error.code === -1001) { // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
         throw new EHTimeoutError(`Timeout Error! url: ${url}`);
       } else {
         throw new EHNetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`);
