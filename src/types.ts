@@ -246,19 +246,23 @@ export interface EHArchive {
 }
 
 export interface EHMyTags {
+  tagset: number;
+  apiuid: number;
+  apikey: string;
+  tagset_name: string;
+  tagset_color: string;
+  enabled: boolean;
   tagsets: {
     value: number;
     name: string;
-    selected: boolean
   }[];
-  enabled: boolean;
-  defaultColorHexCode?: string;
   tags: {
+    tagid: number;
     namespace: TagNamespace;
-    tag: string;
+    name: string;
     watched: boolean;
     hidden: boolean;
-    colorHexCode?: string;
+    color?: string;
     weight: number;
   }[]
 }

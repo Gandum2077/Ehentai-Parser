@@ -12,7 +12,7 @@ import {
   EHTopList,
   EHUploadList
 } from './types'
-import { EHAPIError } from './error'
+import { EHAPIError, EHIPBannedError } from './error'
 
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
 
@@ -151,30 +151,56 @@ function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   return params;
 }
 
+const ehentaiUrls = {
+  default: `https://e-hentai.org/`,
+  homepage: `https://e-hentai.org/`,
+  watched: `https://e-hentai.org/watched`,
+  popular: `https://e-hentai.org/popular`,
+  favorites: `https://e-hentai.org/favorites.php`,
+  config: `https://e-hentai.org/uconfig.php`,
+  api: `https://api.e-hentai.org/api.php`,
+  gallerypopups: `https://e-hentai.org/gallerypopups.php`,
+  toplist: "https://e-hentai.org/toplist.php",
+  upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
+  mytags: `https://e-hentai.org/mytags`
+}
+
+const exhentaiUrls = {
+  default: `https://exhentai.org/`,
+  homepage: `https://exhentai.org/`,
+  watched: `https://exhentai.org/watched`,
+  popular: `https://exhentai.org/popular`,
+  favorites: `https://exhentai.org/favorites.php`,
+  config: `https://exhentai.org/uconfig.php`,
+  api: `https://s.exhentai.org/api.php`,
+  gallerypopups: `https://exhentai.org/gallerypopups.php`,
+  toplist: "https://e-hentai.org/toplist.php",
+  upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
+  mytags: `https://exhentai.org/mytags`
+}
+
 export class EHAPIHandler {
   ua: string = DEFAULT_USER_AGENT
   cookie: string
-  private urls: Record<string, string>
+  private _exhentai: boolean
+  urls: Record<string, string>
 
   constructor(
     exhentai: boolean = true,
     cookie?: string,
   ) {
     this.cookie = cookie || ""
-    const t = (exhentai) ? "x" : "-"
-    this.urls = {
-      default: `https://e${t}hentai.org/`,
-      homepage: `https://e${t}hentai.org/`,
-      watched: `https://e${t}hentai.org/watched`,
-      popular: `https://e${t}hentai.org/popular`,
-      favorites: `https://e${t}hentai.org/favorites.php`,
-      config: `https://e${t}hentai.org/uconfig.php`,
-      api: `https://e${t}hentai.org/api.php`,
-      gallerypopups: `https://e${t}hentai.org/gallerypopups.php`,
-      toplist: "https://e-hentai.org/toplist.php",
-      upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
-      mytags: `https://e${t}hentai.org/mytags`
-    }
+    this._exhentai = exhentai
+    this.urls = (exhentai) ? exhentaiUrls : ehentaiUrls
+  }
+
+  get exhentai() {
+    return this._exhentai
+  }
+
+  set exhentai(value: boolean) {
+    this._exhentai = value
+    this.urls = (value) ? exhentaiUrls : ehentaiUrls
   }
 
   private async _getHtml(url: string) {
@@ -184,6 +210,9 @@ export class EHAPIHandler {
     }
     const resp = await get(url, header, 20)
     const text = await resp.text()
+    if (text.startsWith("Your IP address has been temporarily banned")) {
+      throw new EHIPBannedError(text)
+    }
     return text
   }
 
@@ -399,14 +428,16 @@ export class EHAPIHandler {
 
   /**
    * 获取我的标签信息 https://e-hentai.org/mytags
+   * @param {number} tagset
    * @returns EHMytags
    */
-  async getMytags() {
+  async getMytags(tagset: number = 0) {
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       "Cookie": this.cookie
     }
-    const resp = await get(this.urls.mytags, header, 10)
+    const resp = await get(url, header, 10)
     const text = await resp.text()
     return parseMytags(text)
   }
@@ -801,4 +832,275 @@ export class EHAPIHandler {
     return resp.rawData()
   }
 
+  /**
+   * MyTags 新建标签集
+   * 
+   * 请注意，这个方法除了新建标签集的名称，还需要传入当前标签集是否启用和颜色。
+   * 
+   * @param name 新建标签集的名称
+   * @param tagset 传入的标签集，如果不传入则默认为0
+   * @param tagset_enable 当前标签集是否启用
+   * @param tagset_color 当前标签集的颜色
+   * @returns EHMytags 返回的是新建标签集的数据
+   */
+  async createNewTagset({
+    tagset,
+    tagset_name,
+    tagset_enable,
+    tagset_color
+  }: {
+    tagset?: number,
+    tagset_name: string,
+    tagset_enable?: boolean,
+    tagset_color?: string
+  }) {
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body: Record<string, string> = {
+      tagset_action: "create",
+      tagset_name,
+      tagset_color: tagset_color || ""
+    }
+    if (tagset_enable) body["tagset_enable"] = "on";
+    const resp = await post(url, header, body, 10);
+    const text = await resp.text();
+    return parseMytags(text)
+  }
+
+  /**
+   * MyTags 删除标签集，必须为空的时候才能删除
+   * 
+   * 请注意，这个方法传入的都是要删除的标签集的信息
+   * @param tagset 要删除的标签集的id
+   * @param tagset_enable 要删除的标签集是否启用
+   * @param tagset_color 要删除的标签集的颜色
+   */
+  async deleteTagset({
+    tagset,
+    tagset_enable,
+    tagset_color
+  }: {
+    tagset: number,
+    tagset_enable?: boolean,
+    tagset_color?: string
+  }) {
+    if (tagset < 1) throw new Error("tagset必须大于0");
+    if (tagset === 1) throw new Error("不能删除默认标签集");
+    const url = _updateUrlQuery(this.urls.mytags, { tagset: tagset });
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body: Record<string, string> = {
+      tagset_action: "delete",
+      tagset_name: "",
+      tagset_color: tagset_color || ""
+    }
+    if (tagset_enable) body["tagset_enable"] = "on";
+    const resp = await post(url, header, body, 10);
+    const text = await resp.text();
+    return parseMytags(text)
+  }
+
+
+  async _enableOrDisableTagset({
+    tagset,
+    tagset_enable,
+    tagset_color
+  }: {
+    tagset: number,
+    tagset_enable?: boolean,
+    tagset_color?: string
+  }) {
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body: Record<string, string> = {
+      tagset_action: "update",
+      tagset_name: "",
+      tagset_color: tagset_color || ""
+    }
+    if (tagset_enable) body["tagset_enable"] = "on";
+    const resp = await post(url, header, body, 10);
+    const text = await resp.text();
+    return parseMytags(text)
+  }
+
+  /**
+   * 
+   * @param param0
+   * @param {number} param0.tagset 要启用的标签集的id
+   * @param {string} param0.tagset_color 要启用的标签集的颜色
+   * @returns 
+   */
+  async enableTagset({
+    tagset,
+    tagset_color
+  }: {
+    tagset: number,
+    tagset_color?: string
+  }) {
+    return this._enableOrDisableTagset({ tagset, tagset_enable: true, tagset_color });
+  }
+
+  /**
+   * 
+   * @param param0 
+   * @param {number} param0.tagset 要禁用的标签集的id
+   * @param {string} param0.tagset_color 要禁用的标签集的颜色
+   * @returns 
+   */
+  async disableTagset({
+    tagset,
+    tagset_color
+  }: {
+    tagset: number,
+    tagset_color?: string
+  }) {
+    return this._enableOrDisableTagset({ tagset, tagset_enable: false, tagset_color });
+  }
+
+  /**
+   * 
+   * @param param0 
+   * @param {number} param0.tagset
+   * @param {TagNamespace} param0.namespace
+   * @param {string} param0.name
+   * @param {boolean} param0.watched
+   * @param {boolean} param0.hidden
+   * @param {string} param0.color
+   * @param {number} param0.weight
+   * @returns EHMytags
+   */
+  async addTag({
+    tagset,
+    namespace,
+    name,
+    watched,
+    hidden,
+    color,
+    weight
+  }: {
+    tagset?: number,
+    namespace: TagNamespace,
+    name: string,
+    watched?: boolean,
+    hidden?: boolean,
+    color?: string,
+    weight?: number
+  }) {
+    if (!weight) weight = 10;
+    if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
+    if (watched && hidden) throw new Error("不能同时设置watched和hidden");
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+    const body: Record<string, string | number> = {
+      usertag_action: "add",
+      tagname_new: namespace + ":" + name,
+      tagcolor_new: color || "",
+      tagweight_new: weight,
+      usertag_target: 0,
+    }
+    if (watched) body["tagwatch_new"] = "on";
+    if (hidden) body["taghide_new"] = "on";
+    const resp = await post(url, header, body, 10);
+    const text = await resp.text();
+    return parseMytags(text)
+  }
+
+  /**
+   * 
+   * @param param0
+   * @param {number} [param0.tagset] 
+   * @param {number} param0.tagid
+   * @returns 
+   */
+  async deleteTag({ tagset, tagid }: { tagset?: number, tagid: number }) {
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: this.cookie
+    };
+
+    const body = {
+      usertag_action: "mass",
+      tagname_new: "",
+      tagcolor_new: "",
+      tagweight_new: 10,
+      "modify_usertags[]": tagid,
+      usertag_target: 0
+    }
+    const resp = await post(url, header, body, 10);
+    const text = await resp.text();
+    return parseMytags(text)
+  }
+
+  /**
+   * 
+   * @param param0 
+   * @param {number} param0.apiuid 
+   * @param {string} param0.apikey
+   * @param {number} param0.tagid
+   * @param {boolean} param0.watched
+   * @param {boolean} param0.hidden
+   * @param {string} param0.color
+   * @param {number} param0.weight
+   * 
+   * @returns 
+   */
+  async updateTag({
+    apiuid,
+    apikey,
+    tagid,
+    watched,
+    hidden,
+    color,
+    weight
+  }: {
+    apiuid: number,
+    apikey: string,
+    tagid: number,
+    watched: boolean,
+    hidden: boolean,
+    color?: string,
+    weight: number
+  }) {
+    if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
+    if (watched && hidden) throw new Error("不能同时设置watched和hidden");
+    const body = {
+      method: "setusertag",
+      apiuid,
+      apikey,
+      tagid,
+      tagwatch: watched ? 1 : 0,
+      taghide: hidden ? 1 : 0,
+      tagcolor: color || "",
+      tagweight: weight.toString()
+    }
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/json",
+      Cookie: this.cookie
+    };
+    const resp = await post(this.urls.api, header, body, 10);
+    if (resp.statusCode !== 200) throw new EHAPIError(
+      "更新标签失败",
+      resp.statusCode,
+      `更新标签失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`
+    )
+    return true;
+  }
 }

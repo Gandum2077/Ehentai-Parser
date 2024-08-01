@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHNetworkError = exports.EHTimeoutError = exports.EHServiceUnavailableError = exports.EHAPIError = void 0;
+exports.EHNetworkError = exports.EHTimeoutError = exports.EHServiceUnavailableError = exports.EHIPBannedError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -10,6 +10,15 @@ class EHAPIError extends Error {
     }
 }
 exports.EHAPIError = EHAPIError;
+class EHIPBannedError extends Error {
+    constructor(detail) {
+        super();
+        this.name = "EHIPBannedError";
+        this.message = "IP被禁止";
+        this.detail = detail;
+    }
+}
+exports.EHIPBannedError = EHIPBannedError;
 class EHServiceUnavailableError extends Error {
     constructor(detail) {
         super();

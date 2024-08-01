@@ -1015,35 +1015,53 @@ exports.parseArchiveResult = parseArchiveResult;
  */
 function parseMytags(html) {
     const $ = cheerio.load(html);
+    const scriptText = $("#outer script").eq(0).text();
+    let tagset = 0;
+    // scriptText中可获取: apiuid, apikey, tagset_name, tagset_color
+    const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
+    const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
+    const tagset_name = /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+    let tagset_color = /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || ""; // 此时tagset_color是没有"#"前缀的
+    if (tagset_color)
+        tagset_color = "#" + tagset_color;
     const tagsets = [];
     $("#tagset_outer select option").each((i, el) => {
         const option = $(el);
+        const value = parseInt(option.val());
         const name = option.text();
         const selected = option.prop("selected");
-        tagsets.push({ value: parseInt(option.val()), name, selected });
+        if (selected)
+            tagset = parseInt(option.val());
+        tagsets.push({ value, name });
     });
     const enabled = $("#tagwatch_0").prop("checked");
     const tags = [];
     $("#usertags_outer > div").slice(1).each((i, el) => {
         const divs = $(el).children();
         const [a, b] = divs.eq(0).find("div").prop("title").split(":");
+        const tagid = parseInt(divs.eq(0).find("div").prop("id").split("_")[1]);
         const watched = divs.eq(1).find("input").prop("checked");
         const hidden = divs.eq(2).find("input").prop("checked");
-        const colorHexCode = divs.eq(4).find("input").val() || undefined;
+        const color = divs.eq(4).find("input").val();
         const weight = parseInt(divs.eq(5).find("input").val());
         tags.push({
+            tagid,
             namespace: a,
-            tag: b,
+            name: b,
             watched,
             hidden,
-            colorHexCode,
+            color,
             weight
         });
     });
     return {
-        tagsets,
+        tagset,
+        apiuid,
+        apikey,
+        tagset_name,
+        tagset_color,
         enabled,
-        defaultColorHexCode: $("#tagcolor").val() || undefined,
+        tagsets,
         tags
     };
 }

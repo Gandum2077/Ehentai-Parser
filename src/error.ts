@@ -20,6 +20,17 @@ export class EHAPIError extends Error implements AppError {
   }
 }
 
+export class EHIPBannedError extends Error implements AppError {
+  name = "EHIPBannedError";
+  message = "IP被禁止";
+  detail?: string;
+
+  constructor(detail?: string) {
+    super();
+    this.detail = detail;
+  }
+}
+
 export class EHServiceUnavailableError extends Error implements AppError {
   name = "EHServiceUnavailableError";
   message = "服务不可用，图像配额可能耗尽";
