@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHAPIHandler = void 0;
+exports.EHAPIHandler = exports.buildSortedFsearch = exports.parseFsearch = void 0;
 const url_parse_1 = __importDefault(require("url-parse"));
 const request_1 = require("./request");
 const parser_1 = require("./parser");
+const constant_1 = require("./constant");
 const error_1 = require("./error");
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 function _updateUrlQuery(url, query, removeUndefined = false) {
@@ -33,14 +34,27 @@ function _assembleSearchTerms(searchTerms) {
     if (!searchTerms || searchTerms.length === 0)
         return;
     return searchTerms.map(searchTerm => {
+        if (searchTerm.namespace && searchTerm.qualifier && searchTerm.qualifier !== "weak") {
+            throw new Error("命名空间和修饰词不能同时使用(weak除外)");
+        }
         let result = "";
+        if (searchTerm.qualifier)
+            result += `${searchTerm.qualifier}:`;
         if (searchTerm.namespace)
-            result += searchTerm.namespace + ":"; // 添加命名空间
-        result += (searchTerm.exact) ? `"${searchTerm.term}$"` : `"${searchTerm.term}"`;
-        if (searchTerm.exclude)
-            result = `-${result}`;
-        if (searchTerm.or)
+            result += `${constant_1.tagNamespaceMostUsedAlternateMap[searchTerm.namespace]}:`; // 添加命名空间
+        let term = searchTerm.term;
+        if (searchTerm.dollar)
+            term += "$";
+        if (term.includes(" ")) {
+            term = `"${term}"`;
+        }
+        result += term;
+        // 如果~和-同时使用，必须-在前，~在后，否则直接报错
+        // 但实测并非ehentai搜索支持这种写法，而是后面的符号会被忽略
+        if (searchTerm.tilde)
             result = `~${result}`;
+        if (searchTerm.subtract)
+            result = `-${result}`;
         return result;
     }).join(" ");
 }
@@ -65,16 +79,16 @@ function _searchOptionsToParams(options) {
     if (f_cats === 1023)
         f_cats = undefined;
     const f_search = _assembleSearchTerms(options.searchTerms);
-    // 只要用到了高级搜索，就要设置advsearch参数
-    const usingAdvancedSearch = options.browseExpungedGalleries
-        || options.requireGalleryTorrent
-        || options.minimumPages
-        || options.maximumPages
-        || options.minimumRating
-        || options.disableLanguageFilters
-        || options.disableUploaderFilters
-        || options.disableTagFilters;
-    const advsearch = usingAdvancedSearch ? 1 : undefined;
+    // // 只要用到了高级搜索，就要设置advsearch参数
+    // const usingAdvancedSearch = options.browseExpungedGalleries
+    //   || options.requireGalleryTorrent
+    //   || options.minimumPages
+    //   || options.maximumPages
+    //   || options.minimumRating
+    //   || options.disableLanguageFilters
+    //   || options.disableUploaderFilters
+    //   || options.disableTagFilters;
+    // const advsearch = usingAdvancedSearch ? 1 : undefined;
     const f_sh = options.browseExpungedGalleries ? "on" : undefined;
     const f_sto = options.requireGalleryTorrent ? "on" : undefined;
     const f_spf = options.minimumPages || undefined;
@@ -88,11 +102,10 @@ function _searchOptionsToParams(options) {
     const next = options.maximumGid || undefined;
     const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
     const seek = options.seek || undefined;
-    // 返回搜索参数，但是要删除所有值为undefined的键
     const params = {
         f_cats,
         f_search,
-        advsearch,
+        // advsearch,
         f_sh,
         f_sto,
         f_spf,
@@ -141,6 +154,160 @@ function _favoriteSearchOptionsToParams(options) {
     };
     return params;
 }
+function _disassembleFsearch(fsearch) {
+    // 双引号包裹的字符串视为一个整体，不会被分割。除此之外，空格分割。
+    // 方法：首先有一个状态标记inQuote，初始为false。
+    // 然后逐字遍历，第一次遇到双引号则inQuote=true，第二次则inQuote=false，以此类推。
+    // 如果inQuote为true，则直到下一个双引号之前的空格都不会被分割。
+    // 如果inQuote为false，则遇到空格就分割。
+    // 首先去除首尾空格
+    fsearch = fsearch.trim();
+    let inQuote = false;
+    let result = [];
+    let current = "";
+    for (let i = 0; i < fsearch.length; i++) {
+        let c = fsearch[i];
+        if (c === '"') {
+            inQuote = !inQuote;
+            current += c;
+        }
+        else if (c === ' ' && !inQuote) {
+            result.push(current);
+            current = "";
+        }
+        else {
+            current += c;
+        }
+    }
+    result.push(current); // 末尾不可能是空格，所以不会填入空字符串
+    return result;
+}
+function _parseSingleFsearch(fsearch) {
+    // 转为全小写（实测ehentai搜索不区分大小写）
+    fsearch = fsearch.toLowerCase();
+    // 去掉引号
+    fsearch = fsearch.replace(/"/g, "");
+    // 去掉首尾空格
+    fsearch = fsearch.trim();
+    // 检测开头第一个字符：如果是`-`，则表示排除；如果是`~`，则表示或。
+    let subtract = false;
+    let tilde = false;
+    if (fsearch[0] === "-") {
+        subtract = true;
+        fsearch = fsearch.slice(1);
+    }
+    else if (fsearch[0] === "~") {
+        tilde = true;
+        fsearch = fsearch.slice(1);
+    }
+    // 检测结尾第一个字符：如果是`$`，则表示精确搜索。
+    let dollar = false;
+    if (fsearch[fsearch.length - 1] === "$") {
+        dollar = true;
+        fsearch = fsearch.slice(0, -1);
+    }
+    // 注意：事实上ehentai搜索可以在开头或者结尾添加多个符号，但并非ehentai搜索支持这种写法，而是多余的符号会被忽略
+    // 由于忽略的规则并不明确，这里不考虑这种情况
+    // 然后以冒号为界分割
+    const parts = fsearch.split(":").map(p => p.trimStart());
+    // 实际检测发现，ehentai可以自动忽略修饰词前面的空格，但是不能忽略后面的
+    // 比如" weak: f: anal  "是合法的，但是" weak :f: anal"是不合法的。
+    // 如果超过4个部分，说明有多余的冒号，报错
+    if (parts.length > 4) {
+        throw new Error("Too many colons in a single fsearch term");
+    }
+    // 如果有三个部分，必须第一个部分为`weak`，第二个部分为tagNamespace或tagNamespaceAlternates，否则报错
+    else if (parts.length === 3) {
+        if (parts[0] !== "weak") {
+            throw new Error("Invalid fsearch term with 3 parts, first part must be `weak`");
+        }
+        if (!constant_1.tagNamespaces.includes(parts[1])
+            && !constant_1.tagNamespaceAlternates.includes(parts[1])) {
+            throw new Error("Invalid tag namespace in fsearch term");
+        }
+        let namespace;
+        if (constant_1.tagNamespaces.includes(parts[1])) {
+            namespace = parts[1];
+        }
+        else {
+            namespace = constant_1.tagNamespaceAlternateMap[parts[1]];
+        }
+        return {
+            namespace,
+            qualifier: "weak",
+            term: parts[2].trim(),
+            dollar,
+            subtract,
+            tilde,
+        };
+    }
+    // 如果有两个部分，第一个部分必须为ehQualifiers或tagNamespace或tagNamespaceAlternates，否则报错
+    else if (parts.length === 2) {
+        let qualifier;
+        let namespace;
+        if (constant_1.ehQualifiers.includes(parts[0])) {
+            qualifier = parts[0];
+        }
+        else if (constant_1.tagNamespaces.includes(parts[0])) {
+            namespace = parts[0];
+        }
+        else if (constant_1.tagNamespaceAlternates.includes(parts[0])) {
+            namespace = constant_1.tagNamespaceAlternateMap[parts[0]];
+        }
+        else {
+            throw new Error("Invalid tag namespace in fsearch term");
+        }
+        return {
+            qualifier,
+            namespace,
+            term: parts[1].trim(),
+            dollar,
+            subtract,
+            tilde,
+        };
+    }
+    // 如果只有一个部分，那么这个部分就是term
+    else {
+        return {
+            term: parts[0],
+            dollar,
+            subtract,
+            tilde,
+        };
+    }
+}
+function _sortByKey(array, key) {
+    array.sort((a, b) => {
+        if (a[key] === undefined)
+            return 1;
+        if (b[key] === undefined)
+            return -1;
+        if (a[key] < b[key])
+            return -1;
+        if (a[key] > b[key])
+            return 1;
+        return 0;
+    });
+}
+function _sortSearchTerms(searchTerms) {
+    _sortByKey(searchTerms, "tilde");
+    _sortByKey(searchTerms, "subtract");
+    _sortByKey(searchTerms, "dollar");
+    _sortByKey(searchTerms, "term");
+    _sortByKey(searchTerms, "namespace");
+    _sortByKey(searchTerms, "qualifier");
+    return searchTerms;
+}
+function parseFsearch(fsearch) {
+    const parts = _disassembleFsearch(fsearch);
+    return _sortSearchTerms(parts.map(_parseSingleFsearch));
+}
+exports.parseFsearch = parseFsearch;
+function buildSortedFsearch(searchTerms) {
+    _sortSearchTerms(searchTerms);
+    return _assembleSearchTerms(searchTerms);
+}
+exports.buildSortedFsearch = buildSortedFsearch;
 const ehentaiUrls = {
     default: `https://e-hentai.org/`,
     homepage: `https://e-hentai.org/`,
@@ -164,7 +331,7 @@ const exhentaiUrls = {
     api: `https://s.exhentai.org/api.php`,
     gallerypopups: `https://exhentai.org/gallerypopups.php`,
     toplist: "https://e-hentai.org/toplist.php",
-    upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
+    upload: `https://upld.exhentai.org/upld/manage?ss=d&sd=d`, // 自带按时间降序排序
     mytags: `https://exhentai.org/mytags`
 };
 class EHAPIHandler {
@@ -217,7 +384,7 @@ class EHAPIHandler {
      * 获取当前热门信息 https://e-hentai.org/popular
      * @returns EHPopularList
      */
-    async getPopularInfo() {
+    async getPopularInfo(options = {}) {
         const text = await this._getHtml(this.urls.watched);
         return (0, parser_1.parseList)(text);
     }
@@ -237,14 +404,14 @@ class EHAPIHandler {
      * @param page 从0开始
      * @returns EHTopList
      */
-    async getTopListInfo(timeRange, page) {
+    async getTopListInfo(options) {
         const map = {
             "yesterday": 15,
             "past_month": 13,
             "past_year": 12,
             "all": 11
         };
-        const url = _updateUrlQuery(this.urls.toplist, { p: page || undefined, tl: map[timeRange] }, true);
+        const url = _updateUrlQuery(this.urls.toplist, { p: options.page, tl: map[options.timeRange] }, true);
         const text = await this._getHtml(url);
         return (0, parser_1.parseList)(text);
     }

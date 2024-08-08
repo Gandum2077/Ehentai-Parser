@@ -18,3 +18,4 @@ __exportStar(require("./src/parser"), exports);
 __exportStar(require("./src/api"), exports);
 __exportStar(require("./src/types"), exports);
 __exportStar(require("./src/error"), exports);
+__exportStar(require("./src/constant"), exports);

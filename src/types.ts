@@ -1,6 +1,8 @@
 export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
   | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass"
 
+export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m" | "x" | "o" | "p" | "r" | "char" | "circle" | "lang" | "series"
+
 export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
 
 export type EHSearchedCategory = "Doujinshi" | "Manga" | "Artist CG" | "Game CG" | "Western"
@@ -267,14 +269,18 @@ export interface EHMyTags {
   }[]
 }
 
+export interface EHSearchTerm {
+  namespace?: TagNamespace;
+  qualifier?: EHQualifier; // 可用于以下修饰词：tag, weak, title, uploader, uploaduid, gid, comment, favnote
+  // 其中weak是特殊的，可以和namespace一起使用，其他的不能和namespace一起使用
+  term: string; // 搜索的关键词
+  dollar: boolean; // $ 表示精确搜索，如果没有这个符号，则会搜索以此term开头的所有tag
+  subtract: boolean; // - 表示排除。
+  tilde: boolean; // ~ 表示或。与其他~符号的term之间是或的关系
+}
+
 export interface EHSearchOptions {
-  searchTerms?: {
-    namespace?: TagNamespace | EHQualifier;
-    term: string;
-    exact: boolean;
-    exclude: boolean;
-    or: boolean;
-  }[]
+  searchTerms?: EHSearchTerm[]
   filteredCategories?: EHSearchedCategory[];
   browseExpungedGalleries?: boolean;
   requireGalleryTorrent?: boolean;
@@ -294,14 +300,14 @@ export interface EHSearchOptions {
   seek?: string; // 2024-03-04
 }
 
+export interface EHPopularSearchOptions {
+  disableLanguageFilters?: boolean;
+  disableUploaderFilters?: boolean;
+  disableTagFilters?: boolean;
+}
+
 export interface EHFavoriteSearchOptions {
-  searchTerms?: {
-    namespace?: TagNamespace | EHQualifier;
-    term: string;
-    exact: boolean;
-    exclude: boolean;
-    or: boolean;
-  }[]
+  searchTerms?: EHSearchTerm[]
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
   minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
@@ -313,10 +319,15 @@ export interface EHFavoriteSearchOptions {
   seek?: string; // 2024-03-04
 }
 
+export interface EHTopListSearchOptions {
+  timeRange: "yesterday" | "past_month" | "past_year" | "all";
+  page?: number;
+}
+
 export interface EHSearchParams {
   f_cats?: number;
   f_search?: string;
-  advsearch?: 1;
+  // advsearch?: 1; advsearch的实际作用是显示高级搜索的选项，因此这里不需要
   f_sh?: "on"; // Browse Expunged Galleries
   f_sto?: "on"; // Require Gallery Torrent
   f_spf?: number; // Minimum Pages
