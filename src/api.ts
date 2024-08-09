@@ -2,8 +2,7 @@ import Url from 'url-parse'
 import { get, post } from './request'
 import {
   parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo,
-  parseArchiveResult, parseMyUpload,
-  parseMytags
+  parseArchiveResult, parseMyUpload, parseMytags, parseGalleryTorrentsInfo
 } from './parser'
 import {
   EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, TagNamespace,
@@ -340,7 +339,9 @@ const ehentaiUrls = {
   gallerypopups: `https://e-hentai.org/gallerypopups.php`,
   toplist: "https://e-hentai.org/toplist.php",
   upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
-  mytags: `https://e-hentai.org/mytags`
+  mytags: `https://e-hentai.org/mytags`,
+  archiver: `https://e-hentai.org/archiver.php`,
+  gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`
 }
 
 const exhentaiUrls = {
@@ -354,7 +355,9 @@ const exhentaiUrls = {
   gallerypopups: `https://exhentai.org/gallerypopups.php`,
   toplist: "https://e-hentai.org/toplist.php",
   upload: `https://upld.exhentai.org/upld/manage?ss=d&sd=d`, // 自带按时间降序排序
-  mytags: `https://exhentai.org/mytags`
+  mytags: `https://exhentai.org/mytags`,
+  archiver: `https://exhentai.org/archiver.php`,
+  gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`
 }
 
 export class EHAPIHandler {
@@ -563,6 +566,18 @@ export class EHAPIHandler {
       )
     }
     return result
+  }
+
+  /**
+ * 获取图库种子页信息 https://e-hentai.org/gallerytorrents.php?gid={gid}&token={token}
+ * @param gid
+ * @param token
+ * @returns 
+ */
+  async getGalleryTorrentsInfo(gid: number, token: string, or: string) {
+    const url = this.urls.default + `gallerytorrents.php?gid=${gid}&token=${token}`;
+    const text = await this._getHtml(url)
+    return parseGalleryTorrentsInfo(text)
   }
 
   /**

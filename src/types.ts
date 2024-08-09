@@ -247,6 +247,17 @@ export interface EHArchive {
   }[]
 }
 
+export interface EHGalleryTorrent {
+  title: string;
+  url: string;
+  posted_time: string;
+  size: string;
+  seeds: number;
+  peers: number;
+  downloads: number;
+  uploader: string;
+}
+
 export interface EHMyTags {
   tagset: number;
   apiuid: number;

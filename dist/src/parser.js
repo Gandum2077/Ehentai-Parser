@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMytags = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
+exports.parseMytags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -1009,6 +1009,35 @@ function parseArchiveResult(html) {
     return { message };
 }
 exports.parseArchiveResult = parseArchiveResult;
+function parseGalleryTorrentsInfo(html) {
+    const $ = cheerio.load(html);
+    const torrents = [];
+    $("table").each((i, elem) => {
+        const table = $(elem);
+        const titleA = table.find("tr:nth-child(3) > td > a");
+        const url = titleA.attr("href") || "";
+        const title = titleA.text();
+        const uploader = table.find("tr:nth-child(2) > td:nth-child(1)").contents().eq(1).text().trim();
+        const tr1_tds = table.find("tr:nth-child(1) > td");
+        const posted_time = new Date(tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z");
+        const size = tr1_tds.eq(1).contents().eq(1).text().trim();
+        const seeds = parseInt(tr1_tds.eq(3).contents().eq(1).text().trim());
+        const peers = parseInt(tr1_tds.eq(4).contents().eq(1).text().trim());
+        const downloads = parseInt(tr1_tds.eq(5).contents().eq(1).text().trim());
+        torrents.push({
+            url,
+            title,
+            uploader,
+            posted_time: posted_time.toISOString(),
+            size,
+            seeds,
+            peers,
+            downloads
+        });
+    });
+    return torrents;
+}
+exports.parseGalleryTorrentsInfo = parseGalleryTorrentsInfo;
 /**
  *
  * @param html

@@ -20,6 +20,7 @@ import {
   EHPage,
   EHMyTags,
   EHFavoriteInfo,
+  EHGalleryTorrent
 } from "./types";
 
 const _favcatColors = [
@@ -1001,6 +1002,35 @@ export function parseArchiveResult(html: string): {
   const $ = cheerio.load(html);
   const message = $("p").eq(0).text();
   return { message };
+}
+
+export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
+  const $ = cheerio.load(html);
+  const torrents: EHGalleryTorrent[] = [];
+  $("table").each((i, elem) => {
+    const table = $(elem);
+    const titleA = table.find("tr:nth-child(3) > td > a");
+    const url = titleA.attr("href") || "";
+    const title = titleA.text();
+    const uploader = table.find("tr:nth-child(2) > td:nth-child(1)").contents().eq(1).text().trim();
+    const tr1_tds = table.find("tr:nth-child(1) > td");
+    const posted_time = new Date(tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z");
+    const size = tr1_tds.eq(1).contents().eq(1).text().trim();
+    const seeds = parseInt(tr1_tds.eq(3).contents().eq(1).text().trim());
+    const peers = parseInt(tr1_tds.eq(4).contents().eq(1).text().trim());
+    const downloads = parseInt(tr1_tds.eq(5).contents().eq(1).text().trim());
+    torrents.push({
+      url,
+      title,
+      uploader,
+      posted_time: posted_time.toISOString(),
+      size,
+      seeds,
+      peers,
+      downloads
+    })
+  })
+  return torrents
 }
 
 /**
