@@ -51,7 +51,7 @@ const EHCategoryNumber = {
 }
 
 function _assembleSearchTerms(searchTerms?: EHSearchTerm[]) {
-  if (!searchTerms || searchTerms.length === 0) return;
+  if (!searchTerms || searchTerms.length === 0) return "";
   return searchTerms.map(searchTerm => {
     if (searchTerm.namespace && searchTerm.qualifier && searchTerm.qualifier !== "weak") {
       throw new Error("命名空间和修饰词不能同时使用(weak除外)");
@@ -259,7 +259,7 @@ function _parseSingleFsearch(fsearch: string): EHSearchTerm {
     return {
       namespace,
       qualifier: "weak",
-      term: parts[2].trim(),
+      term: parts[2].replace(/_/g, " ").trim(),
       dollar,
       subtract,
       tilde,
@@ -282,7 +282,7 @@ function _parseSingleFsearch(fsearch: string): EHSearchTerm {
     return {
       qualifier,
       namespace,
-      term: parts[1].trim(),
+      term: parts[1].replace(/_/g, " ").trim(),
       dollar,
       subtract,
       tilde,
@@ -291,7 +291,7 @@ function _parseSingleFsearch(fsearch: string): EHSearchTerm {
   // 如果只有一个部分，那么这个部分就是term
   else {
     return {
-      term: parts[0],
+      term: parts[0].replace(/_/g, " ").trim(),
       dollar,
       subtract,
       tilde,
@@ -321,7 +321,7 @@ function _sortSearchTerms(searchTerms: EHSearchTerm[]) {
 
 export function parseFsearch(fsearch: string): EHSearchTerm[] {
   const parts = _disassembleFsearch(fsearch);
-  return _sortSearchTerms(parts.map(_parseSingleFsearch));
+  return parts.map(_parseSingleFsearch);
 }
 
 export function buildSortedFsearch(searchTerms: EHSearchTerm[]) {
