@@ -12,6 +12,7 @@ export const tagNamespaces: TagNamespace[] = [
   "other",
   "parody",
   "reclass",
+  "temp"
 ];
 
 export const tagNamespaceAlternates: TagNamespaceAlternate[] = [
@@ -30,6 +31,7 @@ export const tagNamespaceAlternates: TagNamespaceAlternate[] = [
   "circle",
   "lang",
   "series",
+  "temp"
 ];
 
 export const tagNamespaceMostUsedAlternateMap: Record<TagNamespace, TagNamespaceAlternate> = {
@@ -43,7 +45,8 @@ export const tagNamespaceMostUsedAlternateMap: Record<TagNamespace, TagNamespace
   "mixed": "x",
   "other": "o",
   "parody": "p",
-  "reclass": "r"
+  "reclass": "r",
+  "temp": "temp"
 }
 
 export const tagNamespaceAlternateMap: Record<TagNamespaceAlternate, TagNamespace> = {
@@ -61,7 +64,8 @@ export const tagNamespaceAlternateMap: Record<TagNamespaceAlternate, TagNamespac
   "char": "character",
   "circle": "group",
   "lang": "language",
-  "series": "parody"
+  "series": "parody",
+  "temp": "temp"
 };
 
 

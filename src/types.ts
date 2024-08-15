@@ -1,7 +1,8 @@
 export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
-  | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass"
+  | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass" | "temp"
 
-export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m" | "x" | "o" | "p" | "r" | "char" | "circle" | "lang" | "series"
+export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m" 
+  | "x" | "o" | "p" | "r" | "char" | "circle" | "lang" | "series" | "temp"
 
 export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
 

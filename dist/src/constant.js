@@ -13,6 +13,7 @@ exports.tagNamespaces = [
     "other",
     "parody",
     "reclass",
+    "temp"
 ];
 exports.tagNamespaceAlternates = [
     "a",
@@ -30,6 +31,7 @@ exports.tagNamespaceAlternates = [
     "circle",
     "lang",
     "series",
+    "temp"
 ];
 exports.tagNamespaceMostUsedAlternateMap = {
     "artist": "a",
@@ -42,7 +44,8 @@ exports.tagNamespaceMostUsedAlternateMap = {
     "mixed": "x",
     "other": "o",
     "parody": "p",
-    "reclass": "r"
+    "reclass": "r",
+    "temp": "temp"
 };
 exports.tagNamespaceAlternateMap = {
     "a": "artist",
@@ -59,7 +62,8 @@ exports.tagNamespaceAlternateMap = {
     "char": "character",
     "circle": "group",
     "lang": "language",
-    "series": "parody"
+    "series": "parody",
+    "temp": "temp"
 };
 exports.ehQualifiers = [
     "tag",
