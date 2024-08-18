@@ -2,7 +2,7 @@ import Url from 'url-parse'
 import { get, post } from './request'
 import {
   parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo,
-  parseArchiveResult, parseMyUpload, parseMytags, parseGalleryTorrentsInfo
+  parseArchiveResult, parseMyUpload, parseMyTags, parseGalleryTorrentsInfo
 } from './parser'
 import {
   EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, TagNamespace,
@@ -14,7 +14,13 @@ import {
   TagNamespaceAlternate,
   EHQualifier,
   EHTopListSearchOptions,
-  EHPopularSearchOptions
+  EHPopularSearchOptions,
+  EHMyTags,
+  EHGallery,
+  EHFavoriteInfo,
+  EHGalleryTorrent,
+  EHArchive,
+  EHMPV
 } from './types'
 import {
   ehQualifiers,
@@ -384,7 +390,7 @@ export class EHAPIHandler {
     this.urls = (value) ? exhentaiUrls : ehentaiUrls
   }
 
-  private async _getHtml(url: string) {
+  private async _getHtml(url: string): Promise<string> {
     const header = {
       "User-Agent": this.ua,
       "Cookie": this.cookie
@@ -402,7 +408,7 @@ export class EHAPIHandler {
    * @param options EHSearchOptions
    * @returns EHFrontPageList
    */
-  async getFrontPageInfo(options: EHSearchOptions = {}) {
+  async getFrontPageInfo(options: EHSearchOptions = {}): Promise<EHFrontPageList> {
     const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFrontPageList
@@ -413,7 +419,7 @@ export class EHAPIHandler {
    * @param options EHSearchOptions
    * @returns EHWatchedList
    */
-  async getWatchedInfo(options: EHSearchOptions = {}) {
+  async getWatchedInfo(options: EHSearchOptions = {}): Promise<EHWatchedList> {
     const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHWatchedList
@@ -423,7 +429,7 @@ export class EHAPIHandler {
    * 获取当前热门信息 https://e-hentai.org/popular
    * @returns EHPopularList
    */
-  async getPopularInfo(options: EHPopularSearchOptions = {}) {
+  async getPopularInfo(options: EHPopularSearchOptions = {}): Promise<EHPopularList> {
     const text = await this._getHtml(this.urls.watched)
     return parseList(text) as EHPopularList
   }
@@ -433,7 +439,7 @@ export class EHAPIHandler {
    * @param options EHFavoriteSearchOptions
    * @returns EHFavoritesList
    */
-  async getFavoritesInfo(options: EHFavoriteSearchOptions = {}) {
+  async getFavoritesInfo(options: EHFavoriteSearchOptions = {}): Promise<EHFavoritesList> {
     const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true)
     const text = await this._getHtml(url)
     return parseList(text) as EHFavoritesList
@@ -445,7 +451,7 @@ export class EHAPIHandler {
    * @param page 从0开始
    * @returns EHTopList
    */
-  async getTopListInfo(options: EHTopListSearchOptions) {
+  async getTopListInfo(options: EHTopListSearchOptions): Promise<EHTopList> {
     const map = {
       "yesterday": 15,
       "past_month": 13,
@@ -461,7 +467,7 @@ export class EHAPIHandler {
    * 获取我的上传信息 https://upld.e-hentai.org/manage?ss=d&sd=d
    * @returns EHUploadList
    */
-  async getUploadInfo() {
+  async getUploadInfo(): Promise<EHUploadList> {
     const text = await this._getHtml(this.urls.upload)
     return parseMyUpload(text) as EHUploadList
   }
@@ -474,7 +480,7 @@ export class EHAPIHandler {
    * @param page 缩略图页码，从0开始
    * @returns EHGallery
    */
-  async getGalleryInfo(gid: number, token: string, fullComments: boolean, page: number = 0) {
+  async getGalleryInfo(gid: number, token: string, fullComments: boolean, page: number = 0): Promise<EHGallery> {
     const baseUrl = this.urls.default + `g/${gid}/${token}/`;
     const url = _updateUrlQuery(baseUrl, { hc: fullComments ? 1 : undefined, p: page || undefined }, true)
     const text = await this._getHtml(url)
@@ -487,7 +493,7 @@ export class EHAPIHandler {
    * @param token
    * @returns EHMPV
    */
-  async getMPVInfo(gid: number, token: string) {
+  async getMPVInfo(gid: number, token: string): Promise<EHMPV> {
     const url = this.urls.default + `mpv/${gid}/${token}/`;
     const text = await this._getHtml(url)
     return parseMPV(text)
@@ -501,7 +507,7 @@ export class EHAPIHandler {
    * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
    * @returns EHPage
    */
-  async getPageInfo(gid: number, imgkey: string, page: number, reloadKey?: string) {
+  async getPageInfo(gid: number, imgkey: string, page: number, reloadKey?: string): Promise<EHPage> {
     const url = this.urls.default + `s/${imgkey}/${gid}-${page}` + (reloadKey ? `?nl=${reloadKey}` : "");
     const text = await this._getHtml(url)
     return parsePageInfo(text)
@@ -514,7 +520,7 @@ export class EHAPIHandler {
    * @param or 此or参数是从getGalleryInfo中获取的
    * @returns EHArchive
    */
-  async getArchiverInfo(gid: number, token: string, or: string) {
+  async getArchiverInfo(gid: number, token: string, or: string): Promise<EHArchive> {
     const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
     const text = await this._getHtml(url)
     return parseArchiverInfo(text)
@@ -574,7 +580,7 @@ export class EHAPIHandler {
  * @param token
  * @returns 
  */
-  async getGalleryTorrentsInfo(gid: number, token: string, or: string) {
+  async getGalleryTorrentsInfo(gid: number, token: string, or: string): Promise<EHGalleryTorrent[]> {
     const url = this.urls.default + `gallerytorrents.php?gid=${gid}&token=${token}`;
     const text = await this._getHtml(url)
     return parseGalleryTorrentsInfo(text)
@@ -588,7 +594,7 @@ export class EHAPIHandler {
    * xu: string 每一行代表一个屏蔽的上传者
    * favorite_0: string 收藏夹名称（后续的数字代表favcat）
    */
-  async getConfig() {
+  async getConfig(): Promise<Record<string, string>> {
     const header = {
       "User-Agent": this.ua,
       "Cookie": this.cookie
@@ -604,7 +610,7 @@ export class EHAPIHandler {
    * @param config
    * @returns boolean
    */
-  async postConfig(config: Record<string, string>) {
+  async postConfig(config: Record<string, string>): Promise<boolean> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -622,9 +628,9 @@ export class EHAPIHandler {
   /**
    * 获取我的标签信息 https://e-hentai.org/mytags
    * @param {number} tagset
-   * @returns EHMytags
+   * @returns EHMyTags
    */
-  async getMytags(tagset: number = 0) {
+  async getMyTags(tagset: number = 0): Promise<EHMyTags> {
     const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
@@ -632,7 +638,7 @@ export class EHAPIHandler {
     }
     const resp = await get(url, header, 10)
     const text = await resp.text()
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
   /**
@@ -640,7 +646,7 @@ export class EHAPIHandler {
    * @param sortOrder "favorited_time" 代表按收藏时间排序，"published_time" 代表按发布时间排序
    * @returns boolean
    */
-  async setFavoritesSortOrder(sortOrder: "favorited_time" | "published_time") {
+  async setFavoritesSortOrder(sortOrder: "favorited_time" | "published_time"): Promise<boolean> {
     const url = _updateUrlQuery(this.urls.favorites, {
       inline_set: sortOrder === "favorited_time" ? "fs_f" : "fs_p"
     });
@@ -663,7 +669,7 @@ export class EHAPIHandler {
    * @param token
    * @returns EHFavoriteInfo
    */
-  async getFavcatFavnote(gid: number, token: string) {
+  async getFavcatFavnote(gid: number, token: string): Promise<EHFavoriteInfo> {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
       t: token,
@@ -685,7 +691,7 @@ export class EHAPIHandler {
    * @param favnote 
    * @returns boolean
    */
-  async addOrModifyFav(gid: number, token: string, favcat: number, favnote: string = "") {
+  async addOrModifyFav(gid: number, token: string, favcat: number, favnote: string = ""): Promise<boolean> {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
       t: token,
@@ -716,7 +722,7 @@ export class EHAPIHandler {
    * @param token 
    * @returns boolean
    */
-  async deleteFav(gid: number, token: string) {
+  async deleteFav(gid: number, token: string): Promise<boolean> {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
       t: token,
@@ -756,7 +762,7 @@ export class EHAPIHandler {
     apikey: string,
     apiuid: string,
     rating: 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4 | 4.5 | 5
-  ) {
+  ): Promise<boolean> {
     const ratingForUpload = (rating * 2).toString();
     const header = {
       "User-Agent": this.ua,
@@ -787,7 +793,7 @@ export class EHAPIHandler {
    * @param text 
    * @returns EHGallery
    */
-  async postNewComment(gid: number, token: string, text: string) {
+  async postNewComment(gid: number, token: string, text: string): Promise<EHGallery> {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const header = {
       "User-Agent": this.ua,
@@ -858,7 +864,7 @@ export class EHAPIHandler {
    * @param text 
    * @returns EHGallery
    */
-  async postEditComment(gid: number, token: string, comment_id: number, text: string) {
+  async postEditComment(gid: number, token: string, comment_id: number, text: string): Promise<EHGallery> {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const body = {
       edit_comment: comment_id,
@@ -895,7 +901,7 @@ export class EHAPIHandler {
     apikey: string,
     apiuid: string,
     comment_vote: 1 | -1  // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
-  ) {
+  ): Promise<boolean> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -993,7 +999,7 @@ export class EHAPIHandler {
    * @param url
    * @param ehgt 是否强制使用ehgt的缩略图
    */
-  async downloadThumbnail(url: string, ehgt: boolean = true) {
+  async downloadThumbnail(url: string, ehgt: boolean = true): Promise<NSData> {
     if (ehgt) {
       url = url.replace("exhentai.org", "ehgt.org");
       const header = {
@@ -1016,7 +1022,7 @@ export class EHAPIHandler {
    * 下载大图片
    * @param url
    */
-  async downloadImage(url: string) {
+  async downloadImage(url: string): Promise<NSData> {
     const header = {
       "User-Agent": this.ua
       // 不需要cookie
@@ -1034,7 +1040,7 @@ export class EHAPIHandler {
    * @param tagset 传入的标签集，如果不传入则默认为0
    * @param tagset_enable 当前标签集是否启用
    * @param tagset_color 当前标签集的颜色
-   * @returns EHMytags 返回的是新建标签集的数据
+   * @returns EHMyTags 返回的是新建标签集的数据
    */
   async createNewTagset({
     tagset,
@@ -1046,7 +1052,7 @@ export class EHAPIHandler {
     tagset_name: string,
     tagset_enable?: boolean,
     tagset_color?: string
-  }) {
+  }): Promise<EHMyTags> {
     const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
@@ -1061,7 +1067,7 @@ export class EHAPIHandler {
     if (tagset_enable) body["tagset_enable"] = "on";
     const resp = await post(url, header, body, 10);
     const text = await resp.text();
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
   /**
@@ -1080,7 +1086,7 @@ export class EHAPIHandler {
     tagset: number,
     tagset_enable?: boolean,
     tagset_color?: string
-  }) {
+  }): Promise<EHMyTags> {
     if (tagset < 1) throw new Error("tagset必须大于0");
     if (tagset === 1) throw new Error("不能删除默认标签集");
     const url = _updateUrlQuery(this.urls.mytags, { tagset: tagset });
@@ -1097,7 +1103,7 @@ export class EHAPIHandler {
     if (tagset_enable) body["tagset_enable"] = "on";
     const resp = await post(url, header, body, 10);
     const text = await resp.text();
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
 
@@ -1109,7 +1115,7 @@ export class EHAPIHandler {
     tagset: number,
     tagset_enable?: boolean,
     tagset_color?: string
-  }) {
+  }): Promise<EHMyTags> {
     const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
@@ -1124,7 +1130,7 @@ export class EHAPIHandler {
     if (tagset_enable) body["tagset_enable"] = "on";
     const resp = await post(url, header, body, 10);
     const text = await resp.text();
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
   /**
@@ -1140,7 +1146,7 @@ export class EHAPIHandler {
   }: {
     tagset: number,
     tagset_color?: string
-  }) {
+  }): Promise<EHMyTags> {
     return this._enableOrDisableTagset({ tagset, tagset_enable: true, tagset_color });
   }
 
@@ -1157,7 +1163,7 @@ export class EHAPIHandler {
   }: {
     tagset: number,
     tagset_color?: string
-  }) {
+  }): Promise<EHMyTags> {
     return this._enableOrDisableTagset({ tagset, tagset_enable: false, tagset_color });
   }
 
@@ -1171,7 +1177,7 @@ export class EHAPIHandler {
    * @param {boolean} param0.hidden
    * @param {string} param0.color
    * @param {number} param0.weight
-   * @returns EHMytags
+   * @returns EHMyTags
    */
   async addTag({
     tagset,
@@ -1189,7 +1195,7 @@ export class EHAPIHandler {
     hidden?: boolean,
     color?: string,
     weight?: number
-  }) {
+  }): Promise<EHMyTags> {
     if (!weight) weight = 10;
     if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
     if (watched && hidden) throw new Error("不能同时设置watched和hidden");
@@ -1210,7 +1216,7 @@ export class EHAPIHandler {
     if (hidden) body["taghide_new"] = "on";
     const resp = await post(url, header, body, 10);
     const text = await resp.text();
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
   /**
@@ -1220,7 +1226,7 @@ export class EHAPIHandler {
    * @param {number} param0.tagid
    * @returns 
    */
-  async deleteTag({ tagset, tagid }: { tagset?: number, tagid: number }) {
+  async deleteTag({ tagset, tagid }: { tagset?: number, tagid: number }): Promise<EHMyTags> {
     const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
@@ -1238,7 +1244,7 @@ export class EHAPIHandler {
     }
     const resp = await post(url, header, body, 10);
     const text = await resp.text();
-    return parseMytags(text)
+    return parseMyTags(text)
   }
 
   /**
@@ -1270,7 +1276,7 @@ export class EHAPIHandler {
     hidden: boolean,
     color?: string,
     weight: number
-  }) {
+  }): Promise<boolean> {
     if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
     if (watched && hidden) throw new Error("不能同时设置watched和hidden");
     const body = {

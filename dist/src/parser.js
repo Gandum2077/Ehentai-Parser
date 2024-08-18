@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMytags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
+exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -193,13 +193,13 @@ function parseList(html) {
             else {
                 time_range = "all";
             }
-            const current_page = parseInt($("table.ptt .ptds").text()) || 1;
-            const total_page = parseInt($("table.ptt td").eq(-2).text()) || 200;
+            const current_page = parseInt($("table.ptt .ptds").text()) - 1 || 0;
+            const total_pages = parseInt($("table.ptt td").eq(-2).text()) || 200;
             return {
                 type,
                 time_range,
                 current_page,
-                total_page,
+                total_pages,
                 items: items
             };
         }
@@ -505,6 +505,7 @@ function parseMyUpload(html) {
                 public_category = public_category_text;
             }
             items.push({
+                type: "upload",
                 folder_name,
                 gid,
                 token,
@@ -653,7 +654,7 @@ function parseGallery(html) {
             const img = $(elem).find("img");
             const title = img.attr("title") || "";
             const r = /Page (\d+): (.*)/.exec(title);
-            const page = parseInt(r?.at(1) || "0");
+            const page = parseInt(r?.at(1) || "1") - 1;
             const name = r?.at(2) || "";
             const thumbnail_url = img.attr("src") || "";
             const page_url = $(elem).find("a").attr("href") || "";
@@ -672,7 +673,7 @@ function parseGallery(html) {
             const img = $(elem).find("img");
             const title = img.attr("title") || "";
             const r = /Page (\d+): (.*)/.exec(title);
-            const page = parseInt(r?.at(1) || "0");
+            const page = parseInt(r?.at(1) || "1") - 1;
             const name = r?.at(2) || "";
             const page_url = $(elem).find("a").attr("href") || "";
             const style = $(elem).find("div").attr("style") || "";
@@ -687,7 +688,7 @@ function parseGallery(html) {
         });
     }
     const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text());
-    const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 0;
+    const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 1;
     let num_of_images_on_each_page = undefined; // 如果只有1页，就没有这个字段
     if (thumbnail_size === "normal" && total_pages > 1) {
         // normal有4种可能：40、100、200、400
@@ -864,7 +865,7 @@ function parseMPV(html) {
         mpvkey,
         length,
         images: imageJSON.map((v, i) => ({
-            page: i + 1,
+            page: i,
             key: v.k,
             name: v.n,
             thumbnail_url: v.t,
@@ -1042,7 +1043,7 @@ exports.parseGalleryTorrentsInfo = parseGalleryTorrentsInfo;
  *
  * @param html
  */
-function parseMytags(html) {
+function parseMyTags(html) {
     const $ = cheerio.load(html);
     const scriptText = $("#outer script").eq(0).text();
     let tagset = 0;
@@ -1094,4 +1095,4 @@ function parseMytags(html) {
         tags
     };
 }
-exports.parseMytags = parseMytags;
+exports.parseMyTags = parseMyTags;

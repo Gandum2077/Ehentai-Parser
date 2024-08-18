@@ -187,13 +187,13 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
       } else {
         time_range = "all";
       }
-      const current_page = parseInt($("table.ptt .ptds").text()) || 1;
-      const total_page = parseInt($("table.ptt td").eq(-2).text()) || 200;
+      const current_page = parseInt($("table.ptt .ptds").text()) - 1 || 0;
+      const total_pages = parseInt($("table.ptt td").eq(-2).text()) || 200;
       return {
         type,
         time_range,
         current_page,
-        total_page,
+        total_pages,
         items: items as EHListCompactItem[]
       }
     }
@@ -497,6 +497,7 @@ export function parseMyUpload(html: string): EHUploadList {
         public_category = public_category_text as EHCategory;
       }
       items.push({
+        type: "upload",
         folder_name,
         gid,
         token,
@@ -637,7 +638,7 @@ export function parseGallery(html: string): EHGallery {
 
   // image
   const images: {
-    page: number; // 从1开始
+    page: number; // 从0开始
     name: string;
     page_url: string;
     thumbnail_url: string;
@@ -651,7 +652,7 @@ export function parseGallery(html: string): EHGallery {
       const img = $(elem).find("img");
       const title = img.attr("title") || "";
       const r = /Page (\d+): (.*)/.exec(title);
-      const page = parseInt(r?.at(1) || "0");
+      const page = parseInt(r?.at(1) || "1") - 1;
       const name = r?.at(2) || "";
       const thumbnail_url = img.attr("src") || "";
       const page_url = $(elem).find("a").attr("href") || "";
@@ -669,7 +670,7 @@ export function parseGallery(html: string): EHGallery {
       const img = $(elem).find("img");
       const title = img.attr("title") || "";
       const r = /Page (\d+): (.*)/.exec(title);
-      const page = parseInt(r?.at(1) || "0");
+      const page = parseInt(r?.at(1) || "1") - 1;
       const name = r?.at(2) || "";
       const page_url = $(elem).find("a").attr("href") || "";
       const style = $(elem).find("div").attr("style") || "";
@@ -684,8 +685,8 @@ export function parseGallery(html: string): EHGallery {
     });
   }
   const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text())
-  const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 0
-  let num_of_images_on_each_page: number| undefined = undefined; // 如果只有1页，就没有这个字段
+  const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 1
+  let num_of_images_on_each_page: number | undefined = undefined; // 如果只有1页，就没有这个字段
   if (thumbnail_size === "normal" && total_pages > 1) {
     // normal有4种可能：40、100、200、400
     if (total_pages * 40 >= length) {
@@ -697,7 +698,7 @@ export function parseGallery(html: string): EHGallery {
     } else {
       num_of_images_on_each_page = 400;
     }
-  } else if ( thumbnail_size === "large" && total_pages > 1) {
+  } else if (thumbnail_size === "large" && total_pages > 1) {
     // large有4种可能：20、50、100、200
     if (total_pages * 20 >= length) {
       num_of_images_on_each_page = 20;
@@ -837,7 +838,7 @@ export function parseGallery(html: string): EHGallery {
     total_pages,
     current_page,
     num_of_images_on_each_page,
-    images: {[current_page]: images},
+    images: { [current_page]: images },
     comments
   }
 }
@@ -859,7 +860,7 @@ export function parseMPV(html: string): EHMPV {
     mpvkey,
     length,
     images: imageJSON.map((v, i) => ({
-      page: i + 1,
+      page: i,
       key: v.k,
       name: v.n,
       thumbnail_url: v.t,
@@ -1037,7 +1038,7 @@ export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
  *  
  * @param html 
  */
-export function parseMytags(html: string): EHMyTags {
+export function parseMyTags(html: string): EHMyTags {
   const $ = cheerio.load(html);
   const scriptText = $("#outer script").eq(0).text();
   let tagset: number = 0

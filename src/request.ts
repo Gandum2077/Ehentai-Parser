@@ -28,7 +28,7 @@ function fetchWithTimeout(url: string, options: RequestInit, timeout: number): P
   return Promise.race([
     fetch(url, options),
     timeoutPromise
-  ])  as Promise<Response>;
+  ]) as Promise<Response>;
 }
 
 class RequestResponse {
@@ -64,7 +64,7 @@ class RequestResponse {
       return Buffer.from(arrayBuffer)
     } else {
       throw new Error('环境不支持');
-    } 
+    }
 
   }
 
@@ -110,21 +110,21 @@ async function __request(
     let bodyStr = ''
     if (body) {
       if (header['Content-Type'] === 'application/x-www-form-urlencoded') {
-        const abody = Object.entries(body).map(n=>([n[0],n[1].toString()]))
+        const abody = Object.entries(body).map(n => ([n[0], n[1].toString()]))
         bodyStr = new URLSearchParams(abody).toString()
       } else {
         header['Content-Type'] = 'application/json'
         bodyStr = JSON.stringify(body)
       }
     }
-    const response = (method === "GET") 
-    ? await fetch(url, { method: method, headers: header, signal: AbortSignal.timeout(timeout * 1000) })
-    : await fetch(url, { method: method, headers: header, body: bodyStr, signal: AbortSignal.timeout(timeout * 1000) })
+    const response = (method === "GET")
+      ? await fetch(url, { method: method, headers: header, signal: AbortSignal.timeout(timeout * 1000) })
+      : await fetch(url, { method: method, headers: header, body: bodyStr, signal: AbortSignal.timeout(timeout * 1000) })
     if (response.status === 503) throw new EHServiceUnavailableError(`HTTP error! status: ${response.status}\nurl: ${url}`);
     if (!response.ok) throw new EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`);
     statusCode = response.status
     contentType = response.headers.get('Content-Type') || '';
-    return new RequestResponse({statusCode, contentType, response })
+    return new RequestResponse({ statusCode, contentType, response })
   } else if (env === ENV.JSBOX) {
     const resp = await $http.request({
       method: method,
@@ -134,6 +134,8 @@ async function __request(
       timeout: timeout
     })
     if (resp.error) {
+      console.error(resp.error)
+      console.error(resp.response)
       if (resp.error.code === -1001) { // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
         throw new EHTimeoutError(`Timeout Error! url: ${url}`);
       } else {
@@ -144,7 +146,7 @@ async function __request(
     if (statusCode === 503) throw new EHServiceUnavailableError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
     if (statusCode >= 400) throw new EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
     contentType = resp.response.headers['Content-Type'] || '';
-    return new RequestResponse({statusCode, contentType, resp })
+    return new RequestResponse({ statusCode, contentType, resp })
   } else {
     throw new Error('环境不支持');
   }

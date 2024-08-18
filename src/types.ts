@@ -1,7 +1,7 @@
 export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
   | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass" | "temp"
 
-export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m" 
+export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m"
   | "x" | "o" | "p" | "r" | "char" | "circle" | "lang" | "series" | "temp"
 
 export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
@@ -55,23 +55,14 @@ export interface EHFavoritesList {
 export interface EHTopList {
   type: "toplist";
   time_range: "yesterday" | "past_month" | "past_year" | "all";
-  current_page: number; // 从1开始
-  total_page: number;
+  current_page: number; // 从0开始
+  total_pages: number;
   items: EHListCompactItem[];
 }
 
 export interface EHUploadList {
   type: "upload";
-  items: {
-    folder_name: string;
-    gid: number;
-    token: string;
-    url: string;
-    title: string;
-    added_time: string;
-    length: number;
-    public_category: EHCategory; // 上传时的分类，有可能和正式的分类不同
-  }[];
+  items: EHListUploadItem[];
 }
 
 interface EHItemBase {
@@ -126,6 +117,18 @@ export interface EHListThumbnailItem extends EHItemBase {
   taglist: EHTagListItem[]; // 只会显示你关注的标签
 }
 
+export interface EHListUploadItem {
+  type: "upload";
+  folder_name: string;
+  gid: number;
+  token: string;
+  url: string;
+  title: string;
+  added_time: string;
+  length: number;
+  public_category: EHCategory; // 上传时的分类，有可能和正式的分类不同
+}
+
 export interface EHGallery {
   gid: number;
   token: string;
@@ -168,7 +171,7 @@ export interface EHGallery {
   current_page: number; // 从0开始
   num_of_images_on_each_page?: number; // large有4种可能：20、50、100、200；normal有4种可能：40、100、200、400，如果只有一页则没有这个字段
   images: Record<number, {
-    page: number; // 从1开始
+    page: number; // 从0开始
     name: string;
     page_url: string;
     thumbnail_url: string;
@@ -205,7 +208,7 @@ export interface EHMPV {
   mpvkey: string;
   length: number;
   images: {
-    page: number;
+    page: number; // 从0开始
     key: string;
     name: string;
     thumbnail_url: string;
@@ -259,6 +262,16 @@ export interface EHGalleryTorrent {
   uploader: string;
 }
 
+export interface EHMyTagsItem {
+  tagid: number;
+  namespace: TagNamespace;
+  name: string;
+  watched: boolean;
+  hidden: boolean;
+  color?: string;
+  weight: number;
+}
+
 export interface EHMyTags {
   tagset: number;
   apiuid: number;
@@ -270,15 +283,7 @@ export interface EHMyTags {
     value: number;
     name: string;
   }[];
-  tags: {
-    tagid: number;
-    namespace: TagNamespace;
-    name: string;
-    watched: boolean;
-    hidden: boolean;
-    color?: string;
-    weight: number;
-  }[]
+  tags: EHMyTagsItem[]
 }
 
 export interface EHSearchTerm {
@@ -333,7 +338,7 @@ export interface EHFavoriteSearchOptions {
 
 export interface EHTopListSearchOptions {
   timeRange: "yesterday" | "past_month" | "past_year" | "all";
-  page?: number;
+  page?: number; // 从0开始
 }
 
 export interface EHSearchParams {

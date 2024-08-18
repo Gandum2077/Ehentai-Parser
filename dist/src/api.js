@@ -563,9 +563,9 @@ class EHAPIHandler {
     /**
      * 获取我的标签信息 https://e-hentai.org/mytags
      * @param {number} tagset
-     * @returns EHMytags
+     * @returns EHMyTags
      */
-    async getMytags(tagset = 0) {
+    async getMyTags(tagset = 0) {
         const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
@@ -573,7 +573,7 @@ class EHAPIHandler {
         };
         const resp = await (0, request_1.get)(url, header, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     /**
      * 设置收藏页排序方式
@@ -923,7 +923,7 @@ class EHAPIHandler {
      * @param tagset 传入的标签集，如果不传入则默认为0
      * @param tagset_enable 当前标签集是否启用
      * @param tagset_color 当前标签集的颜色
-     * @returns EHMytags 返回的是新建标签集的数据
+     * @returns EHMyTags 返回的是新建标签集的数据
      */
     async createNewTagset({ tagset, tagset_name, tagset_enable, tagset_color }) {
         const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
@@ -941,7 +941,7 @@ class EHAPIHandler {
             body["tagset_enable"] = "on";
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     /**
      * MyTags 删除标签集，必须为空的时候才能删除
@@ -971,7 +971,7 @@ class EHAPIHandler {
             body["tagset_enable"] = "on";
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     async _enableOrDisableTagset({ tagset, tagset_enable, tagset_color }) {
         const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
@@ -989,7 +989,7 @@ class EHAPIHandler {
             body["tagset_enable"] = "on";
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     /**
      *
@@ -1021,7 +1021,7 @@ class EHAPIHandler {
      * @param {boolean} param0.hidden
      * @param {string} param0.color
      * @param {number} param0.weight
-     * @returns EHMytags
+     * @returns EHMyTags
      */
     async addTag({ tagset, namespace, name, watched, hidden, color, weight }) {
         if (!weight)
@@ -1049,7 +1049,7 @@ class EHAPIHandler {
             body["taghide_new"] = "on";
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     /**
      *
@@ -1075,7 +1075,7 @@ class EHAPIHandler {
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        return (0, parser_1.parseMytags)(text);
+        return (0, parser_1.parseMyTags)(text);
     }
     /**
      *

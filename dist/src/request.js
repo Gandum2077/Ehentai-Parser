@@ -120,6 +120,8 @@ async function __request(method, url, header, timeout, body) {
             timeout: timeout
         });
         if (resp.error) {
+            console.error(resp.error);
+            console.error(resp.response);
             if (resp.error.code === -1001) { // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
                 throw new error_1.EHTimeoutError(`Timeout Error! url: ${url}`);
             }
