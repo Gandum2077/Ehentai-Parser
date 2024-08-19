@@ -44,6 +44,8 @@ export interface EHFavoritesList {
   prev_page_available: boolean;
   next_page_available: boolean;
   sort_order: "favorited_time" | "published_time";
+  first_item_favorited_timestamp?: number; // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页）
+  last_item_favorited_timestamp?: number; // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页）
   display_mode: EHListDisplayMode;
   items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
   favcat_infos: {

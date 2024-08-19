@@ -152,6 +152,16 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
       const prev_page_available = Boolean($("#uprev").attr("href"))
       const next_page_available = Boolean($("#unext").attr("href"))
       const sort_order = $("select").eq(0).val() === "p" ? "published_time" : "favorited_time"
+      let first_item_favorited_timestamp: number | undefined;
+      let last_item_favorited_timestamp: number | undefined;
+      if (sort_order === "favorited_time") {
+        if (prev_page_available) {
+          first_item_favorited_timestamp = parseInt($("#uprev").attr("href")?.match(/prev=\d+-(\d+)/)?.at(1) || "0");
+        }
+        if (next_page_available) {
+          last_item_favorited_timestamp = parseInt($("#unext").attr("href")?.match(/next=\d+-(\d+)/)?.at(1) || "0");
+        }
+      }
       const favcat_infos: {
         count: number;
         title: string;
@@ -170,6 +180,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         prev_page_available,
         next_page_available,
         sort_order,
+        first_item_favorited_timestamp,
+        last_item_favorited_timestamp,
         display_mode,
         items,
         favcat_infos
