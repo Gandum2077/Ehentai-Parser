@@ -574,6 +574,7 @@ function parseGallery(html) {
     const rating_count = parseInt($("#rating_count").text());
     const ratingImageClassAttr = $("#rating_image").attr("class") || "";
     const is_my_rating = ratingImageClassAttr.includes("irb");
+    const torrent_count = parseInt(/\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0");
     let favorite_count;
     const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
     if (favorite_count_text === "Never") {
@@ -837,6 +838,7 @@ function parseGallery(html) {
         favorited,
         favcat,
         favcat_title,
+        torrent_count,
         taglist,
         newer_versions,
         thumbnail_size,
