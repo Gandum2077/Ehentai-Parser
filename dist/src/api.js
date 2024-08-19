@@ -138,9 +138,13 @@ function _favoriteSearchOptionsToParams(options) {
     }
     const f_search = _assembleSearchTerms(options.searchTerms);
     const favcat = options.favcat;
-    const range = options.range || undefined;
-    const prev = options.minimumGid || undefined;
-    const next = options.maximumGid || undefined;
+    const range = options.range;
+    let prev = options.minimumGid?.toString();
+    if (prev && options.minimumFavoritedTimestamp)
+        prev += `-${options.minimumFavoritedTimestamp}`;
+    let next = options.maximumGid?.toString();
+    if (next && options.maximumFavoritedTimestamp)
+        next += `-${options.maximumFavoritedTimestamp}`;
     const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
     const seek = options.seek;
     const params = {

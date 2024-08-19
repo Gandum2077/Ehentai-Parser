@@ -331,7 +331,9 @@ export interface EHFavoriteSearchOptions {
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
   minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
+  minimumFavoritedTimestamp?: number; // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页），仅用于favorited_time排序
   maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
+  maximumFavoritedTimestamp?: number; // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页），仅用于favorited_time排序
   jump?: {
     value: number;
     unit: "d" | "w" | "m" | "y";
@@ -367,8 +369,11 @@ export interface EHFavoriteSearchParams {
   f_search?: string;
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   range?: number // range 1-99
-  prev?: number; // gid must be greater than prev
-  next?: number; // gid must be smaller than next
+  prev?: string; // gid must be greater than prev
+  next?: string; // gid must be smaller than next
+  // 收藏页的prev/next参数有两种模式:
+  // published_time排序时，只使用gid；favorited_time排序时，使用{gid}-{favorited_timestamp}的形式
+  // 因此这里的prev/next参数类型是string
   jump?: string; // 1d 1w 1m 1y
   seek?: string; // 2024-03-04
 }
