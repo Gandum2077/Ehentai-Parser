@@ -571,7 +571,7 @@ export function parseGallery(html: string): EHGallery {
     invisible_cause = "unknown";
   }
   const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)")
-  const language = languageElement.contents().eq(0).text().trim();
+  const language = languageElement.contents().eq(0).text().trim().toLowerCase();
   const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
   const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
 
