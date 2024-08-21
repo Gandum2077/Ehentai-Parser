@@ -542,8 +542,8 @@ function parseGallery(html) {
     const token = /var token = "(\w*)";/.exec(scriptText)?.at(1) || "";
     const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
     const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
-    const average_rating = parseInt(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
-    const display_rating = parseInt(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
+    const average_rating = parseFloat(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
+    const display_rating = parseFloat(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
     const archiver_or = /&or=([^']*)/.exec($("#gd5 > .g2 a").eq(0).attr("onclick") || "")?.at(1) || "";
     // metadata
     const english_title = $("#gn").text();
