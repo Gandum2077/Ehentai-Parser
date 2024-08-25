@@ -19,6 +19,6 @@
     "@types/cheerio": "^0.22.35",
     "@types/url-parse": "^1.4.11",
     "browserify": "^17.0.0",
-    "jsbox-types": "^1.0.33"
+    "jsbox-types": "^1.0.35"
   }
 }
