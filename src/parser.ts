@@ -954,9 +954,10 @@ export function parsePageInfo(html: string): EHPage {
   const [xres, yres] = splits[1].split(" x ").map(v => parseInt(v));
   const size = { width: xres, height: yres };
   const fileSize = splits[2];
-  const fullSizeUrl = $("#i6 > div:nth-child(3) a").attr("href") || "";
+  const fullSizeUrl = $("#i6 > div:nth-child(4) a").attr("href") || "";
   const downloadButtonText = $("#i6 > div:nth-child(3)").text();
   const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
+  const showkey = $("script").eq(1).html()?.match(/var showkey="(\w*)";/)?.at(1) ?? ""
   const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
@@ -977,7 +978,8 @@ export function parsePageInfo(html: string): EHPage {
     fullSizeUrl,
     fullSize,
     fullFileSize,
-    reloadKey
+    reloadKey,
+    showkey
   };
 }
 
@@ -1105,4 +1107,61 @@ export function parseMyTags(html: string): EHMyTags {
     tagsets,
     tags
   }
+}
+
+export function parseShowpageInfo(info: {
+  p: number; // p: 页码
+  s: string; // s: 网址的路径，如"s/xxxx/1234-1"
+  n: string; // n: html片段，包含跳页的链接
+  i: string; // i: html片段，表示图片下方的文字，如 "<div>01.gif :: 1000 x 720 :: 7.07 MiB<\/div>"
+  k: string; // k: imgkey
+  i3: string; // i3: html片段，信息包含了图片的真实网址，还有reloadkey
+  i5: string; // i5: html片段，包含图库网址
+  i6: string; // i6: html片段，包含图片搜索网址，论坛链接，reloadkey，还可能包含全尺寸图片网址
+  x: string; // x: 宽 如"1000"
+  y: string; // y: 高 如"1000"
+}) {
+  const $i = cheerio.load(info.i);
+  const size = {
+    width: parseInt(info.x),
+    height: parseInt(info.y)
+  }
+  const fileSize = $i("div").eq(0).text().split(" :: ")[2];
+  const $i3 = cheerio.load(info.i3);
+  const imageUrl = $i3("img").attr("src") || "";
+  const $i6 = cheerio.load(info.i6);
+  const reloadKey = $i6("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
+  let fullSizeUrl: string;
+  let downloadButtonText: string;
+  const divs = $i6("div");
+  if (divs.length < 4) {
+    fullSizeUrl = "";
+    downloadButtonText = "";
+  } else {
+    const a = divs.eq(3).find("a");
+    fullSizeUrl = a.attr("href") || "";
+    downloadButtonText = a.text();
+  }
+  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
+  let fullSize: { width: number; height: number };
+  let fullFileSize: string;
+  if (regexResult && regexResult.length === 4) {
+    fullSize = {
+      width: parseInt(regexResult[1]),
+      height: parseInt(regexResult[2])
+    };
+    fullFileSize = regexResult[3];
+  } else {
+    fullSize = size;
+    fullFileSize = fileSize;
+  }
+  return {
+    imageUrl,
+    size,
+    fileSize,
+    fullSizeUrl,
+    fullSize,
+    fullFileSize,
+    reloadKey
+  };
 }

@@ -460,12 +460,12 @@ class EHAPIHandler {
      * 获取某一页信息 https://e-hentai.org/s/{imgkey}/{gid}-{page}
      * @param gid
      * @param imgkey
-     * @param page
+     * @param page 从0开始
      * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
      * @returns EHPage
      */
     async getPageInfo(gid, imgkey, page, reloadKey) {
-        const url = this.urls.default + `s/${imgkey}/${gid}-${page}` + (reloadKey ? `?nl=${reloadKey}` : "");
+        const url = this.urls.default + `s/${imgkey}/${gid}-${page + 1}` + (reloadKey ? `?nl=${reloadKey}` : "");
         const text = await this._getHtml(url);
         return (0, parser_1.parsePageInfo)(text);
     }
@@ -827,7 +827,7 @@ class EHAPIHandler {
      * @param gid
      * @param key
      * @param mpvkey
-     * @param page 从1开始
+     * @param page 从0开始
      * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
      * @returns EHPage
      */
@@ -840,7 +840,7 @@ class EHAPIHandler {
         const body = {
             method: "imagedispatch",
             gid: gid,
-            page: page,
+            page: page + 1,
             imgkey: key,
             mpvkey: mpvkey
         };
@@ -881,6 +881,25 @@ class EHAPIHandler {
             fullFileSize,
             reloadKey: reloadKeyNext
         };
+    }
+    async fetchImageInfoByShowpage(gid, imgkey, showkey, page) {
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/json",
+            Cookie: this.cookie
+        };
+        const body = {
+            method: "showpage",
+            gid: gid,
+            page: page + 1,
+            imgkey,
+            showkey
+        };
+        const resp = await (0, request_1.post)(this.urls.api, header, body, 20);
+        if (resp.statusCode !== 200)
+            throw new Error("请求失败");
+        const info = await resp.json();
+        return (0, parser_1.parseShowpageInfo)(info);
     }
     /**
      * 下载缩略图

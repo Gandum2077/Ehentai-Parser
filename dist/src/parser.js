@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
+exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -957,9 +957,10 @@ function parsePageInfo(html) {
     const [xres, yres] = splits[1].split(" x ").map(v => parseInt(v));
     const size = { width: xres, height: yres };
     const fileSize = splits[2];
-    const fullSizeUrl = $("#i6 > div:nth-child(3) a").attr("href") || "";
+    const fullSizeUrl = $("#i6 > div:nth-child(4) a").attr("href") || "";
     const downloadButtonText = $("#i6 > div:nth-child(3)").text();
     const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
+    const showkey = $("script").eq(1).html()?.match(/var showkey="(\w*)";/)?.at(1) ?? "";
     const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
     let fullSize;
     let fullFileSize;
@@ -981,7 +982,8 @@ function parsePageInfo(html) {
         fullSizeUrl,
         fullSize,
         fullFileSize,
-        reloadKey
+        reloadKey,
+        showkey
     };
 }
 exports.parsePageInfo = parsePageInfo;
@@ -1110,3 +1112,51 @@ function parseMyTags(html) {
     };
 }
 exports.parseMyTags = parseMyTags;
+function parseShowpageInfo(info) {
+    const $i = cheerio.load(info.i);
+    const size = {
+        width: parseInt(info.x),
+        height: parseInt(info.y)
+    };
+    const fileSize = $i("div").eq(0).text().split(" :: ")[2];
+    const $i3 = cheerio.load(info.i3);
+    const imageUrl = $i3("img").attr("src") || "";
+    const $i6 = cheerio.load(info.i6);
+    const reloadKey = $i6("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
+    let fullSizeUrl;
+    let downloadButtonText;
+    const divs = $i6("div");
+    if (divs.length < 4) {
+        fullSizeUrl = "";
+        downloadButtonText = "";
+    }
+    else {
+        const a = divs.eq(3).find("a");
+        fullSizeUrl = a.attr("href") || "";
+        downloadButtonText = a.text();
+    }
+    const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
+    let fullSize;
+    let fullFileSize;
+    if (regexResult && regexResult.length === 4) {
+        fullSize = {
+            width: parseInt(regexResult[1]),
+            height: parseInt(regexResult[2])
+        };
+        fullFileSize = regexResult[3];
+    }
+    else {
+        fullSize = size;
+        fullFileSize = fileSize;
+    }
+    return {
+        imageUrl,
+        size,
+        fileSize,
+        fullSizeUrl,
+        fullSize,
+        fullFileSize,
+        reloadKey
+    };
+}
+exports.parseShowpageInfo = parseShowpageInfo;

@@ -2,7 +2,8 @@ import Url from 'url-parse'
 import { get, post } from './request'
 import {
   parseList, parseGallery, parseMPV, parsePageInfo, parseConfig, parseFavcatFavnote, parseArchiverInfo,
-  parseArchiveResult, parseMyUpload, parseMyTags, parseGalleryTorrentsInfo
+  parseArchiveResult, parseMyUpload, parseMyTags, parseGalleryTorrentsInfo,
+  parseShowpageInfo
 } from './parser'
 import {
   EHFavoritesList, EHPopularList, EHFrontPageList, EHWatchedList, TagNamespace,
@@ -505,12 +506,12 @@ export class EHAPIHandler {
    * 获取某一页信息 https://e-hentai.org/s/{imgkey}/{gid}-{page}
    * @param gid
    * @param imgkey
-   * @param page
+   * @param page 从0开始
    * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
    * @returns EHPage
    */
   async getPageInfo(gid: number, imgkey: string, page: number, reloadKey?: string): Promise<EHPage> {
-    const url = this.urls.default + `s/${imgkey}/${gid}-${page}` + (reloadKey ? `?nl=${reloadKey}` : "");
+    const url = this.urls.default + `s/${imgkey}/${gid}-${page + 1}` + (reloadKey ? `?nl=${reloadKey}` : "");
     const text = await this._getHtml(url)
     return parsePageInfo(text)
   }
@@ -932,7 +933,7 @@ export class EHAPIHandler {
    * @param gid 
    * @param key 
    * @param mpvkey 
-   * @param page 从1开始
+   * @param page 从0开始
    * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
    * @returns EHPage
    */
@@ -945,7 +946,7 @@ export class EHAPIHandler {
     const body: Record<string, number | string> = {
       method: "imagedispatch",
       gid: gid,
-      page: page,
+      page: page + 1,
       imgkey: key,
       mpvkey: mpvkey
     };
@@ -994,6 +995,37 @@ export class EHAPIHandler {
       fullFileSize,
       reloadKey: reloadKeyNext
     };
+  }
+
+  async fetchImageInfoByShowpage(gid: number, imgkey: string, showkey: string, page: number): Promise<EHPage> {
+    const header = {
+      "User-Agent": this.ua,
+      "Content-Type": "application/json",
+      Cookie: this.cookie
+    };
+    const body: Record<string, number | string> = {
+      method: "showpage",
+      gid: gid,
+      page: page + 1,
+      imgkey,
+      showkey
+    };
+    const resp = await post(this.urls.api, header, body, 20);
+    if (resp.statusCode !== 200) throw new Error("请求失败");
+    const info: {
+      p: number; // p: 页码
+      s: string; // s: 网址的路径，如"s/xxxx/1234-1"
+      n: string; // n: html片段，包含跳页的链接
+      i: string; // i: html片段，表示图片下方的文字，如 "<div>01.gif :: 1000 x 720 :: 7.07 MiB<\/div>"
+      k: string; // k: imgkey
+      i3: string; // i3: html片段，信息包含了图片的真实网址，还有reloadkey
+      i5: string; // i5: html片段，包含图库网址
+      i6: string; // i6: html片段，包含图片搜索网址，论坛链接，reloadkey，还可能包含全尺寸图片网址
+      x: string; // x: 宽 如"1000"
+      y: string; // y: 高 如"1000"
+    } = await resp.json()
+    
+    return parseShowpageInfo(info)
   }
 
   /**
