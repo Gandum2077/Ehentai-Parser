@@ -176,6 +176,7 @@ export interface EHGallery {
   images: Record<number, {
     page: number; // 从0开始
     name: string;
+    imgkey: string;
     page_url: string;
     thumbnail_url: string;
   }[]>;

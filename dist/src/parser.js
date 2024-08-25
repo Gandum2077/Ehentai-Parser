@@ -671,9 +671,11 @@ function parseGallery(html) {
             const name = r?.at(2) || "";
             const thumbnail_url = img.attr("src") || "";
             const page_url = $(elem).find("a").attr("href") || "";
+            const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
             images.push({
                 page,
                 name,
+                imgkey,
                 page_url,
                 thumbnail_url
             });
@@ -692,9 +694,11 @@ function parseGallery(html) {
             const style = $(elem).find("div").attr("style") || "";
             const r2 = /transparent url\((.*)\)/.exec(style);
             const thumbnail_url = r2?.at(1) || ""; // 小图情况下，thumbnail_url是20合1的图，需要自行裁剪出需要的那部分
+            const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
             images.push({
                 page,
                 name,
+                imgkey,
                 page_url,
                 thumbnail_url
             });
