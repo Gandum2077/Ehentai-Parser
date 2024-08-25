@@ -225,7 +225,7 @@ export interface EHPage {
     height: number;
   };
   fileSize: string;
-  fullSizeUrl: string;
+  fullSizeUrl?: string;
   fullSize: {
     width: number;
     height: number;

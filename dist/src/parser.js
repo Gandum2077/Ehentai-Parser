@@ -957,10 +957,16 @@ function parsePageInfo(html) {
     const [xres, yres] = splits[1].split(" x ").map(v => parseInt(v));
     const size = { width: xres, height: yres };
     const fileSize = splits[2];
-    const fullSizeUrl = $("#i6 > div:nth-child(4) a").attr("href") || "";
-    const downloadButtonText = $("#i6 > div:nth-child(3)").text();
     const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
     const showkey = $("script").eq(1).html()?.match(/var showkey="(\w*)";/)?.at(1) ?? "";
+    let fullSizeUrl = undefined;
+    let downloadButtonText = "";
+    const lastA = $("#i6 > div a").eq(-1);
+    const urlOfLastA = lastA.attr("href") || "";
+    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+        fullSizeUrl = urlOfLastA;
+        downloadButtonText = lastA.text();
+    }
     const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
     let fullSize;
     let fullFileSize;
@@ -1123,17 +1129,13 @@ function parseShowpageInfo(info) {
     const imageUrl = $i3("img").attr("src") || "";
     const $i6 = cheerio.load(info.i6);
     const reloadKey = $i6("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
-    let fullSizeUrl;
-    let downloadButtonText;
-    const divs = $i6("div");
-    if (divs.length < 4) {
-        fullSizeUrl = "";
-        downloadButtonText = "";
-    }
-    else {
-        const a = divs.eq(3).find("a");
-        fullSizeUrl = a.attr("href") || "";
-        downloadButtonText = a.text();
+    let fullSizeUrl = undefined;
+    let downloadButtonText = "";
+    const lastA = $i6("div a").eq(-1);
+    const urlOfLastA = lastA.attr("href") || "";
+    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+        fullSizeUrl = urlOfLastA;
+        downloadButtonText = lastA.text();
     }
     const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
     let fullSize;
