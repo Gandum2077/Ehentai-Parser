@@ -1035,7 +1035,7 @@ export class EHAPIHandler {
    */
   async downloadThumbnail(url: string, ehgt: boolean = true): Promise<NSData> {
     if (ehgt) {
-      url = url.replace("exhentai.org", "ehgt.org");
+      url = url.replace("s.exhentai.org", "ehgt.org");
       const header = {
         "User-Agent": this.ua
         // 不需要cookie
