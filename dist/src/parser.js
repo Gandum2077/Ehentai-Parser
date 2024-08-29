@@ -749,7 +749,8 @@ function parseGallery(html) {
             const div = $(elem);
             const divc3 = div.find("div.c3");
             const divc3a = divc3.find("a");
-            const commenter = (divc3a.length === 1) ? divc3a.text() : undefined;
+            console.log(divc3a.length);
+            const commenter = (divc3a.length > 1) ? divc3a.eq(0).text() : undefined;
             const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
             const posted_time = new Date(dateText + " UTC");
             const comment_div = div.find("div.c6").html() || "";
