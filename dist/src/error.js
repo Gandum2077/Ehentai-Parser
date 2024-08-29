@@ -20,12 +20,15 @@ class EHIPBannedError extends Error {
 }
 exports.EHIPBannedError = EHIPBannedError;
 class EHServiceUnavailableError extends Error {
-    constructor(detail) {
+    constructor(detail, statusCode) {
         super();
         this.name = "EHServiceUnavailableError";
-        this.message = "服务不可用，图像配额可能耗尽";
+        this.message = "服务不可用";
         this.statusCode = 503;
         this.detail = detail;
+        if (statusCode) {
+            this.statusCode = statusCode;
+        }
     }
 }
 exports.EHServiceUnavailableError = EHServiceUnavailableError;
@@ -39,11 +42,14 @@ class EHTimeoutError extends Error {
 }
 exports.EHTimeoutError = EHTimeoutError;
 class EHNetworkError extends Error {
-    constructor(detail) {
+    constructor(detail, statusCode) {
         super();
         this.name = "EHNetworkError";
         this.message = "未知网络错误";
         this.detail = detail;
+        if (statusCode) {
+            this.statusCode = statusCode;
+        }
     }
 }
 exports.EHNetworkError = EHNetworkError;

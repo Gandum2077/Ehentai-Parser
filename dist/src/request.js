@@ -20,17 +20,6 @@ else if (typeof $http !== 'undefined' && $http.request !== undefined) {
 else {
     throw new Error('环境不支持');
 }
-function fetchWithTimeout(url, options, timeout) {
-    // 创建一个超时 Promise
-    const timeoutPromise = new Promise((resolve, reject) => {
-        setTimeout(() => reject(new error_1.EHTimeoutError(`timeout(ms): ${timeout}`)), timeout);
-    });
-    // 使用 Promise.race 竞赛，哪个 Promise 先完成就采用哪个的结果
-    return Promise.race([
-        fetch(url, options),
-        timeoutPromise
-    ]);
-}
 class RequestResponse {
     constructor({ statusCode, contentType, response, resp }) {
         this.statusCode = statusCode;
@@ -103,10 +92,10 @@ async function __request(method, url, header, timeout, body) {
         const response = (method === "GET")
             ? await fetch(url, { method: method, headers: header, signal: AbortSignal.timeout(timeout * 1000) })
             : await fetch(url, { method: method, headers: header, body: bodyStr, signal: AbortSignal.timeout(timeout * 1000) });
-        if (response.status === 503)
-            throw new error_1.EHServiceUnavailableError(`HTTP error! status: ${response.status}\nurl: ${url}`);
+        if (response.status > 500)
+            throw new error_1.EHServiceUnavailableError(`Server error! status: ${response.status}\nurl: ${url}`, response.status);
         if (!response.ok)
-            throw new error_1.EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`);
+            throw new error_1.EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`, response.status);
         statusCode = response.status;
         contentType = response.headers.get('Content-Type') || '';
         return new RequestResponse({ statusCode, contentType, response });
@@ -125,15 +114,15 @@ async function __request(method, url, header, timeout, body) {
             if (resp.error.code === -1001) { // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
                 throw new error_1.EHTimeoutError(`Timeout Error! url: ${url}`);
             }
-            else {
+            else if (!resp.response || !resp.response.statusCode) {
                 throw new error_1.EHNetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`);
             }
         }
         statusCode = resp.response.statusCode;
-        if (statusCode === 503)
-            throw new error_1.EHServiceUnavailableError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
+        if (statusCode >= 500)
+            throw new error_1.EHServiceUnavailableError(`Server error! status: ${statusCode}\nurl: ${url}`, statusCode);
         if (statusCode >= 400)
-            throw new error_1.EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`);
+            throw new error_1.EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
         contentType = resp.response.headers['Content-Type'] || '';
         return new RequestResponse({ statusCode, contentType, resp });
     }

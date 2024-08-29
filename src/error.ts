@@ -33,13 +33,16 @@ export class EHIPBannedError extends Error implements AppError {
 
 export class EHServiceUnavailableError extends Error implements AppError {
   name = "EHServiceUnavailableError";
-  message = "服务不可用，图像配额可能耗尽";
+  message = "服务不可用";
   statusCode = 503;
   detail?: string;
 
-  constructor(detail?: string) {
+  constructor(detail?: string, statusCode?: number) {
     super();
     this.detail = detail;
+    if (statusCode) {
+      this.statusCode = statusCode;
+    }
   }
 }
 
@@ -58,9 +61,13 @@ export class EHNetworkError extends Error implements AppError {
   name = "EHNetworkError";
   message = "未知网络错误";
   detail?: string;
+  statusCode?: number;
 
-  constructor(detail?: string) {
+  constructor(detail?: string, statusCode?: number) {
     super();
     this.detail = detail;
+    if (statusCode) {
+      this.statusCode = statusCode;
+    }
   }
 }
