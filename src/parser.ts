@@ -530,7 +530,12 @@ export function parseMyUpload(html: string): EHUploadList {
 
 export function parseGallery(html: string): EHGallery {
   const $ = cheerio.load(html);
-  const scriptText = $("script").eq(1).html() || "";
+  let scriptText = ""
+  $("script").each((i, elem) => {
+    if ($(elem).html()?.includes("var gid = ")) {
+      scriptText = $(elem).html() || "";
+    }
+  });
   const gid = parseInt(/var gid = (\d*);/.exec(scriptText)?.at(1) || "0");
   const token = /var token = "(\w*)";/.exec(scriptText)?.at(1) || "";
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
@@ -865,7 +870,12 @@ export function parseGallery(html: string): EHGallery {
 
 export function parseMPV(html: string): EHMPV {
   const $ = cheerio.load(html);
-  const text = $("script").eq(1).html() || "";
+  let text = ""
+  $("script").each((i, elem) => {
+    if ($(elem).html()?.includes("var gid=")) {
+      text = $(elem).html() || "";
+    }
+  });
   const gid = parseInt(/var gid=(\d*);/.exec(text)?.at(1) || "0");
   const mpvkey = /var mpvkey = "(\w*)";/.exec(text)?.at(1) || "";
   const gallery_url = /var gallery_url = "(.*)";/.exec(text)?.at(1) || "";
@@ -960,7 +970,13 @@ export function parsePageInfo(html: string): EHPage {
   const size = { width: xres, height: yres };
   const fileSize = splits[2];
   const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
-  const showkey = $("script").eq(1).html()?.match(/var showkey="(\w*)";/)?.at(1) ?? ""
+  let scriptText = ""
+  $("script").each((i, elem) => {
+    if ($(elem).html()?.includes("var showkey=")) {
+      scriptText = $(elem).html() || "";
+    }
+  });
+  const showkey = scriptText.match(/var showkey="(\w*)";/)?.at(1) ?? ""
 
   let fullSizeUrl: string | undefined = undefined;
   let downloadButtonText:string = "";
