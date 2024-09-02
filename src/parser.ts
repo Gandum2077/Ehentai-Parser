@@ -258,7 +258,7 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
       taglistUnsorted.push({
-        namespace: a as TagNamespace,
+        namespace: (a || "temp") as TagNamespace,
         tag: b
       });
     })
@@ -323,7 +323,7 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
       taglistUnsorted.push({
-        namespace: a as TagNamespace,
+        namespace: (a || "temp") as TagNamespace,
         tag: b
       });
     })
@@ -453,7 +453,7 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
       taglistUnsorted.push({
-        namespace: a as TagNamespace,
+        namespace: (a || "temp") as TagNamespace,
         tag: b
       });
     })

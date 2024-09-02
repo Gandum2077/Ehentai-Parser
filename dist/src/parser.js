@@ -265,7 +265,7 @@ function _parseListMinimalItems($) {
                 return;
             const [a, b] = text.split(":");
             taglistUnsorted.push({
-                namespace: a,
+                namespace: (a || "temp"),
                 tag: b
             });
         });
@@ -330,7 +330,7 @@ function _parseListCompactItems($) {
                 return;
             const [a, b] = text.split(":");
             taglistUnsorted.push({
-                namespace: a,
+                namespace: (a || "temp"),
                 tag: b
             });
         });
@@ -461,7 +461,7 @@ function _parseListThumbnailItems($) {
                 return;
             const [a, b] = text.split(":");
             taglistUnsorted.push({
-                namespace: a,
+                namespace: (a || "temp"),
                 tag: b
             });
         });
