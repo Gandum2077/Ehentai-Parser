@@ -633,27 +633,19 @@ export function parseGallery(html: string): EHGallery {
   }
   // newer versions
   const newer_versions: EHGallery["newer_versions"] = [];
-  const divgnd = $("div#gnd")
-  if (divgnd.length > 0) {
-    const urlArray: string[] = []
-    const titleArray: string[] = []
-    const postedTimeTextArray: string[] = []
-    divgnd.contents().slice(1).each((i, e) => {
-      if (i % 3 === 0) {
-        urlArray.push($(e).attr("href") || "")
-        titleArray.push($(e).text())
-      } else if (i % 3 === 1) {
-        postedTimeTextArray.push($(e).text().slice(8) + "Z")
-      }
-    })
-    for (let i = 0; i < urlArray.length; i++) {
-      newer_versions.push({
-        url: urlArray[i],
-        title: titleArray[i],
-        posted_time: new Date(postedTimeTextArray[i]).toISOString()
-      })
-    }
-  }
+  $("#gnd a").each((i, e) => {
+    const a = $(e);
+    const title = a.text();
+    const url = a.attr("href") || "";
+    const { gid, token } = extractGidToken(url);
+    const timeStr = e.next?.data || "";
+    newer_versions.push({
+      gid,
+      token,
+      title,
+      posted_time: new Date(timeStr.slice(8) + "Z").toISOString()
+    });
+  })
 
   // image
   const images: {

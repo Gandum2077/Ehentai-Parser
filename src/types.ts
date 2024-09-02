@@ -165,7 +165,8 @@ export interface EHGallery {
 
   taglist: EHTagListItem[];
   newer_versions: {
-    url: string;
+    gid: number;
+    token: string;
     title: string;
     posted_time: string;
   }[];
