@@ -583,7 +583,7 @@ export class EHAPIHandler {
  * @param token
  * @returns 
  */
-  async getGalleryTorrentsInfo(gid: number, token: string, or: string): Promise<EHGalleryTorrent[]> {
+  async getGalleryTorrentsInfo(gid: number, token: string): Promise<EHGalleryTorrent[]> {
     const url = this.urls.default + `gallerytorrents.php?gid=${gid}&token=${token}`;
     const text = await this._getHtml(url)
     return parseGalleryTorrentsInfo(text)

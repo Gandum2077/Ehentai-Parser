@@ -525,7 +525,7 @@ class EHAPIHandler {
    * @param token
    * @returns
    */
-    async getGalleryTorrentsInfo(gid, token, or) {
+    async getGalleryTorrentsInfo(gid, token) {
         const url = this.urls.default + `gallerytorrents.php?gid=${gid}&token=${token}`;
         const text = await this._getHtml(url);
         return (0, parser_1.parseGalleryTorrentsInfo)(text);
