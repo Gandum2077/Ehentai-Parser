@@ -584,7 +584,7 @@ export class EHAPIHandler {
  * @returns 
  */
   async getGalleryTorrentsInfo(gid: number, token: string): Promise<EHGalleryTorrent[]> {
-    const url = this.urls.default + `gallerytorrents.php?gid=${gid}&token=${token}`;
+    const url = this.urls.default + `gallerytorrents.php?gid=${gid}&t=${token}`;
     const text = await this._getHtml(url)
     return parseGalleryTorrentsInfo(text)
   }
