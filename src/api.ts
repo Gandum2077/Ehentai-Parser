@@ -763,7 +763,7 @@ export class EHAPIHandler {
     gid: number,
     token: string,
     apikey: string,
-    apiuid: string,
+    apiuid: number,
     rating: 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4 | 4.5 | 5
   ): Promise<boolean> {
     const ratingForUpload = (rating * 2).toString();
