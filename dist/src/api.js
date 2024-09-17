@@ -723,50 +723,35 @@ class EHAPIHandler {
         const html = await resp.text();
         return (0, parser_1.parseGallery)(html);
     }
-    // 此步骤是非必须的，因为在获取画廊信息时已经包含了comment_id，因此删除
-    // /**
-    //  * 获取已发表的评论
-    //  * @param gid 
-    //  * @param token 
-    //  * @param apikey
-    //  * @param apiuid
-    //  * @param comment_id 
-    //  */
-    // async getEditComment(
-    //   gid: number,
-    //   token: string,
-    //   apikey: number,
-    //   apiuid: string,
-    //   comment_id: string
-    // ) {
-    //   const header = {
-    //     "User-Agent": this.ua,
-    //     "Content-Type": "application/json",
-    //     Cookie: this.cookie
-    //   };
-    //   const body = {
-    //     method: "geteditcomment",
-    //     apiuid: apiuid,
-    //     apikey: apikey,
-    //     gid: gid,
-    //     token: token,
-    //     comment_id: comment_id
-    //   };
-    //   const resp = await post(this.urls.api, header, body, 10);
-    //   const success = resp.statusCode === 200;
-    //   if (success) {
-    //     const data = await resp.json();
-    //     return {
-    //       success: true,
-    //       editable_comment: data.editable_comment,
-    //       comment_id: data.comment_id
-    //     };
-    //   } else {
-    //     return {
-    //       success: false
-    //     };
-    //   }
-    // }
+    /**
+     * 获取已发表的评论
+     * @param gid
+     * @param token
+     * @param apikey
+     * @param apiuid
+     * @param comment_id
+     */
+    async getEditComment(gid, token, apikey, apiuid, comment_id) {
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/json",
+            Cookie: this.cookie
+        };
+        const body = {
+            method: "geteditcomment",
+            apiuid: apiuid,
+            apikey: apikey,
+            gid: gid,
+            token: token,
+            comment_id: comment_id
+        };
+        const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
+        if (resp.statusCode !== 200)
+            throw new error_1.EHAPIError("获取评论编辑失败", resp.statusCode, `获取评论编辑失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
+        const data = await resp.json();
+        const text = (0, parser_1.parseEditableComment)(data.editable_comment);
+        return text;
+    }
     /**
      * 发布修改后的评论
      * @param gid

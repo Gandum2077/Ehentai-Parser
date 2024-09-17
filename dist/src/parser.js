@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
+exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -1173,3 +1173,9 @@ function parseShowpageInfo(info) {
     };
 }
 exports.parseShowpageInfo = parseShowpageInfo;
+function parseEditableComment(html) {
+    const $ = cheerio.load(html);
+    const text = $("textarea").text();
+    return text;
+}
+exports.parseEditableComment = parseEditableComment;

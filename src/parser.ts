@@ -1183,3 +1183,9 @@ export function parseShowpageInfo(info: {
     reloadKey
   };
 }
+
+export function parseEditableComment(html: string) {
+  const $ = cheerio.load(html);
+  const text = $("textarea").text();
+  return text;
+}
