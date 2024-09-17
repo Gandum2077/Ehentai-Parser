@@ -902,7 +902,7 @@ export class EHAPIHandler {
     token: string,
     comment_id: number,
     apikey: string,
-    apiuid: string,
+    apiuid: number,
     comment_vote: 1 | -1  // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
   ): Promise<boolean> {
     const header = {
