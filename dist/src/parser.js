@@ -654,52 +654,25 @@ function parseGallery(html) {
     });
     // image
     const images = [];
-    let thumbnail_size;
-    // 分为两种情况，大图和小图
-    // 大图
-    if ($("div#gdt div.gdtl").length > 0) {
-        thumbnail_size = "large";
-        $("div#gdt div.gdtl").each((i, elem) => {
-            const img = $(elem).find("img");
-            const title = img.attr("title") || "";
-            const r = /Page (\d+): (.*)/.exec(title);
-            const page = parseInt(r?.at(1) || "1") - 1;
-            const name = r?.at(2) || "";
-            const thumbnail_url = img.attr("src") || "";
-            const page_url = $(elem).find("a").attr("href") || "";
-            const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
-            images.push({
-                page,
-                name,
-                imgkey,
-                page_url,
-                thumbnail_url
-            });
+    let thumbnail_size = $("div#gdt.gt200").length > 0 ? "large" : "normal";
+    // 2024-11-5更新：大小图共用一套代码
+    $("#gdt a").each((i, elem) => {
+        const div = $(elem).find("div");
+        const r = /Page (\d+): (.*)/.exec(div.attr("title") || "");
+        const page = parseInt(r?.at(1) || "1") - 1;
+        const name = r?.at(2) || "";
+        const r2 = /url\((.*)\)/.exec(div.attr("style") || "");
+        const thumbnail_url = r2?.at(1) || "";
+        const page_url = $(elem).attr("href") || "";
+        const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
+        images.push({
+            page,
+            name,
+            imgkey,
+            page_url,
+            thumbnail_url
         });
-    }
-    else {
-        // 小图
-        thumbnail_size = "normal";
-        $("div#gdt div.gdtm").each((i, elem) => {
-            const img = $(elem).find("img");
-            const title = img.attr("title") || "";
-            const r = /Page (\d+): (.*)/.exec(title);
-            const page = parseInt(r?.at(1) || "1") - 1;
-            const name = r?.at(2) || "";
-            const page_url = $(elem).find("a").attr("href") || "";
-            const style = $(elem).find("div").attr("style") || "";
-            const r2 = /transparent url\((.*)\)/.exec(style);
-            const thumbnail_url = r2?.at(1) || ""; // 小图情况下，thumbnail_url是20合1的图，需要自行裁剪出需要的那部分
-            const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
-            images.push({
-                page,
-                name,
-                imgkey,
-                page_url,
-                thumbnail_url
-            });
-        });
-    }
+    });
     const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text());
     const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 1;
     let num_of_images_on_each_page = undefined; // 如果只有1页，就没有这个字段
