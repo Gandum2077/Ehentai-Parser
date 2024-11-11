@@ -661,8 +661,14 @@ function parseGallery(html) {
         const r = /Page (\d+): (.*)/.exec(div.attr("title") || "");
         const page = parseInt(r?.at(1) || "1") - 1;
         const name = r?.at(2) || "";
-        const r2 = /url\((.*)\)/.exec(div.attr("style") || "");
-        const thumbnail_url = r2?.at(1) || "";
+        const r2 = /width:(\d+)(px)?;height:(\d+)(px)?;background:transparent url\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)? no-repeat/.exec(div.attr("style") || "");
+        const frame = {
+            x: parseInt(r2?.at(6) ?? "0"),
+            y: parseInt(r2?.at(8) ?? "0"),
+            width: parseInt(r2?.at(1) ?? "200"),
+            height: parseInt(r2?.at(3) ?? "1")
+        };
+        const thumbnail_url = r2?.at(5) ?? "";
         const page_url = $(elem).attr("href") || "";
         const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
         images.push({
@@ -670,7 +676,8 @@ function parseGallery(html) {
             name,
             imgkey,
             page_url,
-            thumbnail_url
+            thumbnail_url,
+            frame
         });
     });
     const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text());

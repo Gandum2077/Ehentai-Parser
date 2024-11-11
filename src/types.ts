@@ -180,6 +180,12 @@ export interface EHGallery {
     imgkey: string;
     page_url: string;
     thumbnail_url: string;
+    frame: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
   }[]>;
   comments: {
     posted_time: string;

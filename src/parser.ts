@@ -588,7 +588,7 @@ export function parseGallery(html: string): EHGallery {
   const is_my_rating = ratingImageClassAttr.includes("irb");
 
   const torrent_count = parseInt(/\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0");
-  
+
   let favorite_count: number;
   const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
   if (favorite_count_text === "Never") {
@@ -654,6 +654,12 @@ export function parseGallery(html: string): EHGallery {
     imgkey: string;
     page_url: string;
     thumbnail_url: string;
+    frame: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
   }[] = [];
   let thumbnail_size: "normal" | "large" = $("div#gdt.gt200").length > 0 ? "large" : "normal";
   // 2024-11-5更新：大小图共用一套代码
@@ -662,8 +668,16 @@ export function parseGallery(html: string): EHGallery {
     const r = /Page (\d+): (.*)/.exec(div.attr("title") || "");
     const page = parseInt(r?.at(1) || "1") - 1;
     const name = r?.at(2) || "";
-    const r2 = /url\((.*)\)/.exec(div.attr("style") || "");
-    const thumbnail_url = r2?.at(1) || "";
+
+    const r2 = /width:(\d+)(px)?;height:(\d+)(px)?;background:transparent url\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)? no-repeat/.exec(div.attr("style") || "")
+    const frame = {
+      x: parseInt(r2?.at(6) ?? "0"),
+      y: parseInt(r2?.at(8) ?? "0"),
+      width: parseInt(r2?.at(1) ?? "200"),
+      height: parseInt(r2?.at(3) ?? "1")
+    }
+    const thumbnail_url = r2?.at(5) ?? "";
+    
     const page_url = $(elem).attr("href") || "";
     const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
     images.push({
@@ -671,7 +685,8 @@ export function parseGallery(html: string): EHGallery {
       name,
       imgkey,
       page_url,
-      thumbnail_url
+      thumbnail_url,
+      frame
     });
   });
   const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text())
@@ -945,7 +960,7 @@ export function parsePageInfo(html: string): EHPage {
   const showkey = scriptText.match(/var showkey="(\w*)";/)?.at(1) ?? ""
 
   let fullSizeUrl: string | undefined = undefined;
-  let downloadButtonText:string = "";
+  let downloadButtonText: string = "";
   const lastA = $("#i6 > div a").eq(-1);
   const urlOfLastA = lastA.attr("href") || "";
   if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
