@@ -434,7 +434,7 @@ export class EHAPIHandler {
    * @returns EHPopularList
    */
   async getPopularInfo(options: EHPopularSearchOptions = {}): Promise<EHPopularList> {
-    const text = await this._getHtml(this.urls.watched)
+    const text = await this._getHtml(this.urls.popular)
     return parseList(text) as EHPopularList
   }
 

@@ -393,7 +393,7 @@ class EHAPIHandler {
      * @returns EHPopularList
      */
     async getPopularInfo(options = {}) {
-        const text = await this._getHtml(this.urls.watched);
+        const text = await this._getHtml(this.urls.popular);
         return (0, parser_1.parseList)(text);
     }
     /**
