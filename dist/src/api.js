@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHAPIHandler = exports.buildSortedFsearch = exports.parseFsearch = void 0;
+exports.EHAPIHandler = exports.buildSortedFsearch = exports.parseFsearch = exports.assembleSearchTerms = void 0;
 const url_parse_1 = __importDefault(require("url-parse"));
 const request_1 = require("./request");
 const parser_1 = require("./parser");
@@ -30,7 +30,7 @@ const EHCategoryNumber = {
     "Asian Porn": 128,
     Misc: 1
 };
-function _assembleSearchTerms(searchTerms) {
+function assembleSearchTerms(searchTerms) {
     if (!searchTerms || searchTerms.length === 0)
         return "";
     return searchTerms.map(searchTerm => {
@@ -58,6 +58,7 @@ function _assembleSearchTerms(searchTerms) {
         return result;
     }).join(" ");
 }
+exports.assembleSearchTerms = assembleSearchTerms;
 // SearchOptions to SearchParams
 function _searchOptionsToParams(options) {
     // 检查搜索参数是否合法
@@ -78,7 +79,7 @@ function _searchOptionsToParams(options) {
         f_cats = options.filteredCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
     if (f_cats === 1023)
         f_cats = undefined;
-    const f_search = _assembleSearchTerms(options.searchTerms);
+    const f_search = assembleSearchTerms(options.searchTerms);
     // // 只要用到了高级搜索，就要设置advsearch参数
     // const usingAdvancedSearch = options.browseExpungedGalleries
     //   || options.requireGalleryTorrent
@@ -136,7 +137,7 @@ function _favoriteSearchOptionsToParams(options) {
     if (options.seek && /^\d\d\d\d-\d\d-\d\d$/.exec(options.seek) === null) {
         throw new Error("seek参数必须是一个符合格式的日期字符串");
     }
-    const f_search = _assembleSearchTerms(options.searchTerms);
+    const f_search = assembleSearchTerms(options.searchTerms);
     const favcat = options.favcat;
     const range = options.range;
     let prev = options.minimumGid?.toString();
@@ -309,7 +310,7 @@ function parseFsearch(fsearch) {
 exports.parseFsearch = parseFsearch;
 function buildSortedFsearch(searchTerms) {
     _sortSearchTerms(searchTerms);
-    return _assembleSearchTerms(searchTerms);
+    return assembleSearchTerms(searchTerms);
 }
 exports.buildSortedFsearch = buildSortedFsearch;
 const ehentaiUrls = {

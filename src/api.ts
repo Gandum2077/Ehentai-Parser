@@ -57,7 +57,7 @@ const EHCategoryNumber = {
   Misc: 1
 }
 
-function _assembleSearchTerms(searchTerms?: EHSearchTerm[]) {
+export function assembleSearchTerms(searchTerms?: EHSearchTerm[]) {
   if (!searchTerms || searchTerms.length === 0) return "";
   return searchTerms.map(searchTerm => {
     if (searchTerm.namespace && searchTerm.qualifier && searchTerm.qualifier !== "weak") {
@@ -101,7 +101,7 @@ function _searchOptionsToParams(options: EHSearchOptions) {
   if (options.filteredCategories && options.filteredCategories.length > 0)
     f_cats = options.filteredCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
   if (f_cats === 1023) f_cats = undefined;
-  const f_search = _assembleSearchTerms(options.searchTerms);
+  const f_search = assembleSearchTerms(options.searchTerms);
   // // 只要用到了高级搜索，就要设置advsearch参数
   // const usingAdvancedSearch = options.browseExpungedGalleries
   //   || options.requireGalleryTorrent
@@ -161,7 +161,7 @@ function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   if (options.seek && /^\d\d\d\d-\d\d-\d\d$/.exec(options.seek) === null) {
     throw new Error("seek参数必须是一个符合格式的日期字符串");
   }
-  const f_search = _assembleSearchTerms(options.searchTerms);
+  const f_search = assembleSearchTerms(options.searchTerms);
   const favcat = options.favcat;
   const range = options.range;
   let prev = options.minimumGid?.toString();
@@ -335,7 +335,7 @@ export function parseFsearch(fsearch: string): EHSearchTerm[] {
 
 export function buildSortedFsearch(searchTerms: EHSearchTerm[]) {
   _sortSearchTerms(searchTerms)
-  return _assembleSearchTerms(searchTerms)
+  return assembleSearchTerms(searchTerms)
 }
 
 const ehentaiUrls = {
