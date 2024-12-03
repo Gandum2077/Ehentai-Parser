@@ -310,7 +310,7 @@ export interface EHSearchTerm {
 
 export interface EHSearchOptions {
   searchTerms?: EHSearchTerm[]
-  filteredCategories?: EHSearchedCategory[];
+  excludedCategories?: EHSearchedCategory[];
   browseExpungedGalleries?: boolean;
   requireGalleryTorrent?: boolean;
   minimumPages?: number;

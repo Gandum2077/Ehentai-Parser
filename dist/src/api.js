@@ -75,8 +75,8 @@ function _searchOptionsToParams(options) {
         throw new Error("jump和seek参数不能同时使用");
     }
     let f_cats;
-    if (options.filteredCategories && options.filteredCategories.length > 0)
-        f_cats = options.filteredCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
+    if (options.excludedCategories && options.excludedCategories.length > 0)
+        f_cats = options.excludedCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
     if (f_cats === 1023)
         f_cats = undefined;
     const f_search = assembleSearchTerms(options.searchTerms);

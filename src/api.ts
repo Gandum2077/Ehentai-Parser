@@ -98,8 +98,8 @@ function _searchOptionsToParams(options: EHSearchOptions) {
   }
 
   let f_cats: number | undefined
-  if (options.filteredCategories && options.filteredCategories.length > 0)
-    f_cats = options.filteredCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
+  if (options.excludedCategories && options.excludedCategories.length > 0)
+    f_cats = options.excludedCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
   if (f_cats === 1023) f_cats = undefined;
   const f_search = assembleSearchTerms(options.searchTerms);
   // // 只要用到了高级搜索，就要设置advsearch参数
