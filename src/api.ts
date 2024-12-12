@@ -190,25 +190,20 @@ function _disassembleFsearch(fsearch: string) {
   // 如果inQuote为true，则直到下一个双引号之前的空格都不会被分割。
   // 如果inQuote为false，则遇到空格就分割。
 
-  // 首先去除首尾空格
-  fsearch = fsearch.trim();
-
   let inQuote = false;
   let result: string[] = [];
   let current = "";
   for (let i = 0; i < fsearch.length; i++) {
     let c = fsearch[i];
-    if (c === '"') {
-      inQuote = !inQuote;
-      current += c;
-    } else if (c === ' ' && !inQuote) {
-      result.push(current);
+    if (c === '"') inQuote = !inQuote;
+    if (c === ' ' && !inQuote) {
+      if (current) result.push(current);
       current = "";
     } else {
       current += c;
     }
   }
-  result.push(current);  // 末尾不可能是空格，所以不会填入空字符串
+  if (current) result.push(current);
   return result;
 }
 
@@ -1019,7 +1014,7 @@ export class EHAPIHandler {
       x: string; // x: 宽 如"1000"
       y: string; // y: 高 如"1000"
     } = await resp.json()
-    
+
     return parseShowpageInfo(info)
   }
 

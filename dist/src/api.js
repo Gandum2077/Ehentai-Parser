@@ -165,26 +165,24 @@ function _disassembleFsearch(fsearch) {
     // 然后逐字遍历，第一次遇到双引号则inQuote=true，第二次则inQuote=false，以此类推。
     // 如果inQuote为true，则直到下一个双引号之前的空格都不会被分割。
     // 如果inQuote为false，则遇到空格就分割。
-    // 首先去除首尾空格
-    fsearch = fsearch.trim();
     let inQuote = false;
     let result = [];
     let current = "";
     for (let i = 0; i < fsearch.length; i++) {
         let c = fsearch[i];
-        if (c === '"') {
+        if (c === '"')
             inQuote = !inQuote;
-            current += c;
-        }
-        else if (c === ' ' && !inQuote) {
-            result.push(current);
+        if (c === ' ' && !inQuote) {
+            if (current)
+                result.push(current);
             current = "";
         }
         else {
             current += c;
         }
     }
-    result.push(current); // 末尾不可能是空格，所以不会填入空字符串
+    if (current)
+        result.push(current);
     return result;
 }
 function _parseSingleFsearch(fsearch) {
