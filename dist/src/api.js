@@ -469,27 +469,25 @@ class EHAPIHandler {
         return (0, parser_1.parsePageInfo)(text);
     }
     /**
-     * 获取归档页信息 https://e-hentai.org/archiver.php?gid={gid}&token={token}&or={or}
+     * 获取归档页信息 https://e-hentai.org/archiver.php?gid={gid}&token={token}
      * @param gid
      * @param token
-     * @param or 此or参数是从getGalleryInfo中获取的
      * @returns EHArchive
      */
-    async getArchiverInfo(gid, token, or) {
-        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+    async getArchiverInfo(gid, token) {
+        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}`;
         const text = await this._getHtml(url);
         return (0, parser_1.parseArchiverInfo)(text);
     }
     /**
-     * 启动Hath下载 https://e-hentai.org/archiver.php?gid={gid}&token={token}&or={or}
+     * 启动Hath下载 https://e-hentai.org/archiver.php?gid={gid}&token={token}
      * @param gid
      * @param token
-     * @param or 此or参数是从getArchiverInfo中获取的，和getGalleryInfo中的or参数不同
      * @param xres
      * @returns
      */
-    async startHathDownload(gid, token, or, xres) {
-        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}&or=${or}`;
+    async startHathDownload(gid, token, xres) {
+        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}`;
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",

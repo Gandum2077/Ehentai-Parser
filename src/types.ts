@@ -136,7 +136,7 @@ export interface EHGallery {
   token: string;
   apiuid: number;
   apikey: string;
-  archiver_or: string; // 用于打开归档页面的参数
+  // archiver_or: string; // 用于打开归档页面的参数 2024-12-12更新：此参数被废除
   english_title: string;
   japanese_title: string;
   thumbnail_url: string;
@@ -255,7 +255,6 @@ export interface EHFavoriteInfo {
 export interface EHArchive {
   gid: number;
   token: string;
-  or: string;
   download_options: {
     solution: string;
     size: string;

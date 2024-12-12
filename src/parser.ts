@@ -542,7 +542,6 @@ export function parseGallery(html: string): EHGallery {
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
   const average_rating = parseFloat(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
   const display_rating = parseFloat(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
-  const archiver_or = /&or=([^']*)/.exec($("#gd5 > .g2 a").eq(0).attr("onclick") || "")?.at(1) || "";
   // metadata
   const english_title = $("#gn").text();
   const japanese_title = $("#gj").text();
@@ -811,7 +810,6 @@ export function parseGallery(html: string): EHGallery {
     token,
     apiuid,
     apikey,
-    archiver_or,
     english_title,
     japanese_title,
     thumbnail_url,
@@ -995,11 +993,10 @@ export function parsePageInfo(html: string): EHPage {
 export function parseArchiverInfo(html: string): EHArchive {
   const $ = cheerio.load(html);
   const url = $("form").attr("action") || "";
-  const r = /gid=(\d+)&token=(\w+)&or=(.*)/.exec(url);
-  if (!r || r.length < 4) throw new Error("Invalid url");
+  const r = /gid=(\d+)&token=(\w+)/.exec(url);
+  if (!r || r.length < 3) throw new Error("Invalid url");
   const gid = parseInt(r[1]);
   const token = r[2];
-  const or = r[3];
   const download_options: EHArchive["download_options"] = []
   $("table td").each((i, elem) => {
     const td = $(elem);
@@ -1012,7 +1009,6 @@ export function parseArchiverInfo(html: string): EHArchive {
   return {
     gid,
     token,
-    or,
     download_options
   }
 }
