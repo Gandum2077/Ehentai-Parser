@@ -33,7 +33,7 @@ import {
 } from "./constant";
 import { EHAPIError, EHIPBannedError } from './error'
 
-const DEFAULT_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+const DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
   const u = new Url(url, true)
