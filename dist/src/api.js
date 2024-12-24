@@ -125,9 +125,6 @@ function _searchOptionsToParams(options) {
 }
 function _favoriteSearchOptionsToParams(options) {
     // 检查搜索参数是否合法
-    if (options.range && (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
-        throw new Error("range参数与prev、next、jump、seek参数不兼容");
-    }
     if (options.minimumGid && options.maximumGid) {
         throw new Error("prev和next参数不能同时使用");
     }
@@ -139,7 +136,6 @@ function _favoriteSearchOptionsToParams(options) {
     }
     const f_search = assembleSearchTerms(options.searchTerms);
     const favcat = options.favcat;
-    const range = options.range;
     let prev = options.minimumGid?.toString();
     if (prev && options.minimumFavoritedTimestamp)
         prev += `-${options.minimumFavoritedTimestamp}`;
@@ -151,7 +147,6 @@ function _favoriteSearchOptionsToParams(options) {
     const params = {
         f_search,
         favcat,
-        range,
         prev,
         next,
         jump,

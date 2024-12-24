@@ -337,7 +337,6 @@ export interface EHPopularSearchOptions {
 export interface EHFavoriteSearchOptions {
   searchTerms?: EHSearchTerm[]
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  range?: number; // 范围是1-99的整数，它和下面的搜索参数都不兼容
   minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
   minimumFavoritedTimestamp?: number; // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页），仅用于favorited_time排序
   maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
