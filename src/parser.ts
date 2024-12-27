@@ -37,7 +37,7 @@ const _favcatColors = [
 ]
 
 
-function extractGidToken(url: string): { gid: number, token: string } {
+export function extractGidToken(url: string): { gid: number, token: string } {
   const patt = /https:\/\/e[-x]hentai\.org\/\w+\/(\d+)\/(\w+)\/?/;
   const r = patt.exec(url);
   if (!r || r.length < 3) {
