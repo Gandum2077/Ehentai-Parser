@@ -1062,7 +1062,12 @@ export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
  */
 export function parseMyTags(html: string): EHMyTags {
   const $ = cheerio.load(html);
-  const scriptText = $("#outer script").eq(0).text();
+  let scriptText = ""
+  $("script").each((i, elem) => {
+    if ($(elem).html()?.includes("var apiuid")) {
+      scriptText = $(elem).html() || "";
+    }
+  });
   let tagset: number = 0
   // scriptText中可获取: apiuid, apikey, tagset_name, tagset_color
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
