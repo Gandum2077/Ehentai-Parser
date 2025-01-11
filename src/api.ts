@@ -886,7 +886,11 @@ export class EHAPIHandler {
     apikey: string,
     apiuid: number,
     comment_vote: 1 | -1  // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
-  ): Promise<boolean> {
+  ): Promise<{
+    comment_id: number;
+    comment_score: number;
+    comment_vote: 1 | -1 | 0;
+  }> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -907,7 +911,12 @@ export class EHAPIHandler {
       resp.statusCode,
       `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`
     )
-    return true;
+    const data = await resp.json() as {
+      comment_id: number;
+      comment_score: number;
+      comment_vote: 1 | -1 | 0;
+    }
+    return data;
   }
 
   /**

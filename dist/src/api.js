@@ -797,7 +797,8 @@ class EHAPIHandler {
         const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("给评论打分失败", resp.statusCode, `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
-        return true;
+        const data = await resp.json();
+        return data;
     }
     /**
      * 获取图片信息，前提是拥有mpvkey。否则应该使用getPageInfo来获取图片信息。
