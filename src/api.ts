@@ -1057,6 +1057,19 @@ export class EHAPIHandler {
   }
 
   /**
+   * 下载原图
+   * @param url
+   */
+  async downloadOriginalImage(url: string): Promise<NSData> {
+    const header = {
+      "User-Agent": this.ua,
+      "Cookie": this.cookie
+    }
+    const resp = await get(url, header, 40)
+    return resp.rawData()
+  }
+
+  /**
    * MyTags 新建标签集
    * 
    * 请注意，这个方法除了新建标签集的名称，还需要传入当前标签集是否启用和颜色。
