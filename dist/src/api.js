@@ -154,6 +154,16 @@ function _favoriteSearchOptionsToParams(options) {
     };
     return params;
 }
+function _popularSearchOptionsToParams(options) {
+    const f_sfl = options.disableLanguageFilters ? "on" : undefined;
+    const f_sfu = options.disableUploaderFilters ? "on" : undefined;
+    const f_sft = options.disableTagFilters ? "on" : undefined;
+    return {
+        f_sfl,
+        f_sfu,
+        f_sft
+    };
+}
 function _disassembleFsearch(fsearch) {
     // 双引号包裹的字符串视为一个整体，不会被分割。除此之外，空格分割。
     // 方法：首先有一个状态标记inQuote，初始为false。
@@ -362,6 +372,37 @@ class EHAPIHandler {
         }
         return text;
     }
+    buildUrl(args) {
+        if (args.type === "front_page") {
+            const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(args.options), true);
+            return url;
+        }
+        else if (args.type === "watched") {
+            const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(args.options), true);
+            return url;
+        }
+        else if (args.type === "popular") {
+            const url = _updateUrlQuery(this.urls.popular, _popularSearchOptionsToParams(args.options), true);
+            return url;
+        }
+        else if (args.type === "favorites") {
+            const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(args.options), true);
+            return url;
+        }
+        else if (args.type === "toplist") {
+            const map = {
+                "yesterday": 15,
+                "past_month": 13,
+                "past_year": 12,
+                "all": 11
+            };
+            const url = _updateUrlQuery(this.urls.toplist, { p: args.options.page, tl: map[args.options.timeRange] }, true);
+            return url;
+        }
+        else {
+            return this.urls.upload;
+        }
+    }
     /**
      * 获取首页信息 https://e-hentai.org/
      * @param options EHSearchOptions
@@ -387,7 +428,8 @@ class EHAPIHandler {
      * @returns EHPopularList
      */
     async getPopularInfo(options = {}) {
-        const text = await this._getHtml(this.urls.popular);
+        const url = _updateUrlQuery(this.urls.popular, _popularSearchOptionsToParams(options), true);
+        const text = await this._getHtml(url);
         return (0, parser_1.parseList)(text);
     }
     /**
