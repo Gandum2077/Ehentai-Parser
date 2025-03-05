@@ -651,7 +651,6 @@ export function parseGallery(html: string): EHGallery {
     page: number; // 从0开始
     name: string;
     imgkey: string;
-    page_url: string;
     thumbnail_url: string;
     frame: {
       x: number;
@@ -676,14 +675,13 @@ export function parseGallery(html: string): EHGallery {
       height: parseInt(r2?.at(3) ?? "1")
     }
     const thumbnail_url = r2?.at(5) ?? "";
-    
+
     const page_url = $(elem).attr("href") || "";
     const imgkey = /hentai.org\/s\/(\w+)\/\d+-\d+/.exec(page_url)?.at(1) || "";
     images.push({
       page,
       name,
       imgkey,
-      page_url,
       thumbnail_url,
       frame
     });
@@ -863,6 +861,19 @@ export function parseMPV(html: string): EHMPV {
   const length = parseInt(lengthText);
   const imageJSONText = text.slice(text.indexOf("["), text.indexOf("]") + 1);
   const imageJSON: { n: string; k: string; t: string }[] = JSON.parse(imageJSONText);
+
+  const frames: { x: number, y: number, width: number, height: number }[] = []
+  $("#pane_thumbs a > div").each((i, elem) => {
+    const style = $(elem).attr("style") || "";
+    const r = /width:(\d+)px;height:(\d+)px;/.exec(style);
+    const width = parseInt(r?.at(1) ?? "200");
+    const height = parseInt(r?.at(2) ?? "1");
+    const t = imageJSON[i].t;
+    const r2 = /\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)?/.exec(t)
+    const x = parseInt(r2?.at(2) ?? "0")
+    const y = parseInt(r2?.at(4) ?? "0")
+    frames.push({ x, y, width, height })
+  })
   return {
     gid,
     token,
@@ -870,9 +881,10 @@ export function parseMPV(html: string): EHMPV {
     length,
     images: imageJSON.map((v, i) => ({
       page: i,
-      key: v.k,
       name: v.n,
-      thumbnail_url: v.t,
+      imgkey: v.k,
+      thumbnail_url: /\(([^(]+)\)/.exec(v.t)?.at(1) || "",
+      frame: frames[i]
     }))
   }
 }

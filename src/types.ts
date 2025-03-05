@@ -178,7 +178,7 @@ export interface EHGallery {
     page: number; // 从0开始
     name: string;
     imgkey: string;
-    page_url: string;
+    // page_url: string; // 由于page_url可以由其他项推导，故删除 https://e[x-]hentai.org/s/{imgekey}/{gid}-{page+1}
     thumbnail_url: string;
     frame: {
       x: number;
@@ -219,10 +219,20 @@ export interface EHMPV {
   mpvkey: string;
   length: number;
   images: {
+    //page: number; // 从0开始
+    //key: string;
+    //name: string;
+    //thumbnail_url: string;
     page: number; // 从0开始
-    key: string;
     name: string;
+    imgkey: string;
     thumbnail_url: string;
+    frame: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
   }[];
 }
 

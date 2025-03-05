@@ -675,7 +675,6 @@ function parseGallery(html) {
             page,
             name,
             imgkey,
-            page_url,
             thumbnail_url,
             frame
         });
@@ -857,6 +856,18 @@ function parseMPV(html) {
     const length = parseInt(lengthText);
     const imageJSONText = text.slice(text.indexOf("["), text.indexOf("]") + 1);
     const imageJSON = JSON.parse(imageJSONText);
+    const frames = [];
+    $("#pane_thumbs a > div").each((i, elem) => {
+        const style = $(elem).attr("style") || "";
+        const r = /width:(\d+)px;height:(\d+)px;/.exec(style);
+        const width = parseInt(r?.at(1) ?? "200");
+        const height = parseInt(r?.at(2) ?? "1");
+        const t = imageJSON[i].t;
+        const r2 = /\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)?/.exec(t);
+        const x = parseInt(r2?.at(2) ?? "0");
+        const y = parseInt(r2?.at(4) ?? "0");
+        frames.push({ x, y, width, height });
+    });
     return {
         gid,
         token,
@@ -864,9 +875,10 @@ function parseMPV(html) {
         length,
         images: imageJSON.map((v, i) => ({
             page: i,
-            key: v.k,
             name: v.n,
-            thumbnail_url: v.t,
+            imgkey: v.k,
+            thumbnail_url: /\(([^(]+)\)/.exec(v.t)?.at(1) || "",
+            frame: frames[i]
         }))
     };
 }
