@@ -657,7 +657,7 @@ function parseGallery(html) {
     let thumbnail_size = $("div#gdt.gt200").length > 0 ? "large" : "normal";
     // 2024-11-5更新：大小图共用一套代码
     $("#gdt a").each((i, elem) => {
-        const div = $(elem).find("div");
+        const div = $(elem).find("div[title]");
         const r = /Page (\d+): (.*)/.exec(div.attr("title") || "");
         const page = parseInt(r?.at(1) || "1") - 1;
         const name = r?.at(2) || "";
