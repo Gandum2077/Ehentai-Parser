@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
+exports.parseCopyrightPage = exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -35,7 +35,7 @@ const _favcatColors = [
     "#4bf",
     "#00f",
     "#508",
-    "#e8e"
+    "#e8e",
 ];
 function extractGidToken(url) {
     const patt = /https:\/\/e[-x]hentai\.org\/\w+\/(\d+)\/(\w+)\/?/;
@@ -46,19 +46,21 @@ function extractGidToken(url) {
     else {
         return {
             gid: parseInt(r[1]),
-            token: r[2]
+            token: r[2],
         };
     }
 }
 exports.extractGidToken = extractGidToken;
 function sortTaglist(unsorted) {
     const taglist = [];
-    const namespaces = [...new Set(unsorted.map(x => x.namespace))];
+    const namespaces = [...new Set(unsorted.map((x) => x.namespace))];
     for (const namespace of namespaces) {
-        const tags = unsorted.filter(x => x.namespace === namespace).map(x => x.tag);
+        const tags = unsorted
+            .filter((x) => x.namespace === namespace)
+            .map((x) => x.tag);
         taglist.push({
             namespace,
-            tags
+            tags,
         });
     }
     return taglist;
@@ -88,7 +90,8 @@ function parseList(html) {
     }
     // 获取显示模式
     if (type !== "toplist") {
-        const val = $("option[value='e']").parent("select").val(); // 结果可能是 m, p, l, e, t
+        const val = $("option[value='e']").parent("select").val();
+        // 结果可能是 m, p, l, e, t
         if (val === "m" || val === "p") {
             display_mode = "minimal";
         }
@@ -126,7 +129,7 @@ function parseList(html) {
                 next_page_available,
                 total_item_count,
                 filtered_count,
-                items
+                items,
             };
         }
         case "watched": {
@@ -141,7 +144,7 @@ function parseList(html) {
                 filtered_count,
                 prev_page_available,
                 next_page_available,
-                items
+                items,
             };
         }
         case "popular": {
@@ -152,7 +155,7 @@ function parseList(html) {
                 type,
                 display_mode,
                 filtered_count,
-                items
+                items,
             };
         }
         case "favorites": {
@@ -163,20 +166,28 @@ function parseList(html) {
             let last_item_favorited_timestamp;
             if (sort_order === "favorited_time") {
                 if (prev_page_available) {
-                    first_item_favorited_timestamp = parseInt($("#uprev").attr("href")?.match(/prev=\d+-(\d+)/)?.at(1) || "0");
+                    first_item_favorited_timestamp = parseInt($("#uprev")
+                        .attr("href")
+                        ?.match(/prev=\d+-(\d+)/)
+                        ?.at(1) || "0");
                 }
                 if (next_page_available) {
-                    last_item_favorited_timestamp = parseInt($("#unext").attr("href")?.match(/next=\d+-(\d+)/)?.at(1) || "0");
+                    last_item_favorited_timestamp = parseInt($("#unext")
+                        .attr("href")
+                        ?.match(/next=\d+-(\d+)/)
+                        ?.at(1) || "0");
                 }
             }
             const favcat_infos = [];
-            $(".ido .nosel .fp").slice(0, -1).each((i, elem) => {
+            $(".ido .nosel .fp")
+                .slice(0, -1)
+                .each((i, elem) => {
                 const fp = $(elem);
                 const count = parseInt(fp.find("div").eq(0).text()) || 0;
                 const title = fp.find("div").eq(2).text();
                 favcat_infos.push({
                     count,
-                    title
+                    title,
                 });
             });
             return {
@@ -188,7 +199,7 @@ function parseList(html) {
                 last_item_favorited_timestamp,
                 display_mode,
                 items,
-                favcat_infos
+                favcat_infos,
             };
         }
         case "toplist": {
@@ -213,7 +224,7 @@ function parseList(html) {
                 time_range,
                 current_page,
                 total_pages,
-                items: items
+                items: items,
             };
         }
         default:
@@ -238,21 +249,33 @@ function _parseListItems($, displayMode) {
 function _parseListMinimalItems($) {
     const items = [];
     if ($("table.itg.gltm > tbody > tr").length <= 1)
-        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-    $("table.itg.gltm > tbody > tr").slice(1).each((i, elem) => {
+        return items;
+    // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+    $("table.itg.gltm > tbody > tr")
+        .slice(1)
+        .each((i, elem) => {
         const tr = $(elem);
         const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-        const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
-        const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
+        const category = tr
+            .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+            .eq(0)
+            .text();
+        const postedDiv = tr
+            .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+            .eq(1);
         const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
         const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const favcat = favcatColor
+            ? _favcatColors.indexOf(favcatColor)
+            : undefined;
         const starStyle = tr.find(".glthumb .ir").attr("style") || "";
         const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
-        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const estimated_display_rating = r && r.length >= 3
+            ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+            : 0;
         const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
         const length = parseInt(tr.find(".glthumb .ir").next().text());
         const torrent_available = tr.find(".gldown a").length > 0;
@@ -267,13 +290,17 @@ function _parseListMinimalItems($) {
             const [a, b] = text.split(":");
             taglistUnsorted.push({
                 namespace: (a || "temp"),
-                tag: b
+                tag: b,
             });
         });
         // 只有favorites页面有favorited_time
-        const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + "Z") : undefined;
+        const favorited_time = tr.find(".glfm.glfav").length > 0
+            ? new Date(tr.find(".glfm.glfav").text() + "Z")
+            : undefined;
         // favorites页面没有uploader
-        const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
+        const uploader = !favorited_time && tr.find(".gl5m.glhide a").length > 0
+            ? tr.find(".gl5m.glhide a").text()
+            : undefined;
         const disowned = Boolean(favorited_time) && !Boolean(uploader);
         items.push({
             type: "minimal",
@@ -295,7 +322,7 @@ function _parseListMinimalItems($) {
             favcat,
             favcat_title,
             taglist: sortTaglist(taglistUnsorted),
-            favorited_time: favorited_time?.toISOString()
+            favorited_time: favorited_time?.toISOString(),
         });
     });
     return items;
@@ -303,21 +330,33 @@ function _parseListMinimalItems($) {
 function _parseListCompactItems($) {
     const items = [];
     if ($("table.itg.gltc > tbody > tr").length <= 1)
-        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-    $("table.itg.gltc > tbody > tr").slice(1).each((i, elem) => {
+        return items;
+    // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+    $("table.itg.gltc > tbody > tr")
+        .slice(1)
+        .each((i, elem) => {
         const tr = $(elem);
         const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-        const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text();
-        const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
+        const category = tr
+            .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+            .eq(0)
+            .text();
+        const postedDiv = tr
+            .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+            .eq(1);
         const posted_time = new Date(postedDiv.text() + "Z");
         const visible = postedDiv.find("s").length === 0;
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
         const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const favcat = favcatColor
+            ? _favcatColors.indexOf(favcatColor)
+            : undefined;
         const starStyle = tr.find(".glthumb .ir").attr("style") || "";
         const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
-        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const estimated_display_rating = r && r.length >= 3
+            ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+            : 0;
         const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
         const length = parseInt(tr.find(".glthumb .ir").next().text());
         const torrent_available = tr.find(".gldown a").length > 0;
@@ -325,22 +364,30 @@ function _parseListCompactItems($) {
         const url = tr.find(".glname a").attr("href") || "";
         const { gid, token } = extractGidToken(url);
         const taglistUnsorted = [];
-        tr.find(".glink").next().find(".gt").each((i, el) => {
+        tr.find(".glink")
+            .next()
+            .find(".gt")
+            .each((i, el) => {
             const text = $(el).attr("title") || "";
             if (!text.includes(":"))
                 return;
             const [a, b] = text.split(":");
             taglistUnsorted.push({
                 namespace: (a || "temp"),
-                tag: b
+                tag: b,
             });
         });
         // 只有favorites页面有favorited_time
-        const favorited_time = (tr.find(".glfav").length > 0)
-            ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + "Z")
+        const favorited_time = tr.find(".glfav").length > 0
+            ? new Date(tr.find(".glfav p").eq(0).text() +
+                " " +
+                tr.find(".glfav p").eq(1).text() +
+                "Z")
             : undefined;
         // favorites页面没有uploader
-        const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
+        const uploader = !favorited_time && tr.find(".glhide a").length > 0
+            ? tr.find(".glhide a").text()
+            : undefined;
         const disowned = Boolean(favorited_time) && !Boolean(uploader);
         items.push({
             type: "compact",
@@ -362,7 +409,7 @@ function _parseListCompactItems($) {
             favcat,
             favcat_title,
             taglist: sortTaglist(taglistUnsorted),
-            favorited_time: favorited_time?.toISOString()
+            favorited_time: favorited_time?.toISOString(),
         });
     });
     return items;
@@ -370,7 +417,8 @@ function _parseListCompactItems($) {
 function _parseListExtendedItems($) {
     const items = [];
     if ($("table.itg.glte td").length <= 1)
-        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+        return items;
+    // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
     $("table.itg.glte > tbody > tr").each((i, elem) => {
         const tr = $(elem);
         const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
@@ -382,16 +430,24 @@ function _parseListExtendedItems($) {
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
         const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const favcat = favcatColor
+            ? _favcatColors.indexOf(favcatColor)
+            : undefined;
         const starStyle = gl3eDivs.eq(2).attr("style") || "";
         const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
-        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const estimated_display_rating = r && r.length >= 3
+            ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+            : 0;
         const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
-        const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
+        const uploader = gl3eDivs.eq(3).find("a")
+            ? gl3eDivs.eq(3).find("a").text()
+            : undefined;
         const disowned = !Boolean(uploader);
         const length = parseInt(gl3eDivs.eq(4).text());
         const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-        const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z") : undefined;
+        const favorited_time = gl3eDivs.length > 6
+            ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z")
+            : undefined;
         const title = tr.find(".glink").text();
         const url = tr.find(".gl2e > div > a").attr("href") || "";
         const taglist = [];
@@ -399,10 +455,13 @@ function _parseListExtendedItems($) {
             const tr = $(el);
             const namespace = tr.find("td").eq(0).text().slice(0, -1);
             const tags = [];
-            tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
+            tr.find("td")
+                .eq(1)
+                .find("div")
+                .each((i, e) => tags.push($(e).text()));
             taglist.push({
                 namespace,
-                tags
+                tags,
             });
         });
         const { gid, token } = extractGidToken(url);
@@ -426,7 +485,7 @@ function _parseListExtendedItems($) {
             favcat,
             favcat_title,
             taglist,
-            favorited_time: favorited_time?.toISOString()
+            favorited_time: favorited_time?.toISOString(),
         });
     });
     return items;
@@ -434,7 +493,8 @@ function _parseListExtendedItems($) {
 function _parseListThumbnailItems($) {
     const items = [];
     if ($("div.itg.gld > div").length <= 0)
-        return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+        return items;
+    // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
     $("div.itg.gld > div").each((i, elem) => {
         const div = $(elem);
         const thumbnail_url = div.find(".gl3t img").attr("src") || "";
@@ -445,10 +505,14 @@ function _parseListThumbnailItems($) {
         const favcat_title = postedDiv.attr("title");
         const favorited = Boolean(favcat_title);
         const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-        const favcat = favcatColor ? _favcatColors.indexOf(favcatColor) : undefined;
+        const favcat = favcatColor
+            ? _favcatColors.indexOf(favcatColor)
+            : undefined;
         const starStyle = div.find(".ir").attr("style") || "";
         const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
-        const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0;
+        const estimated_display_rating = r && r.length >= 3
+            ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+            : 0;
         const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb");
         const length = parseInt(div.find(".ir").next().text());
         const torrent_available = div.find(".gldown a").length > 0;
@@ -463,7 +527,7 @@ function _parseListThumbnailItems($) {
             const [a, b] = text.split(":");
             taglistUnsorted.push({
                 namespace: (a || "temp"),
-                tag: b
+                tag: b,
             });
         });
         items.push({
@@ -484,7 +548,7 @@ function _parseListThumbnailItems($) {
             favorited,
             favcat,
             favcat_title,
-            taglist: sortTaglist(taglistUnsorted)
+            taglist: sortTaglist(taglistUnsorted),
         });
     });
     return items;
@@ -526,13 +590,13 @@ function parseMyUpload(html) {
                 title,
                 added_time: added_time.toISOString(),
                 length,
-                public_category
+                public_category,
             });
         }
     });
     return {
         type: "upload",
-        items
+        items,
     };
 }
 exports.parseMyUpload = parseMyUpload;
@@ -555,11 +619,13 @@ function parseGallery(html) {
     const japanese_title = $("#gj").text();
     const thumbnail_url = /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
     const category = $("#gdc").text();
-    const uploader = ($("#gdn a").length > 0) ? $("#gdn a").text() : undefined;
+    const uploader = $("#gdn a").length > 0 ? $("#gdn a").text() : undefined;
     const disowned = !Boolean(uploader);
     const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z");
     const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
-    const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
+    const parent_url = parentElement.text() !== "None"
+        ? parentElement.find("a").attr("href")
+        : undefined;
     let parent_gid = undefined;
     let parent_token = undefined;
     if (parent_url) {
@@ -570,13 +636,16 @@ function parseGallery(html) {
     const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
     const visible = visible_text === "Yes";
     let invisible_cause;
-    const invisible_cause_tmp = /\((.*)\)/.exec(visible_text)?.at(1)?.toLowerCase();
+    const invisible_cause_tmp = /\((.*)\)/
+        .exec(visible_text)
+        ?.at(1)
+        ?.toLowerCase();
     if (visible) {
         invisible_cause = undefined;
     }
-    else if (invisible_cause_tmp === "expunged"
-        || invisible_cause_tmp === "replaced"
-        || invisible_cause_tmp === "private") {
+    else if (invisible_cause_tmp === "expunged" ||
+        invisible_cause_tmp === "replaced" ||
+        invisible_cause_tmp === "private") {
         invisible_cause = invisible_cause_tmp;
     }
     else {
@@ -584,8 +653,10 @@ function parseGallery(html) {
     }
     const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)");
     const language = languageElement.contents().eq(0).text().trim().toLowerCase();
-    const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
-    const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
+    const translated = languageElement.find("span").length > 0 &&
+        languageElement.find("span").text().trim() === "TR";
+    const rewrited = languageElement.find("span").length > 0 &&
+        languageElement.find("span").text().trim() === "RW";
     const file_size = $("#gdd tr:nth-of-type(5) td:nth-of-type(2)").text();
     const length = parseInt($("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6));
     const rating_count = parseInt($("#rating_count").text());
@@ -616,7 +687,8 @@ function parseGallery(html) {
         favorited = true;
         favcat_title = favElement.attr("title");
         const style = favElement.attr("style") || "";
-        favcat = Math.floor(parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") / 19);
+        favcat = Math.floor(parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") /
+            19);
     }
     // taglist
     const taglist = [];
@@ -625,7 +697,10 @@ function parseGallery(html) {
             const tr = $(elem);
             const namespace = tr.find("td").eq(0).text().slice(0, -1);
             const tags = [];
-            tr.find("td").eq(1).find("a").each((i, e) => {
+            tr.find("td")
+                .eq(1)
+                .find("a")
+                .each((i, e) => {
                 let text = $(e).text();
                 if (text.includes("|"))
                     text = text.split("|")[0].trim();
@@ -633,7 +708,7 @@ function parseGallery(html) {
             });
             taglist.push({
                 namespace,
-                tags
+                tags,
             });
         });
     }
@@ -649,7 +724,7 @@ function parseGallery(html) {
             gid,
             token,
             title,
-            posted_time: new Date(timeStr.slice(8) + "Z").toISOString()
+            posted_time: new Date(timeStr.slice(8) + "Z").toISOString(),
         });
     });
     // image
@@ -666,7 +741,7 @@ function parseGallery(html) {
             x: parseInt(r2?.at(6) ?? "0"),
             y: parseInt(r2?.at(8) ?? "0"),
             width: parseInt(r2?.at(1) ?? "200"),
-            height: parseInt(r2?.at(3) ?? "1")
+            height: parseInt(r2?.at(3) ?? "1"),
         };
         const thumbnail_url = r2?.at(5) ?? "";
         const page_url = $(elem).attr("href") || "";
@@ -676,12 +751,13 @@ function parseGallery(html) {
             name,
             imgkey,
             thumbnail_url,
-            frame
+            frame,
         });
     });
-    const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text());
-    const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 1;
-    let num_of_images_on_each_page = undefined; // 如果只有1页，就没有这个字段
+    const total_pages = parseInt($(".gtb table.ptt td").eq(-2).text());
+    const current_page = parseInt($(".gtb table.ptt td.ptds").text()) - 1;
+    let num_of_images_on_each_page = undefined;
+    // 如果只有1页，就没有这个字段
     if (thumbnail_size === "normal" && total_pages > 1) {
         // normal有4种可能：40、100、200、400
         if (total_pages * 40 >= length) {
@@ -719,11 +795,16 @@ function parseGallery(html) {
             const div = $(elem);
             const divc3 = div.find("div.c3");
             const divc3a = divc3.find("a");
-            const commenter = (divc3a.length >= 1) ? divc3a.eq(0).text() : undefined;
-            const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
+            const commenter = divc3a.length >= 1 ? divc3a.eq(0).text() : undefined;
+            const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/
+                .exec(divc3.contents().eq(0).text())
+                ?.at(0) || "";
             const posted_time = new Date(dateText + " UTC");
             const comment_div = div.find("div.c6").html() || "";
-            const is_uploader = div.find("div.c4").text().includes("Uploader Comment");
+            const is_uploader = div
+                .find("div.c4")
+                .text()
+                .includes("Uploader Comment");
             let score;
             let comment_id;
             let votes;
@@ -742,14 +823,16 @@ function parseGallery(html) {
                 score = parseInt(div.find(".c5 > span").text());
                 comment_id = parseInt(div.find(".c6").attr("id").slice(8));
                 const baseText = div.find(".c7").contents().eq(0).text();
-                const base = baseText.match(/^Base \+\d+$/) ? parseInt(baseText.slice(5)) : parseInt(baseText.slice(5, -2));
+                const base = baseText.match(/^Base \+\d+$/)
+                    ? parseInt(baseText.slice(5))
+                    : parseInt(baseText.slice(5, -2));
                 const voters = [];
                 div.find(".c7 span").each((i, e) => {
                     const r = /(.*) ([+-]\d+)/.exec($(e).text());
                     if (r) {
                         voters.push({
                             voter: r.at(1) || "",
-                            score: parseInt(r.at(2) || "0")
+                            score: parseInt(r.at(2) || "0"),
                         });
                     }
                 });
@@ -759,7 +842,7 @@ function parseGallery(html) {
                 votes = {
                     base,
                     voters,
-                    remaining_voter_count
+                    remaining_voter_count,
                 };
                 if (div.find("div.c4").length === 0) {
                     // 不可投票的普通评论（自己评论过之后其他评论不可投票）
@@ -795,7 +878,7 @@ function parseGallery(html) {
                 votes,
                 is_my_comment,
                 voteable,
-                my_vote
+                my_vote,
             });
         });
     }
@@ -836,7 +919,7 @@ function parseGallery(html) {
         current_page,
         num_of_images_on_each_page,
         images: { [current_page]: images },
-        comments
+        comments,
     };
 }
 exports.parseGallery = parseGallery;
@@ -878,8 +961,8 @@ function parseMPV(html) {
             name: v.n,
             imgkey: v.k,
             thumbnail_url: /\(([^(]+)\)/.exec(v.t)?.at(1) || "",
-            frame: frames[i]
-        }))
+            frame: frames[i],
+        })),
     };
 }
 exports.parseMPV = parseMPV;
@@ -888,14 +971,14 @@ function parseConfig(html) {
     // 存储表单值的对象
     const formData = {};
     // 获取所有input元素（包括radio, checkbox）的值
-    $('#outer > div:nth-child(3) form input').each((i, el) => {
+    $("#outer > div:nth-child(3) form input").each((i, el) => {
         const e = $(el);
-        const name = e.attr('name');
+        const name = e.attr("name");
         if (!name)
             return;
-        const type = e.attr('type');
-        if (type === 'radio' || type === 'checkbox') {
-            if (e.is(':checked')) {
+        const type = e.attr("type");
+        if (type === "radio" || type === "checkbox") {
+            if (e.is(":checked")) {
                 formData[name] = e.val();
             }
         }
@@ -904,20 +987,20 @@ function parseConfig(html) {
         }
     });
     // 获取textarea的值
-    $('#outer > div:nth-child(3) form textarea').each((i, el) => {
+    $("#outer > div:nth-child(3) form textarea").each((i, el) => {
         const e = $(el);
-        const name = e.attr('name');
+        const name = e.attr("name");
         if (!name)
             return;
         formData[name] = e.val();
     });
     // 获取select的值
-    $('#outer > div:nth-child(3) form select').each((i, el) => {
+    $("#outer > div:nth-child(3) form select").each((i, el) => {
         const e = $(el);
-        const name = e.attr('name');
+        const name = e.attr("name");
         if (!name)
             return;
-        formData[name] = e.find('option:selected').val();
+        formData[name] = e.find("option:selected").val();
     });
     return formData;
 }
@@ -932,7 +1015,7 @@ function parseFavcatFavnote(html) {
     divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()));
     const selected_favcat = parseInt($(".nosel input[checked='checked']").val() || "0");
     const favnote = $("textarea").text();
-    const favnote_used_info = $("textarea").parent().find('div').text();
+    const favnote_used_info = $("textarea").parent().find("div").text();
     const r = /(\d+) \/ (\d+)/.exec(favnote_used_info);
     const num_of_favnote_slots = r ? parseInt(r[2]) : 0;
     const num_of_favnote_slots_used = r ? parseInt(r[1]) : 0;
@@ -940,8 +1023,9 @@ function parseFavcatFavnote(html) {
         favcat_titles,
         favorited,
         selected_favcat,
-        favnote, num_of_favnote_slots,
-        num_of_favnote_slots_used
+        favnote,
+        num_of_favnote_slots,
+        num_of_favnote_slots_used,
     };
 }
 exports.parseFavcatFavnote = parseFavcatFavnote;
@@ -950,10 +1034,13 @@ function parsePageInfo(html) {
     const imageUrl = $("#img").attr("src") || "";
     const imageDescription = $("#i4 > div:nth-child(1)").text();
     const splits = imageDescription.split(" :: ");
-    const [xres, yres] = splits[1].split(" x ").map(v => parseInt(v));
+    const [xres, yres] = splits[1].split(" x ").map((v) => parseInt(v));
     const size = { width: xres, height: yres };
     const fileSize = splits[2];
-    const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
+    const reloadKey = $("#loadfail")
+        .attr("onclick")
+        ?.match(/return nl\(\'(.*)\'\)/)
+        ?.at(1) || "";
     let scriptText = "";
     $("script").each((i, elem) => {
         if ($(elem).html()?.includes("var showkey=")) {
@@ -965,7 +1052,8 @@ function parsePageInfo(html) {
     let downloadButtonText = "";
     const lastA = $("#i6 > div a").eq(-1);
     const urlOfLastA = lastA.attr("href") || "";
-    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") ||
+        urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
         fullSizeUrl = urlOfLastA;
         downloadButtonText = lastA.text();
     }
@@ -975,7 +1063,7 @@ function parsePageInfo(html) {
     if (regexResult && regexResult.length === 4) {
         fullSize = {
             width: parseInt(regexResult[1]),
-            height: parseInt(regexResult[2])
+            height: parseInt(regexResult[2]),
         };
         fullFileSize = regexResult[3];
     }
@@ -991,7 +1079,7 @@ function parsePageInfo(html) {
         fullSize,
         fullFileSize,
         reloadKey,
-        showkey
+        showkey,
     };
 }
 exports.parsePageInfo = parsePageInfo;
@@ -1008,7 +1096,9 @@ function parseArchiverInfo(html) {
         const td = $(elem);
         if (td.find("a").length === 0)
             return;
-        const solution = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
+        const solution = /return do_hathdl\('(.*)'\)/
+            .exec(td.find("a").attr("onclick") || "")
+            ?.at(1) || "";
         const size = td.find("p:nth-child(2)").text();
         const price = td.find("p:nth-child(3)").text();
         download_options.push({ solution, size, price });
@@ -1016,7 +1106,7 @@ function parseArchiverInfo(html) {
     return {
         gid,
         token,
-        download_options
+        download_options,
     };
 }
 exports.parseArchiverInfo = parseArchiverInfo;
@@ -1040,7 +1130,12 @@ function parseGalleryTorrentsInfo(html) {
         const titleA = table.find("tr:nth-child(3) > td > a");
         const url = titleA.attr("href") || "";
         const title = titleA.text();
-        const uploader = table.find("tr:nth-child(2) > td:nth-child(1)").contents().eq(1).text().trim();
+        const uploader = table
+            .find("tr:nth-child(2) > td:nth-child(1)")
+            .contents()
+            .eq(1)
+            .text()
+            .trim();
         const tr1_tds = table.find("tr:nth-child(1) > td");
         const posted_time = new Date(tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z");
         const size = tr1_tds.eq(1).contents().eq(1).text().trim();
@@ -1055,7 +1150,7 @@ function parseGalleryTorrentsInfo(html) {
             size,
             seeds,
             peers,
-            downloads
+            downloads,
         });
     });
     return torrents;
@@ -1078,7 +1173,8 @@ function parseMyTags(html) {
     const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
     const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
     const tagset_name = /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
-    let tagset_color = /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || ""; // 此时tagset_color是没有"#"前缀的
+    let tagset_color = /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+    // 此时tagset_color是没有"#"前缀的
     if (tagset_color)
         tagset_color = "#" + tagset_color;
     const tagsets = [];
@@ -1093,7 +1189,9 @@ function parseMyTags(html) {
     });
     const enabled = $("#tagwatch_0").prop("checked");
     const tags = [];
-    $("#usertags_outer > div").slice(1).each((i, el) => {
+    $("#usertags_outer > div")
+        .slice(1)
+        .each((i, el) => {
         const divs = $(el).children();
         const [a, b] = divs.eq(0).find("div").prop("title").split(":");
         const tagid = parseInt(divs.eq(0).find("div").prop("id").split("_")[1]);
@@ -1108,7 +1206,7 @@ function parseMyTags(html) {
             watched,
             hidden,
             color,
-            weight
+            weight,
         });
     });
     return {
@@ -1119,7 +1217,7 @@ function parseMyTags(html) {
         tagset_color,
         enabled,
         tagsets,
-        tags
+        tags,
     };
 }
 exports.parseMyTags = parseMyTags;
@@ -1127,18 +1225,22 @@ function parseShowpageInfo(info) {
     const $i = cheerio.load(info.i);
     const size = {
         width: parseInt(info.x),
-        height: parseInt(info.y)
+        height: parseInt(info.y),
     };
     const fileSize = $i("div").eq(0).text().split(" :: ")[2];
     const $i3 = cheerio.load(info.i3);
     const imageUrl = $i3("img").attr("src") || "";
     const $i6 = cheerio.load(info.i6);
-    const reloadKey = $i6("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || "";
+    const reloadKey = $i6("#loadfail")
+        .attr("onclick")
+        ?.match(/return nl\(\'(.*)\'\)/)
+        ?.at(1) || "";
     let fullSizeUrl = undefined;
     let downloadButtonText = "";
     const lastA = $i6("div a").eq(-1);
     const urlOfLastA = lastA.attr("href") || "";
-    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+    if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") ||
+        urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
         fullSizeUrl = urlOfLastA;
         downloadButtonText = lastA.text();
     }
@@ -1148,7 +1250,7 @@ function parseShowpageInfo(info) {
     if (regexResult && regexResult.length === 4) {
         fullSize = {
             width: parseInt(regexResult[1]),
-            height: parseInt(regexResult[2])
+            height: parseInt(regexResult[2]),
         };
         fullFileSize = regexResult[3];
     }
@@ -1163,7 +1265,7 @@ function parseShowpageInfo(info) {
         fullSizeUrl,
         fullSize,
         fullFileSize,
-        reloadKey
+        reloadKey,
     };
 }
 exports.parseShowpageInfo = parseShowpageInfo;
@@ -1173,3 +1275,23 @@ function parseEditableComment(html) {
     return text;
 }
 exports.parseEditableComment = parseEditableComment;
+function parseCopyrightPage(html) {
+    const $ = cheerio.load(html);
+    const text = $(".d p")
+        .first()
+        .contents()
+        .filter((i, elem) => {
+        return elem.type === "text";
+    })
+        .first()
+        .text()
+        .trim();
+    if (text.includes("unavailable due to a copyright claim")) {
+        const copyrightOwner = text.split(" by ").at(1)?.split(".").at(0);
+        return { unavailable: true, copyrightOwner };
+    }
+    else {
+        return { unavailable: false };
+    }
+}
+exports.parseCopyrightPage = parseCopyrightPage;

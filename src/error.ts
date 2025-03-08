@@ -5,7 +5,6 @@ interface AppError {
   detail?: string;
   stack?: string;
   statusCode?: number;
-  level?: "warn" | "error";
 }
 
 export class EHAPIError extends Error implements AppError {
@@ -31,10 +30,10 @@ export class EHIPBannedError extends Error implements AppError {
   }
 }
 
-export class EHServiceUnavailableError extends Error implements AppError {
-  name = "EHServiceUnavailableError";
-  message = "服务不可用";
-  statusCode = 503;
+export class EHServerError extends Error implements AppError {
+  name = "EHServerError";
+  message = "服务器错误";
+  statusCode = 500;
   detail?: string;
 
   constructor(detail?: string, statusCode?: number) {
@@ -43,6 +42,30 @@ export class EHServiceUnavailableError extends Error implements AppError {
     if (statusCode) {
       this.statusCode = statusCode;
     }
+  }
+}
+
+export class EHBandwidthLimitExceededError extends Error implements AppError {
+  name = "EHBandwidthLimitExceededError";
+  message = "带宽限制已超出";
+  statusCode = 509;
+  detail?: string;
+
+  constructor(detail?: string) {
+    super();
+    this.detail = detail;
+  }
+}
+
+export class EHCopyrightError extends Error implements AppError {
+  name = "EHCopyrightError";
+  message = "由于版权原因被删除";
+  statusCode = 404;
+  copyrightOwner?: string;
+
+  constructor(copyrightOwner?: string) {
+    super();
+    this.copyrightOwner = copyrightOwner;
   }
 }
 

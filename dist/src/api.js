@@ -12,10 +12,10 @@ const error_1 = require("./error");
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 function _updateUrlQuery(url, query, removeUndefined = false) {
     const u = new url_parse_1.default(url, true);
-    const newQuery = (removeUndefined)
+    const newQuery = removeUndefined
         ? Object.fromEntries(Object.entries(query).filter(([k, v]) => v !== undefined))
         : query;
-    u.set('query', newQuery);
+    u.set("query", newQuery);
     return u.toString();
 }
 const EHCategoryNumber = {
@@ -28,20 +28,25 @@ const EHCategoryNumber = {
     "Image Set": 32,
     Cosplay: 64,
     "Asian Porn": 128,
-    Misc: 1
+    Misc: 1,
 };
 function assembleSearchTerms(searchTerms) {
     if (!searchTerms || searchTerms.length === 0)
         return "";
-    return searchTerms.map(searchTerm => {
-        if (searchTerm.namespace && searchTerm.qualifier && searchTerm.qualifier !== "weak") {
+    return searchTerms
+        .map((searchTerm) => {
+        if (searchTerm.namespace &&
+            searchTerm.qualifier &&
+            searchTerm.qualifier !== "weak") {
             throw new Error("命名空间和修饰词不能同时使用(weak除外)");
         }
         let result = "";
         if (searchTerm.qualifier)
             result += `${searchTerm.qualifier}:`;
-        if (searchTerm.namespace)
-            result += `${constant_1.tagNamespaceMostUsedAlternateMap[searchTerm.namespace]}:`; // 添加命名空间
+        if (searchTerm.namespace) {
+            // 添加命名空间
+            result += `${constant_1.tagNamespaceMostUsedAlternateMap[searchTerm.namespace]}:`;
+        }
         let term = searchTerm.term;
         if (searchTerm.dollar)
             term += "$";
@@ -56,19 +61,22 @@ function assembleSearchTerms(searchTerms) {
         if (searchTerm.subtract)
             result = `-${result}`;
         return result;
-    }).join(" ");
+    })
+        .join(" ");
 }
 exports.assembleSearchTerms = assembleSearchTerms;
 // SearchOptions to SearchParams
 function _searchOptionsToParams(options) {
     // 检查搜索参数是否合法
-    if (options.range && (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
+    if (options.range &&
+        (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
         throw new Error("range参数与prev、next、jump、seek参数不兼容");
     }
     if (options.minimumGid && options.maximumGid) {
         throw new Error("prev和next参数不能同时使用");
     }
-    if ((options.jump || options.seek) && !(options.minimumGid || options.maximumGid)) {
+    if ((options.jump || options.seek) &&
+        !(options.minimumGid || options.maximumGid)) {
         throw new Error("jump和seek参数必须和prev或next参数一起使用");
     }
     if (options.jump && options.seek) {
@@ -101,7 +109,9 @@ function _searchOptionsToParams(options) {
     const range = options.range || undefined;
     const prev = options.minimumGid || undefined;
     const next = options.maximumGid || undefined;
-    const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
+    const jump = options.jump
+        ? `${options.jump.value}${options.jump.unit}`
+        : undefined;
     const seek = options.seek || undefined;
     const params = {
         f_cats,
@@ -119,7 +129,7 @@ function _searchOptionsToParams(options) {
         prev,
         next,
         jump,
-        seek
+        seek,
     };
     return params;
 }
@@ -142,7 +152,9 @@ function _favoriteSearchOptionsToParams(options) {
     let next = options.maximumGid?.toString();
     if (next && options.maximumFavoritedTimestamp)
         next += `-${options.maximumFavoritedTimestamp}`;
-    const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
+    const jump = options.jump
+        ? `${options.jump.value}${options.jump.unit}`
+        : undefined;
     const seek = options.seek;
     const params = {
         f_search,
@@ -150,7 +162,7 @@ function _favoriteSearchOptionsToParams(options) {
         prev,
         next,
         jump,
-        seek
+        seek,
     };
     return params;
 }
@@ -161,7 +173,7 @@ function _popularSearchOptionsToParams(options) {
     return {
         f_sfl,
         f_sfu,
-        f_sft
+        f_sft,
     };
 }
 function _disassembleFsearch(fsearch) {
@@ -177,7 +189,7 @@ function _disassembleFsearch(fsearch) {
         let c = fsearch[i];
         if (c === '"')
             inQuote = !inQuote;
-        if (c === ' ' && !inQuote) {
+        if (c === " " && !inQuote) {
             if (current)
                 result.push(current);
             current = "";
@@ -214,23 +226,25 @@ function _parseSingleFsearch(fsearch) {
         dollar = true;
         fsearch = fsearch.slice(0, -1);
     }
-    // 注意：事实上ehentai搜索可以在开头或者结尾添加多个符号，但并非ehentai搜索支持这种写法，而是多余的符号会被忽略
+    // 注意：事实上ehentai搜索可以在开头或者结尾添加多个符号，
+    // 但并非ehentai搜索支持这种写法，而是多余的符号会被忽略
     // 由于忽略的规则并不明确，这里不考虑这种情况
     // 然后以冒号为界分割
-    const parts = fsearch.split(":").map(p => p.trimStart());
+    const parts = fsearch.split(":").map((p) => p.trimStart());
     // 实际检测发现，ehentai可以自动忽略修饰词前面的空格，但是不能忽略后面的
     // 比如" weak: f: anal  "是合法的，但是" weak :f: anal"是不合法的。
     // 如果超过4个部分，说明有多余的冒号，报错
     if (parts.length > 4) {
         throw new Error("Too many colons in a single fsearch term");
     }
-    // 如果有三个部分，必须第一个部分为`weak`，第二个部分为tagNamespace或tagNamespaceAlternates，否则报错
+    // 如果有三个部分，必须第一个部分为`weak`，
+    // 第二个部分为tagNamespace或tagNamespaceAlternates，否则报错
     else if (parts.length === 3) {
         if (parts[0] !== "weak") {
             throw new Error("Invalid fsearch term with 3 parts, first part must be `weak`");
         }
-        if (!constant_1.tagNamespaces.includes(parts[1])
-            && !constant_1.tagNamespaceAlternates.includes(parts[1])) {
+        if (!constant_1.tagNamespaces.includes(parts[1]) &&
+            !constant_1.tagNamespaceAlternates.includes(parts[1])) {
             throw new Error("Invalid tag namespace in fsearch term");
         }
         let namespace;
@@ -329,7 +343,7 @@ const ehentaiUrls = {
     upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
     mytags: `https://e-hentai.org/mytags`,
     archiver: `https://e-hentai.org/archiver.php`,
-    gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`
+    gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
 };
 const exhentaiUrls = {
     default: `https://exhentai.org/`,
@@ -344,28 +358,28 @@ const exhentaiUrls = {
     upload: `https://upld.exhentai.org/upld/manage?ss=d&sd=d`, // 自带按时间降序排序
     mytags: `https://exhentai.org/mytags`,
     archiver: `https://exhentai.org/archiver.php`,
-    gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`
+    gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
 };
 class EHAPIHandler {
     constructor(exhentai = true, cookie) {
         this.ua = DEFAULT_USER_AGENT;
         this.cookie = cookie || "";
         this._exhentai = exhentai;
-        this.urls = (exhentai) ? exhentaiUrls : ehentaiUrls;
+        this.urls = exhentai ? exhentaiUrls : ehentaiUrls;
     }
     get exhentai() {
         return this._exhentai;
     }
     set exhentai(value) {
         this._exhentai = value;
-        this.urls = (value) ? exhentaiUrls : ehentaiUrls;
+        this.urls = value ? exhentaiUrls : ehentaiUrls;
     }
-    async _getHtml(url) {
+    async _getHtml(url, checkCopyrightError = false) {
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(url, header, 20);
+        const resp = await (0, request_1.get)(url, header, 20, checkCopyrightError);
         const text = await resp.text();
         if (text.startsWith("Your IP address has been temporarily banned")) {
             throw new error_1.EHIPBannedError(text);
@@ -391,10 +405,10 @@ class EHAPIHandler {
         }
         else if (args.type === "toplist") {
             const map = {
-                "yesterday": 15,
-                "past_month": 13,
-                "past_year": 12,
-                "all": 11
+                yesterday: 15,
+                past_month: 13,
+                past_year: 12,
+                all: 11,
             };
             const url = _updateUrlQuery(this.urls.toplist, { p: args.options.page, tl: map[args.options.timeRange] }, true);
             return url;
@@ -450,10 +464,10 @@ class EHAPIHandler {
      */
     async getTopListInfo(options) {
         const map = {
-            "yesterday": 15,
-            "past_month": 13,
-            "past_year": 12,
-            "all": 11
+            yesterday: 15,
+            past_month: 13,
+            past_year: 12,
+            all: 11,
         };
         const url = _updateUrlQuery(this.urls.toplist, { p: options.page, tl: map[options.timeRange] }, true);
         const text = await this._getHtml(url);
@@ -478,7 +492,7 @@ class EHAPIHandler {
     async getGalleryInfo(gid, token, fullComments, page = 0) {
         const baseUrl = this.urls.default + `g/${gid}/${token}/`;
         const url = _updateUrlQuery(baseUrl, { hc: fullComments ? 1 : undefined, p: page || undefined }, true);
-        const text = await this._getHtml(url);
+        const text = await this._getHtml(url, true);
         return (0, parser_1.parseGallery)(text);
     }
     /**
@@ -501,7 +515,9 @@ class EHAPIHandler {
      * @returns EHPage
      */
     async getPageInfo(gid, imgkey, page, reloadKey) {
-        const url = this.urls.default + `s/${imgkey}/${gid}-${page + 1}` + (reloadKey ? `?nl=${reloadKey}` : "");
+        const url = this.urls.default +
+            `s/${imgkey}/${gid}-${page + 1}` +
+            (reloadKey ? `?nl=${reloadKey}` : "");
         const text = await this._getHtml(url);
         return (0, parser_1.parsePageInfo)(text);
     }
@@ -528,7 +544,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             hathdl_xres: xres,
@@ -539,10 +555,11 @@ class EHAPIHandler {
         const html = await resp.text();
         const { message } = (0, parser_1.parseArchiveResult)(html);
         let result;
-        if (message === 'You must have a H@H client assigned to your account to use this feature.') {
+        if (message ===
+            "You must have a H@H client assigned to your account to use this feature.") {
             result = "no-hath";
         }
-        else if (message === 'Your H@H client appears to be offline.') {
+        else if (message === "Your H@H client appears to be offline.") {
             result = "offline";
         }
         else if (message.includes("download has been queued")) {
@@ -554,11 +571,11 @@ class EHAPIHandler {
         return result;
     }
     /**
-   * 获取图库种子页信息 https://e-hentai.org/gallerytorrents.php?gid={gid}&token={token}
-   * @param gid
-   * @param token
-   * @returns
-   */
+     * 获取图库种子页信息 https://e-hentai.org/gallerytorrents.php?gid={gid}&token={token}
+     * @param gid
+     * @param token
+     * @returns
+     */
     async getGalleryTorrentsInfo(gid, token) {
         const url = this.urls.default + `gallerytorrents.php?gid=${gid}&t=${token}`;
         const text = await this._getHtml(url);
@@ -575,7 +592,7 @@ class EHAPIHandler {
     async getConfig() {
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.get)(this.urls.config, header, 10);
         const text = await resp.text();
@@ -591,7 +608,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.post)(this.urls.config, header, config, 10);
         if (resp.statusCode !== 200)
@@ -604,10 +621,12 @@ class EHAPIHandler {
      * @returns EHMyTags
      */
     async getMyTags(tagset = 0) {
-        const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+        const url = tagset
+            ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
+            : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.get)(url, header, 10);
         const text = await resp.text();
@@ -620,11 +639,11 @@ class EHAPIHandler {
      */
     async setFavoritesSortOrder(sortOrder) {
         const url = _updateUrlQuery(this.urls.favorites, {
-            inline_set: sortOrder === "favorited_time" ? "fs_f" : "fs_p"
+            inline_set: sortOrder === "favorited_time" ? "fs_f" : "fs_p",
         });
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         var resp = await (0, request_1.get)(url, header, 10);
         if (resp.statusCode !== 200)
@@ -641,11 +660,11 @@ class EHAPIHandler {
         const url = _updateUrlQuery(this.urls.gallerypopups, {
             gid: gid,
             t: token,
-            act: "addfav"
+            act: "addfav",
         });
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.get)(url, header, 10);
         const text = await resp.text();
@@ -663,17 +682,17 @@ class EHAPIHandler {
         const url = _updateUrlQuery(this.urls.gallerypopups, {
             gid: gid,
             t: token,
-            act: "addfav"
+            act: "addfav",
         });
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             favcat: favcat.toString(),
             favnote: favnote,
-            update: "1"
+            update: "1",
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         if (resp.statusCode !== 200)
@@ -690,17 +709,17 @@ class EHAPIHandler {
         const url = _updateUrlQuery(this.urls.gallerypopups, {
             gid: gid,
             t: token,
-            act: "addfav"
+            act: "addfav",
         });
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             favcat: "favdel",
             favnote: "",
-            update: "1"
+            update: "1",
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         if (resp.statusCode !== 200)
@@ -721,7 +740,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             method: "rategallery",
@@ -729,7 +748,7 @@ class EHAPIHandler {
             apiuid: apiuid,
             gid: gid,
             rating: ratingForUpload,
-            token: token
+            token: token,
         };
         const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
         if (resp.statusCode !== 200)
@@ -748,7 +767,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = { commenttext_new: text };
         const resp = await (0, request_1.post)(gallery_url, header, body, 10);
@@ -769,7 +788,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             method: "geteditcomment",
@@ -777,7 +796,7 @@ class EHAPIHandler {
             apikey: apikey,
             gid: gid,
             token: token,
-            comment_id: comment_id
+            comment_id: comment_id,
         };
         const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
         if (resp.statusCode !== 200)
@@ -798,12 +817,12 @@ class EHAPIHandler {
         const gallery_url = this.urls.default + `g/${gid}/${token}/`;
         const body = {
             edit_comment: comment_id,
-            commenttext_edit: text
+            commenttext_edit: text,
         };
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.post)(gallery_url, header, body, 10);
         if (resp.statusCode !== 200)
@@ -825,7 +844,7 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             method: "votecomment",
@@ -834,12 +853,12 @@ class EHAPIHandler {
             gid: gid,
             token: token,
             comment_id: comment_id,
-            comment_vote: comment_vote
+            comment_vote: comment_vote,
         };
         const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("给评论打分失败", resp.statusCode, `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
-        const data = await resp.json();
+        const data = (await resp.json());
         return data;
     }
     /**
@@ -855,14 +874,14 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             method: "imagedispatch",
             gid: gid,
             page: page + 1,
             imgkey: key,
-            mpvkey: mpvkey
+            mpvkey: mpvkey,
         };
         if (reloadKey)
             body["nl"] = reloadKey;
@@ -873,7 +892,7 @@ class EHAPIHandler {
         const imageUrl = info.i;
         const size = {
             width: parseInt(info.xres),
-            height: parseInt(info.yres)
+            height: parseInt(info.yres),
         };
         const fileSize = info.d.split(" :: ")[1];
         const fullSizeUrl = this.urls.default + info.lf;
@@ -884,7 +903,7 @@ class EHAPIHandler {
         if (regexResult && regexResult.length === 4) {
             fullSize = {
                 width: parseInt(regexResult[1]),
-                height: parseInt(regexResult[2])
+                height: parseInt(regexResult[2]),
             };
             fullFileSize = regexResult[3];
         }
@@ -899,21 +918,21 @@ class EHAPIHandler {
             fullSizeUrl,
             fullSize,
             fullFileSize,
-            reloadKey: reloadKeyNext
+            reloadKey: reloadKeyNext,
         };
     }
     async fetchImageInfoByShowpage(gid, imgkey, showkey, page) {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             method: "showpage",
             gid: gid,
             page: page + 1,
             imgkey,
-            showkey
+            showkey,
         };
         const resp = await (0, request_1.post)(this.urls.api, header, body, 20);
         if (resp.statusCode !== 200)
@@ -930,7 +949,7 @@ class EHAPIHandler {
         if (ehgt) {
             url = url.replace("s.exhentai.org", "ehgt.org");
             const header = {
-                "User-Agent": this.ua
+                "User-Agent": this.ua,
                 // 不需要cookie
             };
             const resp = await (0, request_1.get)(url, header, 15);
@@ -939,7 +958,7 @@ class EHAPIHandler {
         else {
             const header = {
                 "User-Agent": this.ua,
-                "Cookie": this.cookie
+                Cookie: this.cookie,
             };
             const resp = await (0, request_1.get)(url, header, 15);
             return resp.rawData();
@@ -951,7 +970,7 @@ class EHAPIHandler {
      */
     async downloadImage(url) {
         const header = {
-            "User-Agent": this.ua
+            "User-Agent": this.ua,
             // 不需要cookie
         };
         const resp = await (0, request_1.get)(url, header, 30);
@@ -964,7 +983,7 @@ class EHAPIHandler {
     async downloadOriginalImage(url) {
         const header = {
             "User-Agent": this.ua,
-            "Cookie": this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.get)(url, header, 40);
         return resp.rawData();
@@ -980,17 +999,19 @@ class EHAPIHandler {
      * @param tagset_color 当前标签集的颜色
      * @returns EHMyTags 返回的是新建标签集的数据
      */
-    async createNewTagset({ tagset, tagset_name, tagset_enable, tagset_color }) {
-        const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    async createNewTagset({ tagset, tagset_name, tagset_enable, tagset_color, }) {
+        const url = tagset
+            ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
+            : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             tagset_action: "create",
             tagset_name,
-            tagset_color: tagset_color || ""
+            tagset_color: tagset_color || "",
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
@@ -1006,7 +1027,7 @@ class EHAPIHandler {
      * @param tagset_enable 要删除的标签集是否启用
      * @param tagset_color 要删除的标签集的颜色
      */
-    async deleteTagset({ tagset, tagset_enable, tagset_color }) {
+    async deleteTagset({ tagset, tagset_enable, tagset_color, }) {
         if (tagset < 1)
             throw new Error("tagset必须大于0");
         if (tagset === 1)
@@ -1015,12 +1036,12 @@ class EHAPIHandler {
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             tagset_action: "delete",
             tagset_name: "",
-            tagset_color: tagset_color || ""
+            tagset_color: tagset_color || "",
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
@@ -1028,17 +1049,19 @@ class EHAPIHandler {
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
-    async _enableOrDisableTagset({ tagset, tagset_enable, tagset_color }) {
-        const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    async _enableOrDisableTagset({ tagset, tagset_enable, tagset_color, }) {
+        const url = tagset
+            ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
+            : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             tagset_action: "update",
             tagset_name: "",
-            tagset_color: tagset_color || ""
+            tagset_color: tagset_color || "",
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
@@ -1053,8 +1076,12 @@ class EHAPIHandler {
      * @param {string} param0.tagset_color 要启用的标签集的颜色
      * @returns
      */
-    async enableTagset({ tagset, tagset_color }) {
-        return this._enableOrDisableTagset({ tagset, tagset_enable: true, tagset_color });
+    async enableTagset({ tagset, tagset_color, }) {
+        return this._enableOrDisableTagset({
+            tagset,
+            tagset_enable: true,
+            tagset_color,
+        });
     }
     /**
      *
@@ -1063,8 +1090,12 @@ class EHAPIHandler {
      * @param {string} param0.tagset_color 要禁用的标签集的颜色
      * @returns
      */
-    async disableTagset({ tagset, tagset_color }) {
-        return this._enableOrDisableTagset({ tagset, tagset_enable: false, tagset_color });
+    async disableTagset({ tagset, tagset_color, }) {
+        return this._enableOrDisableTagset({
+            tagset,
+            tagset_enable: false,
+            tagset_color,
+        });
     }
     /**
      *
@@ -1078,18 +1109,20 @@ class EHAPIHandler {
      * @param {number} param0.weight
      * @returns EHMyTags
      */
-    async addTag({ tagset, namespace, name, watched, hidden, color, weight }) {
+    async addTag({ tagset, namespace, name, watched, hidden, color, weight, }) {
         if (!weight)
             weight = 10;
         if (weight < -99 || weight > 99)
             throw new Error("tagweight必须在-99到99之间");
         if (watched && hidden)
             throw new Error("不能同时设置watched和hidden");
-        const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+        const url = tagset
+            ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
+            : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             usertag_action: "add",
@@ -1113,12 +1146,14 @@ class EHAPIHandler {
      * @param {number} param0.tagid
      * @returns
      */
-    async deleteTag({ tagset, tagid }) {
-        const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
+    async deleteTag({ tagset, tagid, }) {
+        const url = tagset
+            ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
+            : this.urls.mytags;
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const body = {
             usertag_action: "mass",
@@ -1126,7 +1161,7 @@ class EHAPIHandler {
             tagcolor_new: "",
             tagweight_new: 10,
             "modify_usertags[]": tagid,
-            usertag_target: 0
+            usertag_target: 0,
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
@@ -1145,7 +1180,7 @@ class EHAPIHandler {
      *
      * @returns
      */
-    async updateTag({ apiuid, apikey, tagid, watched, hidden, color, weight }) {
+    async updateTag({ apiuid, apikey, tagid, watched, hidden, color, weight, }) {
         if (weight < -99 || weight > 99)
             throw new Error("tagweight必须在-99到99之间");
         if (watched && hidden)
@@ -1158,12 +1193,12 @@ class EHAPIHandler {
             tagwatch: watched ? 1 : 0,
             taghide: hidden ? 1 : 0,
             tagcolor: color || "",
-            tagweight: weight.toString()
+            tagweight: weight.toString(),
         };
         const header = {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: this.cookie
+            Cookie: this.cookie,
         };
         const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
         if (resp.statusCode !== 200)

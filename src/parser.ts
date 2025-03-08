@@ -1418,3 +1418,24 @@ export function parseEditableComment(html: string) {
   const text = $("textarea").text();
   return text;
 }
+
+export function parseCopyrightPage(
+  html: string
+): { unavailable: true; copyrightOwner?: string } | { unavailable: false } {
+  const $ = cheerio.load(html);
+  const text = $(".d p")
+    .first()
+    .contents()
+    .filter((i, elem) => {
+      return elem.type === "text";
+    })
+    .first()
+    .text()
+    .trim();
+  if (text.includes("unavailable due to a copyright claim")) {
+    const copyrightOwner = text.split(" by ").at(1)?.split(".").at(0);
+    return { unavailable: true, copyrightOwner };
+  } else {
+    return { unavailable: false };
+  }
+}

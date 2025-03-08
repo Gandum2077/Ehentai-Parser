@@ -444,12 +444,15 @@ export class EHAPIHandler {
     this.urls = value ? exhentaiUrls : ehentaiUrls;
   }
 
-  private async _getHtml(url: string): Promise<string> {
+  private async _getHtml(
+    url: string,
+    checkCopyrightError = false
+  ): Promise<string> {
     const header = {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(url, header, 20);
+    const resp = await get(url, header, 20, checkCopyrightError);
     const text = await resp.text();
     if (text.startsWith("Your IP address has been temporarily banned")) {
       throw new EHIPBannedError(text);
@@ -628,7 +631,7 @@ export class EHAPIHandler {
       { hc: fullComments ? 1 : undefined, p: page || undefined },
       true
     );
-    const text = await this._getHtml(url);
+    const text = await this._getHtml(url, true);
     return parseGallery(text);
   }
 

@@ -3,10 +3,13 @@
 // 只处理三种返回：image、text、json
 
 import {
+  EHBandwidthLimitExceededError,
+  EHCopyrightError,
   EHNetworkError,
-  EHServiceUnavailableError,
+  EHServerError,
   EHTimeoutError,
 } from "./error";
+import { parseCopyrightPage } from "./parser";
 
 enum ENV {
   NODE = 0,
@@ -92,13 +95,21 @@ class RequestResponse {
   }
 }
 
-async function __request(
-  method: "GET" | "POST",
-  url: string,
-  header: Record<string, string>,
-  timeout: number,
-  body?: Record<string, string | number>
-): Promise<RequestResponse> {
+async function __request({
+  method,
+  url,
+  header,
+  timeout,
+  body,
+  checkCopyrightError,
+}: {
+  method: "GET" | "POST";
+  url: string;
+  header: Record<string, string>;
+  timeout: number;
+  body?: Record<string, string | number>;
+  checkCopyrightError?: boolean;
+}): Promise<RequestResponse> {
   let statusCode: number;
   let contentType: string;
   if (env === ENV.NODE) {
@@ -125,16 +136,27 @@ async function __request(
             body: bodyStr,
             signal: AbortSignal.timeout(timeout * 1000),
           });
-    if (response.status > 500)
-      throw new EHServiceUnavailableError(
+    if (response.status === 509) {
+      throw new EHBandwidthLimitExceededError(
+        `509 error! status: ${response.status}\nurl: ${url}`
+      );
+    } else if (response.status >= 500) {
+      throw new EHServerError(
         `Server error! status: ${response.status}\nurl: ${url}`,
         response.status
       );
-    if (!response.ok)
+    } else if (!response.ok) {
+      if (response.status === 404 && checkCopyrightError) {
+        const result = parseCopyrightPage(await response.text());
+        if (result.unavailable) {
+          throw new EHCopyrightError(result.copyrightOwner);
+        }
+      }
       throw new EHNetworkError(
         `HTTP error! status: ${response.status}\nurl: ${url}`,
         response.status
       );
+    }
     statusCode = response.status;
     contentType = response.headers.get("Content-Type") || "";
     return new RequestResponse({ statusCode, contentType, response });
@@ -161,16 +183,31 @@ async function __request(
       }
     }
     statusCode = resp.response.statusCode;
-    if (statusCode >= 500)
-      throw new EHServiceUnavailableError(
+    if (statusCode === 509) {
+      throw new EHBandwidthLimitExceededError(
+        `509 error! status: ${statusCode}\nurl: ${url}`
+      );
+    } else if (statusCode >= 500) {
+      throw new EHServerError(
         `Server error! status: ${statusCode}\nurl: ${url}`,
         statusCode
       );
-    if (statusCode >= 400)
+    } else if (statusCode >= 400) {
+      if (
+        statusCode === 404 &&
+        checkCopyrightError &&
+        typeof resp.data === "string"
+      ) {
+        const result = parseCopyrightPage(resp.data);
+        if (result.unavailable) {
+          throw new EHCopyrightError(result.copyrightOwner);
+        }
+      }
       throw new EHNetworkError(
         `HTTP error! status: ${statusCode}\nurl: ${url}`,
         statusCode
       );
+    }
     contentType = resp.response.headers["Content-Type"] || "";
     return new RequestResponse({ statusCode, contentType, resp });
   } else {
@@ -181,9 +218,16 @@ async function __request(
 export async function get(
   url: string,
   header: Record<string, string>,
-  timeout: number
+  timeout: number,
+  checkCopyrightError?: boolean
 ): Promise<RequestResponse> {
-  return await __request("GET", url, header, timeout);
+  return await __request({
+    method: "GET",
+    url,
+    header,
+    timeout,
+    checkCopyrightError,
+  });
 }
 
 export async function post(
@@ -192,5 +236,5 @@ export async function post(
   body: Record<string, string | number>,
   timeout: number
 ): Promise<RequestResponse> {
-  return await __request("POST", url, header, timeout, body);
+  return await __request({ method: "POST", url, header, timeout, body });
 }

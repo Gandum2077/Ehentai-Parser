@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHNetworkError = exports.EHTimeoutError = exports.EHServiceUnavailableError = exports.EHIPBannedError = exports.EHAPIError = void 0;
+exports.EHNetworkError = exports.EHTimeoutError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -19,19 +19,39 @@ class EHIPBannedError extends Error {
     }
 }
 exports.EHIPBannedError = EHIPBannedError;
-class EHServiceUnavailableError extends Error {
+class EHServerError extends Error {
     constructor(detail, statusCode) {
         super();
-        this.name = "EHServiceUnavailableError";
-        this.message = "服务不可用";
-        this.statusCode = 503;
+        this.name = "EHServerError";
+        this.message = "服务器错误";
+        this.statusCode = 500;
         this.detail = detail;
         if (statusCode) {
             this.statusCode = statusCode;
         }
     }
 }
-exports.EHServiceUnavailableError = EHServiceUnavailableError;
+exports.EHServerError = EHServerError;
+class EHBandwidthLimitExceededError extends Error {
+    constructor(detail) {
+        super();
+        this.name = "EHBandwidthLimitExceededError";
+        this.message = "带宽限制已超出";
+        this.statusCode = 509;
+        this.detail = detail;
+    }
+}
+exports.EHBandwidthLimitExceededError = EHBandwidthLimitExceededError;
+class EHCopyrightError extends Error {
+    constructor(copyrightOwner) {
+        super();
+        this.name = "EHCopyrightError";
+        this.message = "由于版权原因被删除";
+        this.statusCode = 404;
+        this.copyrightOwner = copyrightOwner;
+    }
+}
+exports.EHCopyrightError = EHCopyrightError;
 class EHTimeoutError extends Error {
     constructor(detail) {
         super();
