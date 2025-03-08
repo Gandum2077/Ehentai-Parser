@@ -20,7 +20,7 @@ import {
   EHPage,
   EHMyTags,
   EHFavoriteInfo,
-  EHGalleryTorrent
+  EHGalleryTorrent,
 } from "./types";
 
 const _favcatColors = [
@@ -33,11 +33,10 @@ const _favcatColors = [
   "#4bf",
   "#00f",
   "#508",
-  "#e8e"
-]
+  "#e8e",
+];
 
-
-export function extractGidToken(url: string): { gid: number, token: string } {
+export function extractGidToken(url: string): { gid: number; token: string } {
   const patt = /https:\/\/e[-x]hentai\.org\/\w+\/(\d+)\/(\w+)\/?/;
   const r = patt.exec(url);
   if (!r || r.length < 3) {
@@ -45,25 +44,36 @@ export function extractGidToken(url: string): { gid: number, token: string } {
   } else {
     return {
       gid: parseInt(r[1]),
-      token: r[2]
-    }
+      token: r[2],
+    };
   }
 }
 
-function sortTaglist(unsorted: { namespace: TagNamespace, tag: string }[]): EHTagListItem[] {
+function sortTaglist(
+  unsorted: { namespace: TagNamespace; tag: string }[]
+): EHTagListItem[] {
   const taglist: EHTagListItem[] = [];
-  const namespaces = [...new Set(unsorted.map(x => x.namespace))]
+  const namespaces = [...new Set(unsorted.map((x) => x.namespace))];
   for (const namespace of namespaces) {
-    const tags = unsorted.filter(x => x.namespace === namespace).map(x => x.tag);
+    const tags = unsorted
+      .filter((x) => x.namespace === namespace)
+      .map((x) => x.tag);
     taglist.push({
       namespace,
-      tags
+      tags,
     });
   }
   return taglist;
 }
 
-export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPopularList | EHFavoritesList | EHTopList {
+export function parseList(
+  html: string
+):
+  | EHFrontPageList
+  | EHWatchedList
+  | EHPopularList
+  | EHFavoritesList
+  | EHTopList {
   const $ = cheerio.load(html);
 
   let type: "front_page" | "watched" | "popular" | "favorites" | "toplist";
@@ -84,7 +94,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
   }
   // 获取显示模式
   if (type !== "toplist") {
-    const val = $("option[value='e']").parent("select").val()  // 结果可能是 m, p, l, e, t
+    const val = $("option[value='e']").parent("select").val();
+    // 结果可能是 m, p, l, e, t
     if (val === "m" || val === "p") {
       display_mode = "minimal";
     } else if (val === "l") {
@@ -119,8 +130,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         next_page_available,
         total_item_count,
         filtered_count,
-        items
-      }
+        items,
+      };
     }
     case "watched": {
       const prev_page_available = Boolean($("#uprev").attr("href"));
@@ -134,8 +145,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         filtered_count,
         prev_page_available,
         next_page_available,
-        items
-      }
+        items,
+      };
     }
     case "popular": {
       const searchtext = $(".searchtext").text().replace(/,/g, "");
@@ -145,36 +156,49 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         type,
         display_mode,
         filtered_count,
-        items
-      }
+        items,
+      };
     }
     case "favorites": {
-      const prev_page_available = Boolean($("#uprev").attr("href"))
-      const next_page_available = Boolean($("#unext").attr("href"))
-      const sort_order = $("select").eq(0).val() === "p" ? "published_time" : "favorited_time"
+      const prev_page_available = Boolean($("#uprev").attr("href"));
+      const next_page_available = Boolean($("#unext").attr("href"));
+      const sort_order =
+        $("select").eq(0).val() === "p" ? "published_time" : "favorited_time";
       let first_item_favorited_timestamp: number | undefined;
       let last_item_favorited_timestamp: number | undefined;
       if (sort_order === "favorited_time") {
         if (prev_page_available) {
-          first_item_favorited_timestamp = parseInt($("#uprev").attr("href")?.match(/prev=\d+-(\d+)/)?.at(1) || "0");
+          first_item_favorited_timestamp = parseInt(
+            $("#uprev")
+              .attr("href")
+              ?.match(/prev=\d+-(\d+)/)
+              ?.at(1) || "0"
+          );
         }
         if (next_page_available) {
-          last_item_favorited_timestamp = parseInt($("#unext").attr("href")?.match(/next=\d+-(\d+)/)?.at(1) || "0");
+          last_item_favorited_timestamp = parseInt(
+            $("#unext")
+              .attr("href")
+              ?.match(/next=\d+-(\d+)/)
+              ?.at(1) || "0"
+          );
         }
       }
       const favcat_infos: {
         count: number;
         title: string;
       }[] = [];
-      $(".ido .nosel .fp").slice(0, -1).each((i, elem) => {
-        const fp = $(elem);
-        const count = parseInt(fp.find("div").eq(0).text()) || 0;
-        const title = fp.find("div").eq(2).text()
-        favcat_infos.push({
-          count,
-          title
+      $(".ido .nosel .fp")
+        .slice(0, -1)
+        .each((i, elem) => {
+          const fp = $(elem);
+          const count = parseInt(fp.find("div").eq(0).text()) || 0;
+          const title = fp.find("div").eq(2).text();
+          favcat_infos.push({
+            count,
+            title,
+          });
         });
-      });
       return {
         type,
         prev_page_available,
@@ -184,8 +208,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         last_item_favorited_timestamp,
         display_mode,
         items,
-        favcat_infos
-      }
+        favcat_infos,
+      };
     }
     case "toplist": {
       const rangeText = $("h1 a").eq(1).text();
@@ -206,8 +230,8 @@ export function parseList(html: string): EHFrontPageList | EHWatchedList | EHPop
         time_range,
         current_page,
         total_pages,
-        items: items as EHListCompactItem[]
-      }
+        items: items as EHListCompactItem[],
+      };
     }
     default:
       throw new Error("Unknown type");
@@ -231,138 +255,213 @@ function _parseListItems($: cheerio.Root, displayMode: EHListDisplayMode) {
 
 function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
   const items: EHListMinimalItem[] = [];
-  if ($("table.itg.gltm > tbody > tr").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-  $("table.itg.gltm > tbody > tr").slice(1).each((i, elem) => {
-    const tr = $(elem);
-    const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-    const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
-    const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
-    const posted_time = new Date(postedDiv.text() + "Z");
-    const visible = postedDiv.find("s").length === 0;
-    const favcat_title = postedDiv.attr("title")
-    const favorited = Boolean(favcat_title);
-    const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-    const favcat = favcatColor ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) : undefined
-    const starStyle = tr.find(".glthumb .ir").attr("style") || "";
-    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
-    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
-    const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb")
-    const length = parseInt(tr.find(".glthumb .ir").next().text());
-    const torrent_available = tr.find(".gldown a").length > 0;
-    const title = tr.find(".glink").text();
-    const url = tr.find(".glname a").attr("href") || "";
-    const { gid, token } = extractGidToken(url);
-    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = []
-    tr.find(".gltm .gt").each((i, el) => {
-      const text = $(el).attr("title") || "";
-      if (!text.includes(":")) return;
-      const [a, b] = text.split(":");
-      taglistUnsorted.push({
-        namespace: (a || "temp") as TagNamespace,
-        tag: b
+  if ($("table.itg.gltm > tbody > tr").length <= 1) return items;
+  // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("table.itg.gltm > tbody > tr")
+    .slice(1)
+    .each((i, elem) => {
+      const tr = $(elem);
+      const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+      const category = tr
+        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+        .eq(0)
+        .text() as EHCategory;
+      const postedDiv = tr
+        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+        .eq(1);
+      const posted_time = new Date(postedDiv.text() + "Z");
+      const visible = postedDiv.find("s").length === 0;
+      const favcat_title = postedDiv.attr("title");
+      const favorited = Boolean(favcat_title);
+      const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+      const favcat = favcatColor
+        ? (_favcatColors.indexOf(favcatColor) as
+            | 0
+            | 1
+            | 2
+            | 3
+            | 4
+            | 5
+            | 6
+            | 7
+            | 8
+            | 9)
+        : undefined;
+      const starStyle = tr.find(".glthumb .ir").attr("style") || "";
+      const r =
+        /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
+          starStyle
+        );
+      const estimated_display_rating =
+        r && r.length >= 3
+          ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+          : 0;
+      const is_my_rating = (
+        tr.find(".glthumb .ir").attr("class") || ""
+      ).includes("irb");
+      const length = parseInt(tr.find(".glthumb .ir").next().text());
+      const torrent_available = tr.find(".gldown a").length > 0;
+      const title = tr.find(".glink").text();
+      const url = tr.find(".glname a").attr("href") || "";
+      const { gid, token } = extractGidToken(url);
+      const taglistUnsorted: { namespace: TagNamespace; tag: string }[] = [];
+      tr.find(".gltm .gt").each((i, el) => {
+        const text = $(el).attr("title") || "";
+        if (!text.includes(":")) return;
+        const [a, b] = text.split(":");
+        taglistUnsorted.push({
+          namespace: (a || "temp") as TagNamespace,
+          tag: b,
+        });
       });
-    })
 
-    // 只有favorites页面有favorited_time
-    const favorited_time = (tr.find(".glfm.glfav").length > 0) ? new Date(tr.find(".glfm.glfav").text() + "Z") : undefined;
-    // favorites页面没有uploader
-    const uploader = (!favorited_time && tr.find(".gl5m.glhide a").length > 0) ? tr.find(".gl5m.glhide a").text() : undefined;
-    const disowned = Boolean(favorited_time) && !Boolean(uploader);
-    items.push({
-      type: "minimal",
-      gid,
-      token,
-      url,
-      title,
-      thumbnail_url,
-      category,
-      posted_time: posted_time.toISOString(),
-      visible,
-      estimated_display_rating,
-      is_my_rating,
-      uploader,
-      disowned,
-      length,
-      torrent_available,
-      favorited,
-      favcat,
-      favcat_title,
-      taglist: sortTaglist(taglistUnsorted),
-      favorited_time: favorited_time?.toISOString()
+      // 只有favorites页面有favorited_time
+      const favorited_time =
+        tr.find(".glfm.glfav").length > 0
+          ? new Date(tr.find(".glfm.glfav").text() + "Z")
+          : undefined;
+      // favorites页面没有uploader
+      const uploader =
+        !favorited_time && tr.find(".gl5m.glhide a").length > 0
+          ? tr.find(".gl5m.glhide a").text()
+          : undefined;
+      const disowned = Boolean(favorited_time) && !Boolean(uploader);
+      items.push({
+        type: "minimal",
+        gid,
+        token,
+        url,
+        title,
+        thumbnail_url,
+        category,
+        posted_time: posted_time.toISOString(),
+        visible,
+        estimated_display_rating,
+        is_my_rating,
+        uploader,
+        disowned,
+        length,
+        torrent_available,
+        favorited,
+        favcat,
+        favcat_title,
+        taglist: sortTaglist(taglistUnsorted),
+        favorited_time: favorited_time?.toISOString(),
+      });
     });
-  })
-  return items
+  return items;
 }
 
 function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
   const items: EHListCompactItem[] = [];
-  if ($("table.itg.gltc > tbody > tr").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
-  $("table.itg.gltc > tbody > tr").slice(1).each((i, elem) => {
-    const tr = $(elem);
-    const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-    const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
-    const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
-    const posted_time = new Date(postedDiv.text() + "Z");
-    const visible = postedDiv.find("s").length === 0;
-    const favcat_title = postedDiv.attr("title")
-    const favorited = Boolean(favcat_title);
-    const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-    const favcat = favcatColor ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) : undefined
-    const starStyle = tr.find(".glthumb .ir").attr("style") || "";
-    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
-    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
-    const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb")
-    const length = parseInt(tr.find(".glthumb .ir").next().text());
-    const torrent_available = tr.find(".gldown a").length > 0;
-    const title = tr.find(".glink").text();
-    const url = tr.find(".glname a").attr("href") || "";
-    const { gid, token } = extractGidToken(url);
-    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = []
-    tr.find(".glink").next().find(".gt").each((i, el) => {
-      const text = $(el).attr("title") || "";
-      if (!text.includes(":")) return;
-      const [a, b] = text.split(":");
-      taglistUnsorted.push({
-        namespace: (a || "temp") as TagNamespace,
-        tag: b
+  if ($("table.itg.gltc > tbody > tr").length <= 1) return items;
+  // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  $("table.itg.gltc > tbody > tr")
+    .slice(1)
+    .each((i, elem) => {
+      const tr = $(elem);
+      const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
+      const category = tr
+        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+        .eq(0)
+        .text() as EHCategory;
+      const postedDiv = tr
+        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
+        .eq(1);
+      const posted_time = new Date(postedDiv.text() + "Z");
+      const visible = postedDiv.find("s").length === 0;
+      const favcat_title = postedDiv.attr("title");
+      const favorited = Boolean(favcat_title);
+      const favcatColor = postedDiv.attr("style")?.slice(13, 17);
+      const favcat = favcatColor
+        ? (_favcatColors.indexOf(favcatColor) as
+            | 0
+            | 1
+            | 2
+            | 3
+            | 4
+            | 5
+            | 6
+            | 7
+            | 8
+            | 9)
+        : undefined;
+      const starStyle = tr.find(".glthumb .ir").attr("style") || "";
+      const r =
+        /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
+          starStyle
+        );
+      const estimated_display_rating =
+        r && r.length >= 3
+          ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+          : 0;
+      const is_my_rating = (
+        tr.find(".glthumb .ir").attr("class") || ""
+      ).includes("irb");
+      const length = parseInt(tr.find(".glthumb .ir").next().text());
+      const torrent_available = tr.find(".gldown a").length > 0;
+      const title = tr.find(".glink").text();
+      const url = tr.find(".glname a").attr("href") || "";
+      const { gid, token } = extractGidToken(url);
+      const taglistUnsorted: { namespace: TagNamespace; tag: string }[] = [];
+      tr.find(".glink")
+        .next()
+        .find(".gt")
+        .each((i, el) => {
+          const text = $(el).attr("title") || "";
+          if (!text.includes(":")) return;
+          const [a, b] = text.split(":");
+          taglistUnsorted.push({
+            namespace: (a || "temp") as TagNamespace,
+            tag: b,
+          });
+        });
+      // 只有favorites页面有favorited_time
+      const favorited_time =
+        tr.find(".glfav").length > 0
+          ? new Date(
+              tr.find(".glfav p").eq(0).text() +
+                " " +
+                tr.find(".glfav p").eq(1).text() +
+                "Z"
+            )
+          : undefined;
+      // favorites页面没有uploader
+      const uploader =
+        !favorited_time && tr.find(".glhide a").length > 0
+          ? tr.find(".glhide a").text()
+          : undefined;
+      const disowned = Boolean(favorited_time) && !Boolean(uploader);
+      items.push({
+        type: "compact",
+        gid,
+        token,
+        url,
+        title,
+        thumbnail_url,
+        category,
+        posted_time: posted_time.toISOString(),
+        visible,
+        estimated_display_rating,
+        is_my_rating,
+        uploader,
+        disowned,
+        length,
+        torrent_available,
+        favorited,
+        favcat,
+        favcat_title,
+        taglist: sortTaglist(taglistUnsorted),
+        favorited_time: favorited_time?.toISOString(),
       });
-    })
-    // 只有favorites页面有favorited_time
-    const favorited_time = (tr.find(".glfav").length > 0)
-      ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + "Z")
-      : undefined;
-    // favorites页面没有uploader
-    const uploader = (!favorited_time && tr.find(".glhide a").length > 0) ? tr.find(".glhide a").text() : undefined;
-    const disowned = Boolean(favorited_time) && !Boolean(uploader);
-    items.push({
-      type: "compact",
-      gid,
-      token,
-      url,
-      title,
-      thumbnail_url,
-      category,
-      posted_time: posted_time.toISOString(),
-      visible,
-      estimated_display_rating,
-      is_my_rating,
-      uploader,
-      disowned,
-      length,
-      torrent_available,
-      favorited,
-      favcat,
-      favcat_title,
-      taglist: sortTaglist(taglistUnsorted),
-      favorited_time: favorited_time?.toISOString()
     });
-  })
-  return items
+  return items;
 }
 
 function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
   const items: EHListExtendedItem[] = [];
-  if ($("table.itg.glte td").length <= 1) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  if ($("table.itg.glte td").length <= 1) return items;
+  // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
   $("table.itg.glte > tbody > tr").each((i, elem) => {
     const tr = $(elem);
     const thumbnail_url = tr.find(".gl1e img").attr("src") || "";
@@ -371,19 +470,42 @@ function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
     const postedDiv = gl3eDivs.eq(1);
     const posted_time = new Date(postedDiv.text() + "Z");
     const visible = postedDiv.find("s").length === 0;
-    const favcat_title = postedDiv.attr("title")
+    const favcat_title = postedDiv.attr("title");
     const favorited = Boolean(favcat_title);
     const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-    const favcat = favcatColor ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) : undefined
+    const favcat = favcatColor
+      ? (_favcatColors.indexOf(favcatColor) as
+          | 0
+          | 1
+          | 2
+          | 3
+          | 4
+          | 5
+          | 6
+          | 7
+          | 8
+          | 9)
+      : undefined;
     const starStyle = gl3eDivs.eq(2).attr("style") || "";
-    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
-    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
-    const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb")
-    const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
+    const r =
+      /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
+        starStyle
+      );
+    const estimated_display_rating =
+      r && r.length >= 3
+        ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+        : 0;
+    const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
+    const uploader = gl3eDivs.eq(3).find("a")
+      ? gl3eDivs.eq(3).find("a").text()
+      : undefined;
     const disowned = !Boolean(uploader);
     const length = parseInt(gl3eDivs.eq(4).text());
     const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-    const favorited_time = (gl3eDivs.length > 6) ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z") : undefined;
+    const favorited_time =
+      gl3eDivs.length > 6
+        ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z")
+        : undefined;
     const title = tr.find(".glink").text();
     const url = tr.find(".gl2e > div > a").attr("href") || "";
     const taglist: EHTagListItem[] = [];
@@ -391,10 +513,13 @@ function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
       const tr = $(el);
       const namespace = tr.find("td").eq(0).text().slice(0, -1) as TagNamespace;
       const tags: string[] = [];
-      tr.find("td").eq(1).find("div").each((i, e) => tags.push($(e).text()));
+      tr.find("td")
+        .eq(1)
+        .find("div")
+        .each((i, e) => tags.push($(e).text()));
       taglist.push({
         namespace,
-        tags
+        tags,
       });
     });
     const { gid, token } = extractGidToken(url);
@@ -418,7 +543,7 @@ function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
       favcat,
       favcat_title,
       taglist,
-      favorited_time: favorited_time?.toISOString()
+      favorited_time: favorited_time?.toISOString(),
     });
   });
   return items;
@@ -426,7 +551,8 @@ function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
 
 function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
   const items: EHListThumbnailItem[] = [];
-  if ($("div.itg.gld > div").length <= 0) return items; // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
+  if ($("div.itg.gld > div").length <= 0) return items;
+  // 两种情况：1.没有搜索结果 2.搜索结果被全部过滤掉了
   $("div.itg.gld > div").each((i, elem) => {
     const div = $(elem);
     const thumbnail_url = div.find(".gl3t img").attr("src") || "";
@@ -434,29 +560,47 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
     const postedDiv = div.find(".gl5t .cs").next();
     const posted_time = new Date(postedDiv.text() + "Z");
     const visible = postedDiv.find("s").length === 0;
-    const favcat_title = postedDiv.attr("title")
+    const favcat_title = postedDiv.attr("title");
     const favorited = Boolean(favcat_title);
     const favcatColor = postedDiv.attr("style")?.slice(13, 17);
-    const favcat = favcatColor ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) : undefined
+    const favcat = favcatColor
+      ? (_favcatColors.indexOf(favcatColor) as
+          | 0
+          | 1
+          | 2
+          | 3
+          | 4
+          | 5
+          | 6
+          | 7
+          | 8
+          | 9)
+      : undefined;
     const starStyle = div.find(".ir").attr("style") || "";
-    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle)
-    const estimated_display_rating = (r && r.length >= 3) ? (5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5) : 0
-    const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb")
+    const r =
+      /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
+        starStyle
+      );
+    const estimated_display_rating =
+      r && r.length >= 3
+        ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
+        : 0;
+    const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb");
     const length = parseInt(div.find(".ir").next().text());
     const torrent_available = div.find(".gldown a").length > 0;
     const title = div.find(".glname a").text();
     const url = div.find(".glname a").attr("href") || "";
     const { gid, token } = extractGidToken(url);
-    const taglistUnsorted: { namespace: TagNamespace, tag: string }[] = [];
+    const taglistUnsorted: { namespace: TagNamespace; tag: string }[] = [];
     div.find(".gl6t .gt").each((i, el) => {
       const text = $(el).attr("title") || "";
       if (!text.includes(":")) return;
       const [a, b] = text.split(":");
       taglistUnsorted.push({
         namespace: (a || "temp") as TagNamespace,
-        tag: b
+        tag: b,
       });
-    })
+    });
     items.push({
       type: "thumbnail",
       gid,
@@ -475,15 +619,15 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
       favorited,
       favcat,
       favcat_title,
-      taglist: sortTaglist(taglistUnsorted)
+      taglist: sortTaglist(taglistUnsorted),
     });
-  })
-  return items
+  });
+  return items;
 }
 
 export function parseMyUpload(html: string): EHUploadList {
   const $ = cheerio.load(html);
-  const items: EHUploadList["items"] = []
+  const items: EHUploadList["items"] = [];
   let folder_name = "";
   $("form .s table > tbody > tr").each((i, elem) => {
     const tr = $(elem);
@@ -493,7 +637,7 @@ export function parseMyUpload(html: string): EHUploadList {
       return;
     } else {
       // 通过此链接来判断是否为已发布图库
-      const managegalleryUrl = tr.find(".gtc1 a").attr("href")
+      const managegalleryUrl = tr.find(".gtc1 a").attr("href");
       if (!managegalleryUrl || managegalleryUrl.includes("ulgid")) return;
 
       const title = tr.find(".gtc1 a").text();
@@ -504,7 +648,7 @@ export function parseMyUpload(html: string): EHUploadList {
       let public_category: EHCategory;
       const public_category_text = tr.find(".gtc4").text();
       if (public_category_text === "-") {
-        public_category = "Private"
+        public_category = "Private";
       } else {
         public_category = public_category_text as EHCategory;
       }
@@ -517,20 +661,20 @@ export function parseMyUpload(html: string): EHUploadList {
         title,
         added_time: added_time.toISOString(),
         length,
-        public_category
-      })
+        public_category,
+      });
     }
-  })
+  });
 
   return {
     type: "upload",
-    items
-  }
+    items,
+  };
 }
 
 export function parseGallery(html: string): EHGallery {
   const $ = cheerio.load(html);
-  let scriptText = ""
+  let scriptText = "";
   $("script").each((i, elem) => {
     if ($(elem).html()?.includes("var gid = ")) {
       scriptText = $(elem).html() || "";
@@ -540,18 +684,28 @@ export function parseGallery(html: string): EHGallery {
   const token = /var token = "(\w*)";/.exec(scriptText)?.at(1) || "";
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
-  const average_rating = parseFloat(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
-  const display_rating = parseFloat(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
+  const average_rating = parseFloat(
+    /var average_rating = (.*);/.exec(scriptText)?.at(1) || "0"
+  );
+  const display_rating = parseFloat(
+    /var display_rating = (.*);/.exec(scriptText)?.at(1) || "0"
+  );
   // metadata
   const english_title = $("#gn").text();
   const japanese_title = $("#gj").text();
-  const thumbnail_url = /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
+  const thumbnail_url =
+    /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
   const category = $("#gdc").text() as EHCategory;
-  const uploader = ($("#gdn a").length > 0) ? $("#gdn a").text() : undefined;
+  const uploader = $("#gdn a").length > 0 ? $("#gdn a").text() : undefined;
   const disowned = !Boolean(uploader);
-  const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z");
-  const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)")
-  const parent_url = (parentElement.text() !== "None") ? parentElement.find("a").attr("href") : undefined;
+  const posted_time = new Date(
+    $("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z"
+  );
+  const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
+  const parent_url =
+    parentElement.text() !== "None"
+      ? parentElement.find("a").attr("href")
+      : undefined;
   let parent_gid: number | undefined = undefined;
   let parent_token: string | undefined = undefined;
   if (parent_url) {
@@ -562,40 +716,55 @@ export function parseGallery(html: string): EHGallery {
   const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
   const visible = visible_text === "Yes";
   let invisible_cause: EHGallery["invisible_cause"];
-  const invisible_cause_tmp = /\((.*)\)/.exec(visible_text)?.at(1)?.toLowerCase();
+  const invisible_cause_tmp = /\((.*)\)/
+    .exec(visible_text)
+    ?.at(1)
+    ?.toLowerCase();
   if (visible) {
     invisible_cause = undefined;
   } else if (
-    invisible_cause_tmp === "expunged"
-    || invisible_cause_tmp === "replaced"
-    || invisible_cause_tmp === "private"
+    invisible_cause_tmp === "expunged" ||
+    invisible_cause_tmp === "replaced" ||
+    invisible_cause_tmp === "private"
   ) {
     invisible_cause = invisible_cause_tmp;
   } else {
     invisible_cause = "unknown";
   }
-  const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)")
+  const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)");
   const language = languageElement.contents().eq(0).text().trim().toLowerCase();
-  const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
-  const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
+  const translated =
+    languageElement.find("span").length > 0 &&
+    languageElement.find("span").text().trim() === "TR";
+  const rewrited =
+    languageElement.find("span").length > 0 &&
+    languageElement.find("span").text().trim() === "RW";
 
   const file_size = $("#gdd tr:nth-of-type(5) td:nth-of-type(2)").text();
-  const length = parseInt($("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6));
+  const length = parseInt(
+    $("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6)
+  );
 
   const rating_count = parseInt($("#rating_count").text());
   const ratingImageClassAttr = $("#rating_image").attr("class") || "";
   const is_my_rating = ratingImageClassAttr.includes("irb");
 
-  const torrent_count = parseInt(/\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0");
+  const torrent_count = parseInt(
+    /\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0"
+  );
 
   let favorite_count: number;
-  const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
+  const favorite_count_text = $(
+    "#gdd tr:nth-of-type(7) td:nth-of-type(2)"
+  ).text();
   if (favorite_count_text === "Never") {
     favorite_count = 0;
   } else if (favorite_count_text === "Once") {
     favorite_count = 1;
   } else {
-    favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
+    favorite_count = parseInt(
+      $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6)
+    );
   }
   let favorited: boolean;
   let favcat: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | undefined;
@@ -609,7 +778,10 @@ export function parseGallery(html: string): EHGallery {
     favorited = true;
     favcat_title = favElement.attr("title");
     const style = favElement.attr("style") || "";
-    favcat = Math.floor(parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") / 19) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+    favcat = Math.floor(
+      parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") /
+        19
+    ) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   }
 
   // taglist
@@ -619,14 +791,17 @@ export function parseGallery(html: string): EHGallery {
       const tr = $(elem);
       const namespace = tr.find("td").eq(0).text().slice(0, -1) as TagNamespace;
       const tags: string[] = [];
-      tr.find("td").eq(1).find("a").each((i, e) => {
-        let text = $(e).text();
-        if (text.includes("|")) text = text.split("|")[0].trim();
-        tags.push(text)
-      });
+      tr.find("td")
+        .eq(1)
+        .find("a")
+        .each((i, e) => {
+          let text = $(e).text();
+          if (text.includes("|")) text = text.split("|")[0].trim();
+          tags.push(text);
+        });
       taglist.push({
         namespace,
-        tags
+        tags,
       });
     });
   }
@@ -642,9 +817,9 @@ export function parseGallery(html: string): EHGallery {
       gid,
       token,
       title,
-      posted_time: new Date(timeStr.slice(8) + "Z").toISOString()
+      posted_time: new Date(timeStr.slice(8) + "Z").toISOString(),
     });
-  })
+  });
 
   // image
   const images: {
@@ -657,9 +832,10 @@ export function parseGallery(html: string): EHGallery {
       y: number;
       width: number;
       height: number;
-    }
+    };
   }[] = [];
-  let thumbnail_size: "normal" | "large" = $("div#gdt.gt200").length > 0 ? "large" : "normal";
+  let thumbnail_size: "normal" | "large" =
+    $("div#gdt.gt200").length > 0 ? "large" : "normal";
   // 2024-11-5更新：大小图共用一套代码
   $("#gdt a").each((i, elem) => {
     const div = $(elem).find("div[title]");
@@ -667,13 +843,16 @@ export function parseGallery(html: string): EHGallery {
     const page = parseInt(r?.at(1) || "1") - 1;
     const name = r?.at(2) || "";
 
-    const r2 = /width:(\d+)(px)?;height:(\d+)(px)?;background:transparent url\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)? no-repeat/.exec(div.attr("style") || "")
+    const r2 =
+      /width:(\d+)(px)?;height:(\d+)(px)?;background:transparent url\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)? no-repeat/.exec(
+        div.attr("style") || ""
+      );
     const frame = {
       x: parseInt(r2?.at(6) ?? "0"),
       y: parseInt(r2?.at(8) ?? "0"),
       width: parseInt(r2?.at(1) ?? "200"),
-      height: parseInt(r2?.at(3) ?? "1")
-    }
+      height: parseInt(r2?.at(3) ?? "1"),
+    };
     const thumbnail_url = r2?.at(5) ?? "";
 
     const page_url = $(elem).attr("href") || "";
@@ -683,12 +862,13 @@ export function parseGallery(html: string): EHGallery {
       name,
       imgkey,
       thumbnail_url,
-      frame
+      frame,
     });
   });
-  const total_pages = parseInt($('.gtb table.ptt td').eq(-2).text())
-  const current_page = parseInt($('.gtb table.ptt td.ptds').text()) - 1
-  let num_of_images_on_each_page: number | undefined = undefined; // 如果只有1页，就没有这个字段
+  const total_pages = parseInt($(".gtb table.ptt td").eq(-2).text());
+  const current_page = parseInt($(".gtb table.ptt td.ptds").text()) - 1;
+  let num_of_images_on_each_page: number | undefined = undefined;
+  // 如果只有1页，就没有这个字段
   if (thumbnail_size === "normal" && total_pages > 1) {
     // normal有4种可能：40、100、200、400
     if (total_pages * 40 >= length) {
@@ -713,30 +893,38 @@ export function parseGallery(html: string): EHGallery {
     }
   }
   // comments
-  const comments: EHGallery['comments'] = [];
+  const comments: EHGallery["comments"] = [];
   if ($("#cdiv .c1").length > 0) {
     $("#cdiv .c1").each((i, elem) => {
       const div = $(elem);
       const divc3 = div.find("div.c3");
       const divc3a = divc3.find("a");
-      const commenter = (divc3a.length >= 1) ? divc3a.eq(0).text() : undefined;
-      const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
+      const commenter = divc3a.length >= 1 ? divc3a.eq(0).text() : undefined;
+      const dateText =
+        /\d{2} \w+ \d{4}, \d{2}:\d{2}/
+          .exec(divc3.contents().eq(0).text())
+          ?.at(0) || "";
       const posted_time = new Date(dateText + " UTC");
       const comment_div = div.find("div.c6").html() || "";
-      const is_uploader = div.find("div.c4").text().includes("Uploader Comment");
-      let score: number | undefined
-      let comment_id: number | undefined
-      let votes: {
-        base: number;
-        voters: {
-          voter: string;
-          score: number;
-        }[];
-        remaining_voter_count: number;
-      } | undefined
-      let is_my_comment: boolean
-      let voteable: boolean
-      let my_vote: 1 | -1 | undefined
+      const is_uploader = div
+        .find("div.c4")
+        .text()
+        .includes("Uploader Comment");
+      let score: number | undefined;
+      let comment_id: number | undefined;
+      let votes:
+        | {
+            base: number;
+            voters: {
+              voter: string;
+              score: number;
+            }[];
+            remaining_voter_count: number;
+          }
+        | undefined;
+      let is_my_comment: boolean;
+      let voteable: boolean;
+      let my_vote: 1 | -1 | undefined;
       if (is_uploader) {
         score = undefined;
         comment_id = undefined;
@@ -745,28 +933,30 @@ export function parseGallery(html: string): EHGallery {
         voteable = false;
         my_vote = undefined;
       } else {
-        score = parseInt(div.find(".c5 > span").text())
-        comment_id = parseInt(div.find(".c6").attr("id")!.slice(8))
-        const baseText = div.find(".c7").contents().eq(0).text()
-        const base = baseText.match(/^Base \+\d+$/) ? parseInt(baseText.slice(5)) : parseInt(baseText.slice(5, -2))
-        const voters: { voter: string; score: number }[] = []
+        score = parseInt(div.find(".c5 > span").text());
+        comment_id = parseInt(div.find(".c6").attr("id")!.slice(8));
+        const baseText = div.find(".c7").contents().eq(0).text();
+        const base = baseText.match(/^Base \+\d+$/)
+          ? parseInt(baseText.slice(5))
+          : parseInt(baseText.slice(5, -2));
+        const voters: { voter: string; score: number }[] = [];
         div.find(".c7 span").each((i, e) => {
-          const r = /(.*) ([+-]\d+)/.exec($(e).text())
+          const r = /(.*) ([+-]\d+)/.exec($(e).text());
           if (r) {
             voters.push({
               voter: r.at(1) || "",
-              score: parseInt(r.at(2) || "0")
-            })
+              score: parseInt(r.at(2) || "0"),
+            });
           }
-        })
-        const lastLineText = div.find(".c7").contents().eq(-1).text()
-        const r = /, and (\d+) more.../.exec(lastLineText)
-        const remaining_voter_count = r ? parseInt(r.at(1) || "0") : 0
+        });
+        const lastLineText = div.find(".c7").contents().eq(-1).text();
+        const r = /, and (\d+) more.../.exec(lastLineText);
+        const remaining_voter_count = r ? parseInt(r.at(1) || "0") : 0;
         votes = {
           base,
           voters,
-          remaining_voter_count
-        }
+          remaining_voter_count,
+        };
         if (div.find("div.c4").length === 0) {
           // 不可投票的普通评论（自己评论过之后其他评论不可投票）
           is_my_comment = false;
@@ -782,9 +972,9 @@ export function parseGallery(html: string): EHGallery {
           is_my_comment = false;
           voteable = true;
           if (div.find("div.c4 a").eq(0).attr("style")) {
-            my_vote = 1
+            my_vote = 1;
           } else if (div.find("div.c4 a").eq(1).attr("style")) {
-            my_vote = -1
+            my_vote = -1;
           }
         }
       }
@@ -798,7 +988,7 @@ export function parseGallery(html: string): EHGallery {
         votes,
         is_my_comment,
         voteable,
-        my_vote
+        my_vote,
       });
     });
   }
@@ -841,13 +1031,13 @@ export function parseGallery(html: string): EHGallery {
     current_page,
     num_of_images_on_each_page,
     images: { [current_page]: images },
-    comments
-  }
+    comments,
+  };
 }
 
 export function parseMPV(html: string): EHMPV {
   const $ = cheerio.load(html);
-  let text = ""
+  let text = "";
   $("script").each((i, elem) => {
     if ($(elem).html()?.includes("var gid=")) {
       text = $(elem).html() || "";
@@ -860,20 +1050,21 @@ export function parseMPV(html: string): EHMPV {
   const lengthText = /var pagecount = (\d*);/.exec(text)?.at(1) || "0";
   const length = parseInt(lengthText);
   const imageJSONText = text.slice(text.indexOf("["), text.indexOf("]") + 1);
-  const imageJSON: { n: string; k: string; t: string }[] = JSON.parse(imageJSONText);
+  const imageJSON: { n: string; k: string; t: string }[] =
+    JSON.parse(imageJSONText);
 
-  const frames: { x: number, y: number, width: number, height: number }[] = []
+  const frames: { x: number; y: number; width: number; height: number }[] = [];
   $("#pane_thumbs a > div").each((i, elem) => {
     const style = $(elem).attr("style") || "";
     const r = /width:(\d+)px;height:(\d+)px;/.exec(style);
     const width = parseInt(r?.at(1) ?? "200");
     const height = parseInt(r?.at(2) ?? "1");
     const t = imageJSON[i].t;
-    const r2 = /\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)?/.exec(t)
-    const x = parseInt(r2?.at(2) ?? "0")
-    const y = parseInt(r2?.at(4) ?? "0")
-    frames.push({ x, y, width, height })
-  })
+    const r2 = /\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)?/.exec(t);
+    const x = parseInt(r2?.at(2) ?? "0");
+    const y = parseInt(r2?.at(4) ?? "0");
+    frames.push({ x, y, width, height });
+  });
   return {
     gid,
     token,
@@ -884,9 +1075,9 @@ export function parseMPV(html: string): EHMPV {
       name: v.n,
       imgkey: v.k,
       thumbnail_url: /\(([^(]+)\)/.exec(v.t)?.at(1) || "",
-      frame: frames[i]
-    }))
-  }
+      frame: frames[i],
+    })),
+  };
 }
 
 export function parseConfig(html: string): { [key: string]: string } {
@@ -896,13 +1087,13 @@ export function parseConfig(html: string): { [key: string]: string } {
   const formData: { [key: string]: string } = {};
 
   // 获取所有input元素（包括radio, checkbox）的值
-  $('#outer > div:nth-child(3) form input').each((i, el) => {
+  $("#outer > div:nth-child(3) form input").each((i, el) => {
     const e = $(el);
-    const name = e.attr('name');
+    const name = e.attr("name");
     if (!name) return;
-    const type = e.attr('type');
-    if (type === 'radio' || type === 'checkbox') {
-      if (e.is(':checked')) {
+    const type = e.attr("type");
+    if (type === "radio" || type === "checkbox") {
+      if (e.is(":checked")) {
         formData[name] = e.val();
       }
     } else {
@@ -911,19 +1102,19 @@ export function parseConfig(html: string): { [key: string]: string } {
   });
 
   // 获取textarea的值
-  $('#outer > div:nth-child(3) form textarea').each((i, el) => {
+  $("#outer > div:nth-child(3) form textarea").each((i, el) => {
     const e = $(el);
-    const name = e.attr('name');
+    const name = e.attr("name");
     if (!name) return;
     formData[name] = e.val();
   });
 
   // 获取select的值
-  $('#outer > div:nth-child(3) form select').each((i, el) => {
+  $("#outer > div:nth-child(3) form select").each((i, el) => {
     const e = $(el);
-    const name = e.attr('name');
+    const name = e.attr("name");
     if (!name) return;
-    formData[name] = e.find('option:selected').val();
+    formData[name] = e.find("option:selected").val();
   });
 
   return formData;
@@ -935,11 +1126,13 @@ export function parseFavcatFavnote(html: string): EHFavoriteInfo {
 
   const $ = cheerio.load(html);
   const divs = $(".nosel > div");
-  if (divs.length === 11) favorited = true
-  divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()))
-  const selected_favcat = parseInt($(".nosel input[checked='checked']").val() || "0");
+  if (divs.length === 11) favorited = true;
+  divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()));
+  const selected_favcat = parseInt(
+    $(".nosel input[checked='checked']").val() || "0"
+  );
   const favnote = $("textarea").text();
-  const favnote_used_info = $("textarea").parent().find('div').text();
+  const favnote_used_info = $("textarea").parent().find("div").text();
   const r = /(\d+) \/ (\d+)/.exec(favnote_used_info);
   const num_of_favnote_slots = r ? parseInt(r[2]) : 0;
   const num_of_favnote_slots_used = r ? parseInt(r[1]) : 0;
@@ -947,8 +1140,9 @@ export function parseFavcatFavnote(html: string): EHFavoriteInfo {
     favcat_titles,
     favorited,
     selected_favcat,
-    favnote, num_of_favnote_slots,
-    num_of_favnote_slots_used
+    favnote,
+    num_of_favnote_slots,
+    num_of_favnote_slots_used,
   };
 }
 
@@ -957,33 +1151,42 @@ export function parsePageInfo(html: string): EHPage {
   const imageUrl = $("#img").attr("src") || "";
   const imageDescription = $("#i4 > div:nth-child(1)").text();
   const splits = imageDescription.split(" :: ");
-  const [xres, yres] = splits[1].split(" x ").map(v => parseInt(v));
+  const [xres, yres] = splits[1].split(" x ").map((v) => parseInt(v));
   const size = { width: xres, height: yres };
   const fileSize = splits[2];
-  const reloadKey = $("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
-  let scriptText = ""
+  const reloadKey =
+    $("#loadfail")
+      .attr("onclick")
+      ?.match(/return nl\(\'(.*)\'\)/)
+      ?.at(1) || "";
+  let scriptText = "";
   $("script").each((i, elem) => {
     if ($(elem).html()?.includes("var showkey=")) {
       scriptText = $(elem).html() || "";
     }
   });
-  const showkey = scriptText.match(/var showkey="(\w*)";/)?.at(1) ?? ""
+  const showkey = scriptText.match(/var showkey="(\w*)";/)?.at(1) ?? "";
 
   let fullSizeUrl: string | undefined = undefined;
   let downloadButtonText: string = "";
   const lastA = $("#i6 > div a").eq(-1);
   const urlOfLastA = lastA.attr("href") || "";
-  if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+  if (
+    urlOfLastA.startsWith("https://e-hentai.org/fullimg/") ||
+    urlOfLastA.startsWith("https://exhentai.org/fullimg/")
+  ) {
     fullSizeUrl = urlOfLastA;
     downloadButtonText = lastA.text();
   }
-  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
+  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(
+    downloadButtonText
+  );
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
   if (regexResult && regexResult.length === 4) {
     fullSize = {
       width: parseInt(regexResult[1]),
-      height: parseInt(regexResult[2])
+      height: parseInt(regexResult[2]),
     };
     fullFileSize = regexResult[3];
   } else {
@@ -998,7 +1201,7 @@ export function parsePageInfo(html: string): EHPage {
     fullSize,
     fullFileSize,
     reloadKey,
-    showkey
+    showkey,
   };
 }
 
@@ -1009,20 +1212,23 @@ export function parseArchiverInfo(html: string): EHArchive {
   if (!r || r.length < 3) throw new Error("Invalid url");
   const gid = parseInt(r[1]);
   const token = r[2];
-  const download_options: EHArchive["download_options"] = []
+  const download_options: EHArchive["download_options"] = [];
   $("table td").each((i, elem) => {
     const td = $(elem);
     if (td.find("a").length === 0) return;
-    const solution = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
-    const size = td.find("p:nth-child(2)").text()
-    const price = td.find("p:nth-child(3)").text()
-    download_options.push({ solution, size, price })
-  })
+    const solution =
+      /return do_hathdl\('(.*)'\)/
+        .exec(td.find("a").attr("onclick") || "")
+        ?.at(1) || "";
+    const size = td.find("p:nth-child(2)").text();
+    const price = td.find("p:nth-child(3)").text();
+    download_options.push({ solution, size, price });
+  });
   return {
     gid,
     token,
-    download_options
-  }
+    download_options,
+  };
 }
 
 /**
@@ -1047,9 +1253,16 @@ export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
     const titleA = table.find("tr:nth-child(3) > td > a");
     const url = titleA.attr("href") || "";
     const title = titleA.text();
-    const uploader = table.find("tr:nth-child(2) > td:nth-child(1)").contents().eq(1).text().trim();
+    const uploader = table
+      .find("tr:nth-child(2) > td:nth-child(1)")
+      .contents()
+      .eq(1)
+      .text()
+      .trim();
     const tr1_tds = table.find("tr:nth-child(1) > td");
-    const posted_time = new Date(tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z");
+    const posted_time = new Date(
+      tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z"
+    );
     const size = tr1_tds.eq(1).contents().eq(1).text().trim();
     const seeds = parseInt(tr1_tds.eq(3).contents().eq(1).text().trim());
     const peers = parseInt(tr1_tds.eq(4).contents().eq(1).text().trim());
@@ -1062,30 +1275,33 @@ export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
       size,
       seeds,
       peers,
-      downloads
-    })
-  })
-  return torrents
+      downloads,
+    });
+  });
+  return torrents;
 }
 
 /**
- *  
- * @param html 
+ *
+ * @param html
  */
 export function parseMyTags(html: string): EHMyTags {
   const $ = cheerio.load(html);
-  let scriptText = ""
+  let scriptText = "";
   $("script").each((i, elem) => {
     if ($(elem).html()?.includes("var apiuid")) {
       scriptText = $(elem).html() || "";
     }
   });
-  let tagset: number = 0
+  let tagset: number = 0;
   // scriptText中可获取: apiuid, apikey, tagset_name, tagset_color
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
-  const tagset_name = /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
-  let tagset_color = /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || ""; // 此时tagset_color是没有"#"前缀的
+  const tagset_name =
+    /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+  let tagset_color =
+    /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+  // 此时tagset_color是没有"#"前缀的
   if (tagset_color) tagset_color = "#" + tagset_color;
   const tagsets: {
     value: number;
@@ -1098,27 +1314,29 @@ export function parseMyTags(html: string): EHMyTags {
     const selected = option.prop("selected");
     if (selected) tagset = parseInt(option.val());
     tagsets.push({ value, name });
-  })
+  });
   const enabled = $("#tagwatch_0").prop("checked");
-  const tags: EHMyTags["tags"] = []
-  $("#usertags_outer > div").slice(1).each((i, el) => {
-    const divs = $(el).children();
-    const [a, b] = divs.eq(0).find("div").prop("title").split(":");
-    const tagid = parseInt(divs.eq(0).find("div").prop("id").split("_")[1]);
-    const watched = divs.eq(1).find("input").prop("checked");
-    const hidden = divs.eq(2).find("input").prop("checked");
-    const color = divs.eq(4).find("input").val();
-    const weight = parseInt(divs.eq(5).find("input").val());
-    tags.push({
-      tagid,
-      namespace: a as TagNamespace,
-      name: b as string,
-      watched,
-      hidden,
-      color,
-      weight
-    })
-  })
+  const tags: EHMyTags["tags"] = [];
+  $("#usertags_outer > div")
+    .slice(1)
+    .each((i, el) => {
+      const divs = $(el).children();
+      const [a, b] = divs.eq(0).find("div").prop("title").split(":");
+      const tagid = parseInt(divs.eq(0).find("div").prop("id").split("_")[1]);
+      const watched = divs.eq(1).find("input").prop("checked");
+      const hidden = divs.eq(2).find("input").prop("checked");
+      const color = divs.eq(4).find("input").val();
+      const weight = parseInt(divs.eq(5).find("input").val());
+      tags.push({
+        tagid,
+        namespace: a as TagNamespace,
+        name: b as string,
+        watched,
+        hidden,
+        color,
+        weight,
+      });
+    });
   return {
     tagset,
     apiuid,
@@ -1127,8 +1345,8 @@ export function parseMyTags(html: string): EHMyTags {
     tagset_color,
     enabled,
     tagsets,
-    tags
-  }
+    tags,
+  };
 }
 
 export function parseShowpageInfo(info: {
@@ -1146,29 +1364,38 @@ export function parseShowpageInfo(info: {
   const $i = cheerio.load(info.i);
   const size = {
     width: parseInt(info.x),
-    height: parseInt(info.y)
-  }
+    height: parseInt(info.y),
+  };
   const fileSize = $i("div").eq(0).text().split(" :: ")[2];
   const $i3 = cheerio.load(info.i3);
   const imageUrl = $i3("img").attr("src") || "";
   const $i6 = cheerio.load(info.i6);
-  const reloadKey = $i6("#loadfail").attr("onclick")?.match(/return nl\(\'(.*)\'\)/)?.at(1) || ""
+  const reloadKey =
+    $i6("#loadfail")
+      .attr("onclick")
+      ?.match(/return nl\(\'(.*)\'\)/)
+      ?.at(1) || "";
   let fullSizeUrl: string | undefined = undefined;
   let downloadButtonText: string = "";
   const lastA = $i6("div a").eq(-1);
   const urlOfLastA = lastA.attr("href") || "";
-  if (urlOfLastA.startsWith("https://e-hentai.org/fullimg/") || urlOfLastA.startsWith("https://exhentai.org/fullimg/")) {
+  if (
+    urlOfLastA.startsWith("https://e-hentai.org/fullimg/") ||
+    urlOfLastA.startsWith("https://exhentai.org/fullimg/")
+  ) {
     fullSizeUrl = urlOfLastA;
     downloadButtonText = lastA.text();
   }
 
-  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
+  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(
+    downloadButtonText
+  );
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
   if (regexResult && regexResult.length === 4) {
     fullSize = {
       width: parseInt(regexResult[1]),
-      height: parseInt(regexResult[2])
+      height: parseInt(regexResult[2]),
     };
     fullFileSize = regexResult[3];
   } else {
@@ -1182,7 +1409,7 @@ export function parseShowpageInfo(info: {
     fullSizeUrl,
     fullSize,
     fullFileSize,
-    reloadKey
+    reloadKey,
   };
 }
 

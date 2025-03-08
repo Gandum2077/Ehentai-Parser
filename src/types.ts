@@ -1,17 +1,64 @@
-export type TagNamespace = "artist" | "character" | "cosplayer" | "female"
-  | "group" | "language" | "male" | "mixed" | "other" | "parody" | "reclass" | "temp"
+export type TagNamespace =
+  | "artist"
+  | "character"
+  | "cosplayer"
+  | "female"
+  | "group"
+  | "language"
+  | "male"
+  | "mixed"
+  | "other"
+  | "parody"
+  | "reclass"
+  | "temp";
 
-export type TagNamespaceAlternate = "a" | "c" | "cos" | "f" | "g" | "l" | "m"
-  | "x" | "o" | "p" | "r" | "char" | "circle" | "lang" | "series" | "temp"
+export type TagNamespaceAlternate =
+  | "a"
+  | "c"
+  | "cos"
+  | "f"
+  | "g"
+  | "l"
+  | "m"
+  | "x"
+  | "o"
+  | "p"
+  | "r"
+  | "char"
+  | "circle"
+  | "lang"
+  | "series"
+  | "temp";
 
-export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote"
+export type EHQualifier =
+  | "tag"
+  | "weak"
+  | "title"
+  | "uploader"
+  | "uploaduid"
+  | "gid"
+  | "comment"
+  | "favnote";
 
-export type EHSearchedCategory = "Doujinshi" | "Manga" | "Artist CG" | "Game CG" | "Western"
-  | "Non-H" | "Image Set" | "Cosplay" | "Asian Porn" | "Misc"
+export type EHSearchedCategory =
+  | "Doujinshi"
+  | "Manga"
+  | "Artist CG"
+  | "Game CG"
+  | "Western"
+  | "Non-H"
+  | "Image Set"
+  | "Cosplay"
+  | "Asian Porn"
+  | "Misc";
 
-export type EHCategory = EHSearchedCategory | "Private"
+export type EHCategory = EHSearchedCategory | "Private";
 
-export type EHListDisplayMode = "minimal" | "compact" | "extended" | "thumbnail"
+export type EHListDisplayMode =
+  | "minimal"
+  | "compact"
+  | "extended"
+  | "thumbnail";
 
 export interface EHFrontPageList {
   type: "front_page";
@@ -20,7 +67,11 @@ export interface EHFrontPageList {
   total_item_count: number; // 全部数量
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
+  items:
+    | EHListMinimalItem[]
+    | EHListCompactItem[]
+    | EHListExtendedItem[]
+    | EHListThumbnailItem[];
 }
 
 export interface EHWatchedList {
@@ -29,14 +80,22 @@ export interface EHWatchedList {
   next_page_available: boolean;
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
+  items:
+    | EHListMinimalItem[]
+    | EHListCompactItem[]
+    | EHListExtendedItem[]
+    | EHListThumbnailItem[];
 }
 
 export interface EHPopularList {
   type: "popular";
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
+  items:
+    | EHListMinimalItem[]
+    | EHListCompactItem[]
+    | EHListExtendedItem[]
+    | EHListThumbnailItem[];
 }
 
 export interface EHFavoritesList {
@@ -44,10 +103,16 @@ export interface EHFavoritesList {
   prev_page_available: boolean;
   next_page_available: boolean;
   sort_order: "favorited_time" | "published_time";
-  first_item_favorited_timestamp?: number; // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页）
-  last_item_favorited_timestamp?: number; // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页）
+  first_item_favorited_timestamp?: number;
+  // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页）
+  last_item_favorited_timestamp?: number;
+  // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页）
   display_mode: EHListDisplayMode;
-  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
+  items:
+    | EHListMinimalItem[]
+    | EHListCompactItem[]
+    | EHListExtendedItem[]
+    | EHListThumbnailItem[];
   favcat_infos: {
     count: number;
     title: string;
@@ -89,7 +154,7 @@ interface EHItemBase {
 export interface EHListMinimalItem extends EHItemBase {
   // 同时作用于minimal和minimal+
   type: "minimal";
-  uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  uploader?: string; // 上传者，在收藏页是直接不显示的，而非disowned
   disowned: boolean;
   favorited_time?: string;
   taglist: EHTagListItem[]; // 只显示你关注的标签
@@ -97,7 +162,7 @@ export interface EHListMinimalItem extends EHItemBase {
 
 export interface EHListCompactItem extends EHItemBase {
   type: "compact";
-  uploader?: string;  // 上传者，在收藏页是直接不显示的，而非disowned
+  uploader?: string; // 上传者，在收藏页是直接不显示的，而非disowned
   disowned: boolean;
   favorited_time?: string;
   taglist: EHTagListItem[]; // 会显示你关注的标签，和一些其他标签但是不全
@@ -173,20 +238,27 @@ export interface EHGallery {
   thumbnail_size: "normal" | "large";
   total_pages: number;
   current_page: number; // 从0开始
-  num_of_images_on_each_page?: number; // large有4种可能：20、50、100、200；normal有4种可能：40、100、200、400，如果只有一页则没有这个字段
-  images: Record<number, {
-    page: number; // 从0开始
-    name: string;
-    imgkey: string;
-    // page_url: string; // 由于page_url可以由其他项推导，故删除 https://e[x-]hentai.org/s/{imgekey}/{gid}-{page+1}
-    thumbnail_url: string;
-    frame: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    }
-  }[]>;
+  num_of_images_on_each_page?: number;
+  // large有4种可能：20、50、100、200；
+  // normal有4种可能：40、100、200、400，如果只有一页则没有这个字段
+  images: Record<
+    number,
+    {
+      page: number; // 从0开始
+      name: string;
+      imgkey: string;
+      // page_url: string;
+      // 由于page_url可以由其他项推导，故删除
+      // https://e[x-]hentai.org/s/{imgekey}/{gid}-{page+1}
+      thumbnail_url: string;
+      frame: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    }[]
+  >;
   comments: {
     posted_time: string;
     comment_div: string;
@@ -219,10 +291,6 @@ export interface EHMPV {
   mpvkey: string;
   length: number;
   images: {
-    //page: number; // 从0开始
-    //key: string;
-    //name: string;
-    //thumbnail_url: string;
     page: number; // 从0开始
     name: string;
     imgkey: string;
@@ -232,7 +300,7 @@ export interface EHMPV {
       y: number;
       width: number;
       height: number;
-    }
+    };
   }[];
 }
 
@@ -269,7 +337,7 @@ export interface EHArchive {
     solution: string;
     size: string;
     price: string;
-  }[]
+  }[];
 }
 
 export interface EHGalleryTorrent {
@@ -304,12 +372,13 @@ export interface EHMyTags {
     value: number;
     name: string;
   }[];
-  tags: EHMyTagsItem[]
+  tags: EHMyTagsItem[];
 }
 
 export interface EHSearchTerm {
   namespace?: TagNamespace;
-  qualifier?: EHQualifier; // 可用于以下修饰词：tag, weak, title, uploader, uploaduid, gid, comment, favnote
+  qualifier?: EHQualifier;
+  // 可用于以下修饰词：tag, weak, title, uploader, uploaduid, gid, comment, favnote
   // 其中weak是特殊的，可以和namespace一起使用，其他的不能和namespace一起使用
   term: string; // 搜索的关键词
   dollar: boolean; // $ 表示精确搜索，如果没有这个符号，则会搜索以此term开头的所有tag
@@ -318,7 +387,7 @@ export interface EHSearchTerm {
 }
 
 export interface EHSearchOptions {
-  searchTerms?: EHSearchTerm[]
+  searchTerms?: EHSearchTerm[];
   excludedCategories?: EHSearchedCategory[];
   browseExpungedGalleries?: boolean;
   requireGalleryTorrent?: boolean;
@@ -345,12 +414,14 @@ export interface EHPopularSearchOptions {
 }
 
 export interface EHFavoriteSearchOptions {
-  searchTerms?: EHSearchTerm[]
+  searchTerms?: EHSearchTerm[];
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
-  minimumFavoritedTimestamp?: number; // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页），仅用于favorited_time排序
+  minimumFavoritedTimestamp?: number;
+  // 本页面上第一个项目被收藏的时间戳，用于翻页的参数（向前翻页），仅用于favorited_time排序
   maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
-  maximumFavoritedTimestamp?: number; // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页），仅用于favorited_time排序
+  maximumFavoritedTimestamp?: number;
+  // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页），仅用于favorited_time排序
   jump?: {
     value: number;
     unit: "d" | "w" | "m" | "y";
@@ -375,7 +446,7 @@ export interface EHSearchParams {
   f_sfl?: "on"; // Disable custom filters for: Language
   f_sfu?: "on"; // Disable custom filters for: Uploader
   f_sft?: "on"; // Disable custom filters for: Tags
-  range?: number // range 1-99
+  range?: number; // range 1-99
   prev?: number; // gid must be greater than prev
   next?: number; // gid must be smaller than next
   jump?: string; // 1d 1w 1m 1y
@@ -385,11 +456,12 @@ export interface EHSearchParams {
 export interface EHFavoriteSearchParams {
   f_search?: string;
   favcat?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-  range?: number // range 1-99
+  range?: number; // range 1-99
   prev?: string; // gid must be greater than prev
   next?: string; // gid must be smaller than next
   // 收藏页的prev/next参数有两种模式:
-  // published_time排序时，只使用gid；favorited_time排序时，使用{gid}-{favorited_timestamp}的形式
+  // published_time排序时，只使用gid；
+  // favorited_time排序时，使用{gid}-{favorited_timestamp}的形式
   // 因此这里的prev/next参数类型是string
   jump?: string; // 1d 1w 1m 1y
   seek?: string; // 2024-03-04

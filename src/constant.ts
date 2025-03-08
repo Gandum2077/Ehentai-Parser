@@ -12,7 +12,7 @@ export const tagNamespaces: TagNamespace[] = [
   "other",
   "parody",
   "reclass",
-  "temp"
+  "temp",
 ];
 
 export const tagNamespaceAlternates: TagNamespaceAlternate[] = [
@@ -31,43 +31,48 @@ export const tagNamespaceAlternates: TagNamespaceAlternate[] = [
   "circle",
   "lang",
   "series",
-  "temp"
+  "temp",
 ];
 
-export const tagNamespaceMostUsedAlternateMap: Record<TagNamespace, TagNamespaceAlternate> = {
-  "artist": "a",
-  "character": "c",
-  "cosplayer": "cos",
-  "female": "f",
-  "group": "g",
-  "language": "l",
-  "male": "m",
-  "mixed": "x",
-  "other": "o",
-  "parody": "p",
-  "reclass": "r",
-  "temp": "temp"
-}
-
-export const tagNamespaceAlternateMap: Record<TagNamespaceAlternate, TagNamespace> = {
-  "a": "artist",
-  "c": "character",
-  "cos": "cosplayer",
-  "f": "female",
-  "g": "group",
-  "l": "language",
-  "m": "male",
-  "x": "mixed",
-  "o": "other",
-  "p": "parody",
-  "r": "reclass",
-  "char": "character",
-  "circle": "group",
-  "lang": "language",
-  "series": "parody",
-  "temp": "temp"
+export const tagNamespaceMostUsedAlternateMap: Record<
+  TagNamespace,
+  TagNamespaceAlternate
+> = {
+  artist: "a",
+  character: "c",
+  cosplayer: "cos",
+  female: "f",
+  group: "g",
+  language: "l",
+  male: "m",
+  mixed: "x",
+  other: "o",
+  parody: "p",
+  reclass: "r",
+  temp: "temp",
 };
 
+export const tagNamespaceAlternateMap: Record<
+  TagNamespaceAlternate,
+  TagNamespace
+> = {
+  a: "artist",
+  c: "character",
+  cos: "cosplayer",
+  f: "female",
+  g: "group",
+  l: "language",
+  m: "male",
+  x: "mixed",
+  o: "other",
+  p: "parody",
+  r: "reclass",
+  char: "character",
+  circle: "group",
+  lang: "language",
+  series: "parody",
+  temp: "temp",
+};
 
 export const ehQualifiers: EHQualifier[] = [
   "tag",
@@ -79,4 +84,3 @@ export const ehQualifiers: EHQualifier[] = [
   "comment",
   "favnote",
 ];
-
