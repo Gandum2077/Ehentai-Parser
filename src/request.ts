@@ -2,9 +2,11 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 
+import { serialize } from "v8";
 import {
   EHBandwidthLimitExceededError,
   EHCopyrightError,
+  EHIgneousExpiredError,
   EHNetworkError,
   EHServerError,
   EHTimeoutError,
@@ -93,6 +95,28 @@ class RequestResponse {
       throw new Error("环境不支持");
     }
   }
+
+  setCookie() {
+    if (env === ENV.NODE && this._response) {
+      return parseSetCookie(this._response.headers.get("Set-Cookie"));
+    } else if (env === ENV.JSBOX && this._resp) {
+      return parseSetCookie(this._resp.response.headers["Set-Cookie"]);
+    } else {
+      throw new Error("环境不支持");
+    }
+  }
+}
+
+export function parseSetCookie(
+  setCookieString: string | undefined | null
+): [string, string][] {
+  if (!setCookieString) return [];
+  const regex0 = /^([^;=]+)=([^;]+);/;
+  const regex = /, ([^;=]+)=([^;]+);/g;
+  const found0 = regex0.exec(setCookieString)?.slice(1);
+  const found = [...setCookieString.matchAll(regex)].map((n) => [n[1], n[2]]);
+  if (found0) found.unshift(found0);
+  return found as [string, string][];
 }
 
 async function __request({
@@ -156,6 +180,12 @@ async function __request({
         `HTTP error! status: ${response.status}\nurl: ${url}`,
         response.status
       );
+    } else {
+      const setCookie = parseSetCookie(response.headers.get("Set-Cookie"));
+      console.log(setCookie)
+      if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+        throw new EHIgneousExpiredError();
+      }
     }
     statusCode = response.status;
     contentType = response.headers.get("Content-Type") || "";
@@ -207,6 +237,11 @@ async function __request({
         `HTTP error! status: ${statusCode}\nurl: ${url}`,
         statusCode
       );
+    } else {
+      const setCookie = parseSetCookie(resp.response.headers["Set-Cookie"]);
+      if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+        throw new EHIgneousExpiredError();
+      }
     }
     contentType = resp.response.headers["Content-Type"] || "";
     return new RequestResponse({ statusCode, contentType, resp });

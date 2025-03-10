@@ -1607,4 +1607,38 @@ export class EHAPIHandler {
       );
     return true;
   }
+
+  /**
+   * 尝试获取新的igneous
+   * 方法是删除cookie中的igneous，然后重新请求首页
+   * 此方法限定在exhentai中使用
+   */
+  async getCookieWithNewIgneous() {
+    if (!this._exhentai) {
+      throw new Error("getNewIgneous only work in exhentai");
+    }
+    const tempCookieArray = this.cookie
+      .split(";")
+      .map((n) => n.trim().split("="))
+      .filter((n) => n[0] !== "igneous");
+    const tempCookie = tempCookieArray.map((n) => n.join("=")).join("; ");
+    console.log(tempCookie)
+    const resp = await get(
+      this.urls.default,
+      {
+        "User-Agent": this.ua,
+        "Content-Type": "application/json",
+        Cookie: tempCookie,
+      },
+      30
+    );
+    const setCookie = resp.setCookie();
+    const igneous = setCookie.find(
+      (n) => n[0] === "igneous" && n[1]?.length === 17
+    );
+    if (igneous) {
+      tempCookieArray.push(igneous);
+      return tempCookieArray.map((n) => n.join("=")).join("; ");
+    }
+  }
 }

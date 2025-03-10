@@ -3,7 +3,7 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.post = exports.get = void 0;
+exports.post = exports.get = exports.parseSetCookie = void 0;
 const error_1 = require("./error");
 const parser_1 = require("./parser");
 var ENV;
@@ -77,7 +77,30 @@ class RequestResponse {
             throw new Error("环境不支持");
         }
     }
+    setCookie() {
+        if (env === ENV.NODE && this._response) {
+            return parseSetCookie(this._response.headers.get("Set-Cookie"));
+        }
+        else if (env === ENV.JSBOX && this._resp) {
+            return parseSetCookie(this._resp.response.headers["Set-Cookie"]);
+        }
+        else {
+            throw new Error("环境不支持");
+        }
+    }
 }
+function parseSetCookie(setCookieString) {
+    if (!setCookieString)
+        return [];
+    const regex0 = /^([^;=]+)=([^;]+);/;
+    const regex = /, ([^;=]+)=([^;]+);/g;
+    const found0 = regex0.exec(setCookieString)?.slice(1);
+    const found = [...setCookieString.matchAll(regex)].map((n) => [n[1], n[2]]);
+    if (found0)
+        found.unshift(found0);
+    return found;
+}
+exports.parseSetCookie = parseSetCookie;
 async function __request({ method, url, header, timeout, body, checkCopyrightError, }) {
     let statusCode;
     let contentType;
@@ -120,6 +143,13 @@ async function __request({ method, url, header, timeout, body, checkCopyrightErr
             }
             throw new error_1.EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`, response.status);
         }
+        else {
+            const setCookie = parseSetCookie(response.headers.get("Set-Cookie"));
+            console.log(setCookie);
+            if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+                throw new error_1.EHIgneousExpiredError();
+            }
+        }
         statusCode = response.status;
         contentType = response.headers.get("Content-Type") || "";
         return new RequestResponse({ statusCode, contentType, response });
@@ -160,6 +190,12 @@ async function __request({ method, url, header, timeout, body, checkCopyrightErr
                 }
             }
             throw new error_1.EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
+        }
+        else {
+            const setCookie = parseSetCookie(resp.response.headers["Set-Cookie"]);
+            if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+                throw new error_1.EHIgneousExpiredError();
+            }
         }
         contentType = resp.response.headers["Content-Type"] || "";
         return new RequestResponse({ statusCode, contentType, resp });

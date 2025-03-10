@@ -19,6 +19,14 @@ export class EHAPIError extends Error implements AppError {
   }
 }
 
+export class EHIgneousExpiredError extends Error implements AppError {
+  name = "EHIgneousExpiredError";
+  message: string = "igneous过期";
+  constructor() {
+    super();
+  }
+}
+
 export class EHIPBannedError extends Error implements AppError {
   name = "EHIPBannedError";
   message = "IP被禁止";

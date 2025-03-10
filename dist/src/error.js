@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHNetworkError = exports.EHTimeoutError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHAPIError = void 0;
+exports.EHNetworkError = exports.EHTimeoutError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHIgneousExpiredError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -10,6 +10,14 @@ class EHAPIError extends Error {
     }
 }
 exports.EHAPIError = EHAPIError;
+class EHIgneousExpiredError extends Error {
+    constructor() {
+        super();
+        this.name = "EHIgneousExpiredError";
+        this.message = "igneous过期";
+    }
+}
+exports.EHIgneousExpiredError = EHIgneousExpiredError;
 class EHIPBannedError extends Error {
     constructor(detail) {
         super();
