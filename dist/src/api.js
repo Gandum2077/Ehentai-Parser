@@ -384,6 +384,10 @@ class EHAPIHandler {
         if (text.startsWith("Your IP address has been temporarily banned")) {
             throw new error_1.EHIPBannedError(text);
         }
+        const setCookie = resp.setCookie();
+        if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+            throw new error_1.EHIgneousExpiredError();
+        }
         return text;
     }
     buildUrl(args) {
@@ -1219,7 +1223,6 @@ class EHAPIHandler {
             .map((n) => n.trim().split("="))
             .filter((n) => n[0] !== "igneous");
         const tempCookie = tempCookieArray.map((n) => n.join("=")).join("; ");
-        console.log(tempCookie);
         const resp = await (0, request_1.get)(this.urls.default, {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
@@ -1231,6 +1234,29 @@ class EHAPIHandler {
             tempCookieArray.push(igneous);
             return tempCookieArray.map((n) => n.join("=")).join("; ");
         }
+    }
+    /**
+     * 获取图片配额的信息
+     * @returns \{
+     *  unlocked: true;
+     *  used: number;
+     *  total: number;
+     *  restCost: number;
+     * } | { unlocked: false }
+     */
+    async getImageLimits() {
+        const url = "https://e-hentai.org/home.php";
+        const html = await this._getHtml(url);
+        return (0, parser_1.parseOverview)(html);
+    }
+    /**
+     * 获取资产金额
+     * @returns \{ credits: number, kgp: number }
+     */
+    async getCreditAndKgpCount() {
+        const url = "https://e-hentai.org/exchange.php?t=gp";
+        const html = await this._getHtml(url);
+        return (0, parser_1.parseGpexchange)(html);
     }
 }
 exports.EHAPIHandler = EHAPIHandler;

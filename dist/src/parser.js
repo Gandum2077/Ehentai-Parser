@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseCopyrightPage = exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
+exports.parseOverview = exports.parseGpexchange = exports.parseCopyrightPage = exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -1295,3 +1295,42 @@ function parseCopyrightPage(html) {
     }
 }
 exports.parseCopyrightPage = parseCopyrightPage;
+function parseGpexchange(html) {
+    const $ = cheerio.load(html);
+    const credits = parseInt(/[,\d]+/
+        .exec($("#buyform").parent().next().text())
+        ?.at(0)
+        ?.replaceAll(",", "") ?? "-1");
+    const kgp = parseInt(/[,\d]+/
+        .exec($("#sellform").parent().next().text())
+        ?.at(0)
+        ?.replaceAll(",", "") ?? "-1");
+    return { credits, kgp };
+}
+exports.parseGpexchange = parseGpexchange;
+function parseOverview(html) {
+    const $ = cheerio.load(html);
+    const unlocked = $('.stuffbox > .homebox > form > p > input[value="Reset Quota"]').length >
+        0;
+    if (unlocked) {
+        const used = parseInt($(".stuffbox > .homebox > p > strong:nth-child(1)")
+            .text()
+            .replaceAll(",", ""));
+        const total = parseInt($(".stuffbox > .homebox > p > strong:nth-child(2)")
+            .text()
+            .replaceAll(",", ""));
+        const restCost = parseInt($(".stuffbox > .homebox > p:nth-child(3) > strong")
+            .text()
+            .replaceAll(",", ""));
+        return {
+            unlocked: true,
+            used,
+            total,
+            restCost,
+        };
+    }
+    else {
+        return { unlocked: false };
+    }
+}
+exports.parseOverview = parseOverview;

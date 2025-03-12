@@ -1,5 +1,5 @@
 import Url from "url-parse";
-import { get, post } from "./request";
+import { get, parseSetCookie, post } from "./request";
 import {
   parseList,
   parseGallery,
@@ -14,6 +14,8 @@ import {
   parseGalleryTorrentsInfo,
   parseShowpageInfo,
   parseEditableComment,
+  parseGpexchange,
+  parseOverview,
 } from "./parser";
 import {
   EHFavoritesList,
@@ -47,7 +49,7 @@ import {
   tagNamespaceMostUsedAlternateMap,
   tagNamespaces,
 } from "./constant";
-import { EHAPIError, EHIPBannedError } from "./error";
+import { EHAPIError, EHIgneousExpiredError, EHIPBannedError } from "./error";
 
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -456,6 +458,10 @@ export class EHAPIHandler {
     const text = await resp.text();
     if (text.startsWith("Your IP address has been temporarily banned")) {
       throw new EHIPBannedError(text);
+    }
+    const setCookie = resp.setCookie();
+    if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+      throw new EHIgneousExpiredError();
     }
     return text;
   }
@@ -1622,7 +1628,6 @@ export class EHAPIHandler {
       .map((n) => n.trim().split("="))
       .filter((n) => n[0] !== "igneous");
     const tempCookie = tempCookieArray.map((n) => n.join("=")).join("; ");
-    console.log(tempCookie)
     const resp = await get(
       this.urls.default,
       {
@@ -1640,5 +1645,30 @@ export class EHAPIHandler {
       tempCookieArray.push(igneous);
       return tempCookieArray.map((n) => n.join("=")).join("; ");
     }
+  }
+
+  /**
+   * 获取图片配额的信息
+   * @returns \{
+   *  unlocked: true;
+   *  used: number;
+   *  total: number;
+   *  restCost: number;
+   * } | { unlocked: false }
+   */
+  async getImageLimits() {
+    const url = "https://e-hentai.org/home.php";
+    const html = await this._getHtml(url);
+    return parseOverview(html);
+  }
+
+  /**
+   * 获取资产金额
+   * @returns \{ credits: number, kgp: number }
+   */
+  async getCreditAndKgpCount() {
+    const url = "https://e-hentai.org/exchange.php?t=gp";
+    const html = await this._getHtml(url);
+    return parseGpexchange(html);
   }
 }

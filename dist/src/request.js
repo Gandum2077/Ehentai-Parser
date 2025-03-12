@@ -60,7 +60,12 @@ class RequestResponse {
             return await this._response.text();
         }
         else if (env === ENV.JSBOX && this._resp) {
-            return this._resp.data;
+            if (typeof this._resp.data === "string") {
+                return this._resp.data;
+            }
+            else {
+                return "";
+            }
         }
         else {
             throw new Error("环境不支持");
@@ -143,13 +148,6 @@ async function __request({ method, url, header, timeout, body, checkCopyrightErr
             }
             throw new error_1.EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`, response.status);
         }
-        else {
-            const setCookie = parseSetCookie(response.headers.get("Set-Cookie"));
-            console.log(setCookie);
-            if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
-                throw new error_1.EHIgneousExpiredError();
-            }
-        }
         statusCode = response.status;
         contentType = response.headers.get("Content-Type") || "";
         return new RequestResponse({ statusCode, contentType, response });
@@ -190,12 +188,6 @@ async function __request({ method, url, header, timeout, body, checkCopyrightErr
                 }
             }
             throw new error_1.EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
-        }
-        else {
-            const setCookie = parseSetCookie(resp.response.headers["Set-Cookie"]);
-            if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
-                throw new error_1.EHIgneousExpiredError();
-            }
         }
         contentType = resp.response.headers["Content-Type"] || "";
         return new RequestResponse({ statusCode, contentType, resp });

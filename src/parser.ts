@@ -1439,3 +1439,59 @@ export function parseCopyrightPage(
     return { unavailable: false };
   }
 }
+
+export function parseGpexchange(html: string) {
+  const $ = cheerio.load(html);
+  const credits = parseInt(
+    /[,\d]+/
+      .exec($("#buyform").parent().next().text())
+      ?.at(0)
+      ?.replaceAll(",", "") ?? "-1"
+  );
+  const kgp = parseInt(
+    /[,\d]+/
+      .exec($("#sellform").parent().next().text())
+      ?.at(0)
+      ?.replaceAll(",", "") ?? "-1"
+  );
+  return { credits, kgp };
+}
+
+export function parseOverview(html: string):
+  | {
+      unlocked: true;
+      used: number;
+      total: number;
+      restCost: number;
+    }
+  | { unlocked: false } {
+  const $ = cheerio.load(html);
+  const unlocked =
+    $('.stuffbox > .homebox > form > p > input[value="Reset Quota"]').length >
+    0;
+  if (unlocked) {
+    const used = parseInt(
+      $(".stuffbox > .homebox > p > strong:nth-child(1)")
+        .text()
+        .replaceAll(",", "")
+    );
+    const total = parseInt(
+      $(".stuffbox > .homebox > p > strong:nth-child(2)")
+        .text()
+        .replaceAll(",", "")
+    );
+    const restCost = parseInt(
+      $(".stuffbox > .homebox > p:nth-child(3) > strong")
+        .text()
+        .replaceAll(",", "")
+    );
+    return {
+      unlocked: true,
+      used,
+      total,
+      restCost,
+    };
+  } else {
+    return { unlocked: false };
+  }
+}
