@@ -469,11 +469,20 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(url, header, 20, checkCopyrightError);
+        const resp = await this.get({
+            url,
+            header,
+            timeout: 20,
+            checkCopyrightError,
+        });
         const text = await resp.text();
         if (text.startsWith("Your IP address has been temporarily banned")) {
             throw new error_1.EHIPBannedError(text);
         }
+        return text;
+    }
+    async get(options) {
+        const resp = await (0, request_1.get)(options.url, options.header, options.timeout, options.checkCopyrightError);
         const setCookie = resp.setCookie();
         if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
             throw new error_1.EHIgneousExpiredError();
@@ -492,7 +501,29 @@ class EHAPIHandler {
         if (flag) {
             this._cookieChanged(this.parsedCookie);
         }
-        return text;
+        return resp;
+    }
+    async post(options) {
+        const resp = await (0, request_1.post)(options.url, options.header, options.body, options.timeout);
+        const setCookie = resp.setCookie();
+        if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
+            throw new error_1.EHIgneousExpiredError();
+        }
+        const cookie_iq = setCookie.find((n) => n.name === "iq");
+        const cookie_igneous = setCookie.find((n) => n.name === "igneous");
+        let flag = false;
+        if (cookie_iq) {
+            this._cookiejar.updateCookie([cookie_iq]);
+            flag = true;
+        }
+        if (cookie_igneous) {
+            this._cookiejar.updateCookie([cookie_igneous]);
+            flag = true;
+        }
+        if (flag) {
+            this._cookieChanged(this.parsedCookie);
+        }
+        return resp;
     }
     buildUrl(args) {
         if (args.type === "front_page") {
@@ -657,7 +688,7 @@ class EHAPIHandler {
         const body = {
             hathdl_xres: xres.toString(),
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("启动Hath下载失败", resp.statusCode, `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const html = await resp.text();
@@ -697,7 +728,7 @@ class EHAPIHandler {
                 dltype: "res",
                 dlcheck: "Download Resample Archive",
             };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         if (resp.statusCode !== 200) {
             throw new error_1.EHAPIError("获取存档下载信息失败", resp.statusCode, `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
         }
@@ -735,7 +766,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(this.urls.config, header, 10);
+        const resp = await this.get({ url: this.urls.config, header, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseConfig)(text);
     }
@@ -751,7 +782,12 @@ class EHAPIHandler {
             "Content-Type": "application/x-www-form-urlencoded",
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.post)(this.urls.config, header, config, 10);
+        const resp = await this.post({
+            url: this.urls.config,
+            header,
+            body: config,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("提交配置信息失败", resp.statusCode, `提交配置信息失败，状态码：${resp.statusCode}，提交的配置信息：\n${JSON.stringify(config, null, 2)}`);
         return true;
@@ -769,7 +805,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(url, header, 10);
+        const resp = await this.get({ url, header, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -786,7 +822,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        var resp = await (0, request_1.get)(url, header, 10);
+        var resp = await this.get({ url, header, timeout: 10 });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("设置收藏页排序方式失败", resp.statusCode, `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}`);
         return true;
@@ -807,7 +843,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(url, header, 10);
+        const resp = await this.get({ url, header, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseFavcatFavnote)(text);
     }
@@ -835,7 +871,7 @@ class EHAPIHandler {
             favnote: favnote,
             update: "1",
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("添加或修改收藏失败", resp.statusCode, `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`);
         return true;
@@ -862,7 +898,7 @@ class EHAPIHandler {
             favnote: "",
             update: "1",
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("删除收藏失败", resp.statusCode, `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`);
         return true;
@@ -891,7 +927,12 @@ class EHAPIHandler {
             rating: ratingForUpload,
             token: token,
         };
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("评分失败", resp.statusCode, `评分失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
         return true;
@@ -911,7 +952,12 @@ class EHAPIHandler {
             Cookie: this.cookie,
         };
         const body = { commenttext_new: text };
-        const resp = await (0, request_1.post)(gallery_url, header, body, 10);
+        const resp = await this.post({
+            url: gallery_url,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("发布评论失败", resp.statusCode, `发布评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const html = await resp.text();
@@ -939,7 +985,12 @@ class EHAPIHandler {
             token: token,
             comment_id: comment_id,
         };
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("获取评论编辑失败", resp.statusCode, `获取评论编辑失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const data = await resp.json();
@@ -965,7 +1016,12 @@ class EHAPIHandler {
             "Content-Type": "application/x-www-form-urlencoded",
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.post)(gallery_url, header, body, 10);
+        const resp = await this.post({
+            url: gallery_url,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("发布修改后的评论失败", resp.statusCode, `发布修改后的评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const html = await resp.text();
@@ -996,7 +1052,12 @@ class EHAPIHandler {
             comment_id: comment_id,
             comment_vote: comment_vote,
         };
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("给评论打分失败", resp.statusCode, `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const data = (await resp.json());
@@ -1026,7 +1087,12 @@ class EHAPIHandler {
         };
         if (reloadKey)
             body["nl"] = reloadKey;
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 20);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 20,
+        });
         if (resp.statusCode !== 200)
             throw new Error("请求失败");
         const info = await resp.json();
@@ -1075,7 +1141,12 @@ class EHAPIHandler {
             imgkey,
             showkey,
         };
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 20);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 20,
+        });
         if (resp.statusCode !== 200)
             throw new Error("请求失败");
         const info = await resp.json();
@@ -1093,7 +1164,7 @@ class EHAPIHandler {
                 "User-Agent": this.ua,
                 // 不需要cookie
             };
-            const resp = await (0, request_1.get)(url, header, 15);
+            const resp = await this.get({ url, header, timeout: 15 });
             return resp.rawData();
         }
         else {
@@ -1101,7 +1172,7 @@ class EHAPIHandler {
                 "User-Agent": this.ua,
                 Cookie: this.cookie,
             };
-            const resp = await (0, request_1.get)(url, header, 15);
+            const resp = await this.get({ url, header, timeout: 15 });
             return resp.rawData();
         }
     }
@@ -1114,7 +1185,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             // 不需要cookie
         };
-        const resp = await (0, request_1.get)(url, header, 30);
+        const resp = await this.get({ url, header, timeout: 30 });
         return resp.rawData();
     }
     /**
@@ -1126,7 +1197,7 @@ class EHAPIHandler {
             "User-Agent": this.ua,
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.get)(url, header, 40);
+        const resp = await this.get({ url, header, timeout: 40 });
         return resp.rawData();
     }
     /**
@@ -1156,7 +1227,7 @@ class EHAPIHandler {
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -1186,7 +1257,7 @@ class EHAPIHandler {
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -1206,7 +1277,7 @@ class EHAPIHandler {
         };
         if (tagset_enable)
             body["tagset_enable"] = "on";
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -1276,7 +1347,7 @@ class EHAPIHandler {
             body["tagwatch_new"] = "on";
         if (hidden)
             body["taghide_new"] = "on";
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -1304,7 +1375,7 @@ class EHAPIHandler {
             "modify_usertags[]": tagid,
             usertag_target: 0,
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseMyTags)(text);
     }
@@ -1341,7 +1412,12 @@ class EHAPIHandler {
             "Content-Type": "application/json",
             Cookie: this.cookie,
         };
-        const resp = await (0, request_1.post)(this.urls.api, header, body, 10);
+        const resp = await this.post({
+            url: this.urls.api,
+            header,
+            body,
+            timeout: 10,
+        });
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("更新标签失败", resp.statusCode, `更新标签失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`);
         return true;
@@ -1423,7 +1499,7 @@ class EHAPIHandler {
         const body = {
             reset_imagelimit: "Unlock Quota",
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseOverview)(text);
     }
@@ -1449,7 +1525,7 @@ class EHAPIHandler {
         const body = {
             reset_imagelimit: "Reset Quota",
         };
-        const resp = await (0, request_1.post)(url, header, body, 10);
+        const resp = await this.post({ url, header, body, timeout: 10 });
         const text = await resp.text();
         return (0, parser_1.parseOverview)(text);
     }

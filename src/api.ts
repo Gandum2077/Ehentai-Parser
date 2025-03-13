@@ -560,11 +560,31 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(url, header, 20, checkCopyrightError);
+    const resp = await this.get({
+      url,
+      header,
+      timeout: 20,
+      checkCopyrightError,
+    });
     const text = await resp.text();
     if (text.startsWith("Your IP address has been temporarily banned")) {
       throw new EHIPBannedError(text);
     }
+    return text;
+  }
+
+  async get(options: {
+    url: string;
+    header: Record<string, string>;
+    timeout: number;
+    checkCopyrightError?: boolean;
+  }) {
+    const resp = await get(
+      options.url,
+      options.header,
+      options.timeout,
+      options.checkCopyrightError
+    );
     const setCookie = resp.setCookie();
     if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
       throw new EHIgneousExpiredError();
@@ -583,7 +603,40 @@ export class EHAPIHandler {
     if (flag) {
       this._cookieChanged(this.parsedCookie);
     }
-    return text;
+    return resp;
+  }
+
+  async post(options: {
+    url: string;
+    header: Record<string, string>;
+    body: Record<string, string | number>;
+    timeout: number;
+  }) {
+    const resp = await post(
+      options.url,
+      options.header,
+      options.body,
+      options.timeout
+    );
+    const setCookie = resp.setCookie();
+    if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
+      throw new EHIgneousExpiredError();
+    }
+    const cookie_iq = setCookie.find((n) => n.name === "iq");
+    const cookie_igneous = setCookie.find((n) => n.name === "igneous");
+    let flag = false;
+    if (cookie_iq) {
+      this._cookiejar.updateCookie([cookie_iq]);
+      flag = true;
+    }
+    if (cookie_igneous) {
+      this._cookiejar.updateCookie([cookie_igneous]);
+      flag = true;
+    }
+    if (flag) {
+      this._cookieChanged(this.parsedCookie);
+    }
+    return resp;
   }
 
   buildUrl(
@@ -828,7 +881,7 @@ export class EHAPIHandler {
     const body = {
       hathdl_xres: xres.toString(),
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "启动Hath下载失败",
@@ -882,7 +935,7 @@ export class EHAPIHandler {
           dltype: "res",
           dlcheck: "Download Resample Archive",
         };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     if (resp.statusCode !== 200) {
       throw new EHAPIError(
         "获取存档下载信息失败",
@@ -937,7 +990,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(this.urls.config, header, 10);
+    const resp = await this.get({ url: this.urls.config, header, timeout: 10 });
     const text = await resp.text();
     return parseConfig(text);
   }
@@ -954,7 +1007,12 @@ export class EHAPIHandler {
       "Content-Type": "application/x-www-form-urlencoded",
       Cookie: this.cookie,
     };
-    const resp = await post(this.urls.config, header, config, 10);
+    const resp = await this.post({
+      url: this.urls.config,
+      header,
+      body: config,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "提交配置信息失败",
@@ -979,7 +1037,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(url, header, 10);
+    const resp = await this.get({ url, header, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -999,7 +1057,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    var resp = await get(url, header, 10);
+    var resp = await this.get({ url, header, timeout: 10 });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "设置收藏页排序方式失败",
@@ -1025,7 +1083,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(url, header, 10);
+    const resp = await this.get({ url, header, timeout: 10 });
     const text = await resp.text();
     return parseFavcatFavnote(text);
   }
@@ -1058,7 +1116,7 @@ export class EHAPIHandler {
       favnote: favnote,
       update: "1",
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "添加或修改收藏失败",
@@ -1094,7 +1152,7 @@ export class EHAPIHandler {
       favnote: "",
       update: "1",
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "删除收藏失败",
@@ -1138,7 +1196,12 @@ export class EHAPIHandler {
       rating: ratingForUpload,
       token: token,
     };
-    const resp = await post(this.urls.api, header, body, 10);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "评分失败",
@@ -1171,7 +1234,12 @@ export class EHAPIHandler {
       Cookie: this.cookie,
     };
     const body = { commenttext_new: text };
-    const resp = await post(gallery_url, header, body, 10);
+    const resp = await this.post({
+      url: gallery_url,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "发布评论失败",
@@ -1214,7 +1282,12 @@ export class EHAPIHandler {
       token: token,
       comment_id: comment_id,
     };
-    const resp = await post(this.urls.api, header, body, 10);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "获取评论编辑失败",
@@ -1254,7 +1327,12 @@ export class EHAPIHandler {
       "Content-Type": "application/x-www-form-urlencoded",
       Cookie: this.cookie,
     };
-    const resp = await post(gallery_url, header, body, 10);
+    const resp = await this.post({
+      url: gallery_url,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "发布修改后的评论失败",
@@ -1302,7 +1380,12 @@ export class EHAPIHandler {
       comment_id: comment_id,
       comment_vote: comment_vote,
     };
-    const resp = await post(this.urls.api, header, body, 10);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "给评论打分失败",
@@ -1350,7 +1433,12 @@ export class EHAPIHandler {
       mpvkey: mpvkey,
     };
     if (reloadKey) body["nl"] = reloadKey;
-    const resp = await post(this.urls.api, header, body, 20);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 20,
+    });
     if (resp.statusCode !== 200) throw new Error("请求失败");
     const info: {
       i: string; // i: 图片真实网址，是全网址无需拼接
@@ -1416,7 +1504,12 @@ export class EHAPIHandler {
       imgkey,
       showkey,
     };
-    const resp = await post(this.urls.api, header, body, 20);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 20,
+    });
     if (resp.statusCode !== 200) throw new Error("请求失败");
     const info: {
       p: number; // p: 页码
@@ -1446,14 +1539,14 @@ export class EHAPIHandler {
         "User-Agent": this.ua,
         // 不需要cookie
       };
-      const resp = await get(url, header, 15);
+      const resp = await this.get({ url, header, timeout: 15 });
       return resp.rawData();
     } else {
       const header = {
         "User-Agent": this.ua,
         Cookie: this.cookie,
       };
-      const resp = await get(url, header, 15);
+      const resp = await this.get({ url, header, timeout: 15 });
       return resp.rawData();
     }
   }
@@ -1467,7 +1560,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       // 不需要cookie
     };
-    const resp = await get(url, header, 30);
+    const resp = await this.get({ url, header, timeout: 30 });
     return resp.rawData();
   }
 
@@ -1480,7 +1573,7 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await get(url, header, 40);
+    const resp = await this.get({ url, header, timeout: 40 });
     return resp.rawData();
   }
 
@@ -1520,7 +1613,7 @@ export class EHAPIHandler {
       tagset_color: tagset_color || "",
     };
     if (tagset_enable) body["tagset_enable"] = "on";
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -1556,7 +1649,7 @@ export class EHAPIHandler {
       tagset_color: tagset_color || "",
     };
     if (tagset_enable) body["tagset_enable"] = "on";
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -1584,7 +1677,7 @@ export class EHAPIHandler {
       tagset_color: tagset_color || "",
     };
     if (tagset_enable) body["tagset_enable"] = "on";
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -1681,7 +1774,7 @@ export class EHAPIHandler {
     };
     if (watched) body["tagwatch_new"] = "on";
     if (hidden) body["taghide_new"] = "on";
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -1717,7 +1810,7 @@ export class EHAPIHandler {
       "modify_usertags[]": tagid,
       usertag_target: 0,
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseMyTags(text);
   }
@@ -1770,7 +1863,12 @@ export class EHAPIHandler {
       "Content-Type": "application/json",
       Cookie: this.cookie,
     };
-    const resp = await post(this.urls.api, header, body, 10);
+    const resp = await this.post({
+      url: this.urls.api,
+      header,
+      body,
+      timeout: 10,
+    });
     if (resp.statusCode !== 200)
       throw new EHAPIError(
         "更新标签失败",
@@ -1869,7 +1967,7 @@ export class EHAPIHandler {
     const body = {
       reset_imagelimit: "Unlock Quota",
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseOverview(text);
   }
@@ -1896,7 +1994,7 @@ export class EHAPIHandler {
     const body = {
       reset_imagelimit: "Reset Quota",
     };
-    const resp = await post(url, header, body, 10);
+    const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseOverview(text);
   }
