@@ -1533,16 +1533,19 @@ export function parseOverview(html: string):
   if (unlocked) {
     const used = parseInt(
       $(".stuffbox > .homebox > p > strong:nth-child(1)")
+        .eq(0)
         .text()
         .replaceAll(",", "")
     );
     const total = parseInt(
       $(".stuffbox > .homebox > p > strong:nth-child(2)")
+        .eq(0)
         .text()
         .replaceAll(",", "")
     );
     const restCost = parseInt(
       $(".stuffbox > .homebox > p:nth-child(3) > strong")
+        .eq(0)
         .text()
         .replaceAll(",", "")
     );

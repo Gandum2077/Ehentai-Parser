@@ -388,6 +388,21 @@ class CookieJar {
         }
     }
     getParsedCookies() {
+        const now = new Date();
+        // 收集已过期的 cookie 名称
+        const expiredCookies = [];
+        this._parsedCookieMap.forEach((cookie, name) => {
+            if (cookie.expires) {
+                const expDate = new Date(cookie.expires);
+                if (expDate.getTime() <= now.getTime()) {
+                    expiredCookies.push(name);
+                }
+            }
+        });
+        // 删除已过期的 cookie
+        for (const name of expiredCookies) {
+            this._parsedCookieMap.delete(name);
+        }
         return [...this._parsedCookieMap.values()];
     }
     /**
@@ -422,14 +437,22 @@ class CookieJar {
     }
 }
 class EHAPIHandler {
-    constructor(exhentai = true, cookie) {
+    /**
+     *
+     * @param cookieChanged cookie改变时触发的回调函数，仅对两个cookie生效：iq和igneous
+     */
+    constructor(cookieChanged) {
+        this._exhentai = false;
         this.ua = DEFAULT_USER_AGENT;
-        this._cookiejar = new CookieJar(cookie);
-        this._exhentai = exhentai;
-        this.urls = exhentai ? exhentaiUrls : ehentaiUrls;
+        this._cookieChanged = cookieChanged;
+        this._cookiejar = new CookieJar();
+        this.urls = this._exhentai ? exhentaiUrls : ehentaiUrls;
     }
     get cookie() {
         return this._cookiejar.getCookieHeader();
+    }
+    get parsedCookie() {
+        return this._cookiejar.getParsedCookies();
     }
     updateCookie(cookie) {
         this._cookiejar.updateCookie(cookie);
@@ -454,6 +477,20 @@ class EHAPIHandler {
         const setCookie = resp.setCookie();
         if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
             throw new error_1.EHIgneousExpiredError();
+        }
+        const cookie_iq = setCookie.find((n) => n.name === "iq");
+        const cookie_igneous = setCookie.find((n) => n.name === "igneous");
+        let flag = false;
+        if (cookie_iq) {
+            this._cookiejar.updateCookie([cookie_iq]);
+            flag = true;
+        }
+        if (cookie_igneous) {
+            this._cookiejar.updateCookie([cookie_igneous]);
+            flag = true;
+        }
+        if (flag) {
+            this._cookieChanged(this.parsedCookie);
         }
         return text;
     }
@@ -1314,9 +1351,9 @@ class EHAPIHandler {
      * 方法是删除cookie中的igneous，然后重新请求首页
      * 此方法限定在exhentai中使用
      */
-    async getCookieWithNewIgneous() {
+    async updateCookieIgneous() {
         if (!this._exhentai) {
-            throw new Error("getNewIgneous only work in exhentai");
+            throw new Error("updateCookieIgneous only work in exhentai");
         }
         this._cookiejar.deleteCookie("igneous");
         const resp = await (0, request_1.get)(this.urls.default, {
@@ -1328,7 +1365,9 @@ class EHAPIHandler {
         const igneous = setCookie.find((n) => n.name === "igneous" && n.value.length === 17);
         if (igneous) {
             this._cookiejar.updateCookie([igneous]);
-            return this._cookiejar.getParsedCookies();
+            const parsed = this.parsedCookie;
+            this._cookieChanged(parsed);
+            return parsed;
         }
         else {
             throw new error_1.EHAPIError("重新获取igneous失败", 404);
@@ -1371,8 +1410,7 @@ class EHAPIHandler {
      *  used: number;
      *  total: number;
      *  restCost: number;
-     *  parsedCookies?: ParsedCookie[]
-     * } | { unlocked: false; parsedCookies?: ParsedCookie[] }
+     * } | { unlocked: false }
      *
      */
     async UnlockQuota() {
@@ -1387,14 +1425,7 @@ class EHAPIHandler {
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        const result = (0, parser_1.parseOverview)(text);
-        const setCookie = resp.setCookie();
-        const iq = setCookie.find((n) => n.name === "iq");
-        if (iq) {
-            this._cookiejar.updateCookie([iq]);
-            result.parsedCookies = this._cookiejar.getParsedCookies();
-        }
-        return result;
+        return (0, parser_1.parseOverview)(text);
     }
     /**
      * 重置配额
@@ -1405,8 +1436,7 @@ class EHAPIHandler {
      *  used: number;
      *  total: number;
      *  restCost: number;
-     *  parsedCookies?: ParsedCookie[]
-     * } | { unlocked: false; parsedCookies?: ParsedCookie[] }
+     * } | { unlocked: false }
      *
      */
     async ResetQuota() {
@@ -1421,14 +1451,7 @@ class EHAPIHandler {
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         const text = await resp.text();
-        const result = (0, parser_1.parseOverview)(text);
-        const setCookie = resp.setCookie();
-        const iq = setCookie.find((n) => n.name === "iq");
-        if (iq) {
-            this._cookiejar.updateCookie([iq]);
-            result.parsedCookies = this._cookiejar.getParsedCookies();
-        }
-        return result;
+        return (0, parser_1.parseOverview)(text);
     }
 }
 exports.EHAPIHandler = EHAPIHandler;
