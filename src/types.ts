@@ -333,11 +333,29 @@ export interface EHFavoriteInfo {
 export interface EHArchive {
   gid: number;
   token: string;
-  download_options: {
-    solution: string;
+  credits: number;
+  gp: number;
+  original_archive_option: {
     size: string;
-    price: string;
-  }[];
+    cost: number;
+  };
+  resample_archive_option: {
+    size: string;
+    cost: number;
+  };
+  hath_download_options: (
+    | {
+        original: false;
+        solution: number;
+        size: string;
+        cost: number;
+      }
+    | {
+        original: true;
+        size: string;
+        cost: number;
+      }
+  )[];
 }
 
 export interface EHGalleryTorrent {
@@ -465,4 +483,16 @@ export interface EHFavoriteSearchParams {
   // 因此这里的prev/next参数类型是string
   jump?: string; // 1d 1w 1m 1y
   seek?: string; // 2024-03-04
+}
+
+export interface ParsedCookie {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: string;
+  version?: number;
+  SessionOnly?: boolean;
+  HttpOnly?: boolean;
+  Secure?: boolean;
 }

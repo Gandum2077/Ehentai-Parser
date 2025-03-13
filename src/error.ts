@@ -77,6 +77,17 @@ export class EHCopyrightError extends Error implements AppError {
   }
 }
 
+export class EHInsufficientFundError extends Error implements AppError {
+  name = "EHInsufficientFundError";
+  message = "资金不足";
+  detail?: string;
+
+  constructor(detail?: string) {
+    super();
+    this.detail = detail;
+  }
+}
+
 export class EHTimeoutError extends Error implements AppError {
   name = "EHTimeoutError";
   message = "请求超时";

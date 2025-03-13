@@ -3,7 +3,7 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.post = exports.get = exports.parseSetCookie = void 0;
+exports.post = exports.get = void 0;
 const error_1 = require("./error");
 const parser_1 = require("./parser");
 var ENV;
@@ -23,6 +23,103 @@ else if (typeof $http !== "undefined" && $http.request !== undefined) {
 }
 else {
     throw new Error("环境不支持");
+}
+/**
+ * 给JSBox擦屁股，将合并的Set-Cookie重新分开
+ * @param setCookieStr string
+ * @returns string[]
+ */
+function splitCookiesString(setCookieStr) {
+    if (!setCookieStr)
+        return [];
+    const cookies = [];
+    let currentCookie = "";
+    let inExpires = false;
+    for (let i = 0; i < setCookieStr.length; i++) {
+        const char = setCookieStr[i];
+        if (char === ",") {
+            // 如果当前处于 expires 属性中（日期中的逗号），则直接加入当前 cookie
+            if (inExpires) {
+                currentCookie += char;
+            }
+            else {
+                // 否则认为这是一个 cookie 的分隔符
+                cookies.push(currentCookie.trim());
+                currentCookie = "";
+                // 跳过逗号后面的空格
+                while (setCookieStr[i + 1] === " ") {
+                    i++;
+                }
+            }
+        }
+        else {
+            currentCookie += char;
+            // 检测是否刚刚开始处理 expires 属性
+            if (!inExpires && currentCookie.toLowerCase().endsWith("; expires=")) {
+                inExpires = true;
+            }
+            // 如果在 expires 中，遇到 GMT 表示日期结束，可以退出 expires 状态
+            if (inExpires && currentCookie.indexOf("GMT") !== -1) {
+                inExpires = false;
+            }
+        }
+    }
+    if (currentCookie) {
+        cookies.push(currentCookie.trim());
+    }
+    return cookies;
+}
+/**
+ * 将单个的setCookie分解为格式化的数据
+ * @param cookieStr string
+ * @returns ParsedCookie
+ */
+function parseCookieString(cookieStr) {
+    // 将单个 cookie 字符串以分号拆分成各部分
+    const parts = cookieStr.split(";").map((part) => part.trim());
+    const [nameValue, ...attributes] = parts;
+    // 考虑 cookie value 可能包含 '=' 号
+    const [name, ...valueParts] = nameValue.split("=");
+    const value = valueParts.join("=");
+    const cookieObj = { name, value };
+    // 解析其他属性（例如 expires、path、domain 等）
+    attributes.forEach((attr) => {
+        const [key, ...rest] = attr.split("=");
+        const keyLower = key.trim().toLowerCase();
+        const val = rest.join("=").trim();
+        switch (keyLower) {
+            case "domain":
+                if (val) {
+                    cookieObj.domain = val;
+                }
+                break;
+            case "path":
+                if (val) {
+                    cookieObj.path = val;
+                }
+                break;
+            case "version":
+                if (val) {
+                    cookieObj.version = parseInt(val);
+                }
+                break;
+            case "sessiononly":
+                if (val) {
+                    cookieObj.SessionOnly = true;
+                }
+                break;
+            case "secure":
+                cookieObj.Secure = true;
+                break;
+            case "httponly":
+                cookieObj.HttpOnly = true;
+                break;
+            default:
+                // 其它未知属性可忽略或按需处理
+                break;
+        }
+    });
+    return cookieObj;
 }
 class RequestResponse {
     constructor({ statusCode, contentType, response, resp, }) {
@@ -84,28 +181,18 @@ class RequestResponse {
     }
     setCookie() {
         if (env === ENV.NODE && this._response) {
-            return parseSetCookie(this._response.headers.get("Set-Cookie"));
+            const setCookieStrs = this._response.headers.getSetCookie();
+            return setCookieStrs.map((n) => parseCookieString(n));
         }
         else if (env === ENV.JSBOX && this._resp) {
-            return parseSetCookie(this._resp.response.headers["Set-Cookie"]);
+            const setCookieStrs = splitCookiesString(this._resp.response.headers["Set-Cookie"]);
+            return setCookieStrs.map((n) => parseCookieString(n));
         }
         else {
             throw new Error("环境不支持");
         }
     }
 }
-function parseSetCookie(setCookieString) {
-    if (!setCookieString)
-        return [];
-    const regex0 = /^([^;=]+)=([^;]+);/;
-    const regex = /, ([^;=]+)=([^;]+);/g;
-    const found0 = regex0.exec(setCookieString)?.slice(1);
-    const found = [...setCookieString.matchAll(regex)].map((n) => [n[1], n[2]]);
-    if (found0)
-        found.unshift(found0);
-    return found;
-}
-exports.parseSetCookie = parseSetCookie;
 async function __request({ method, url, header, timeout, body, checkCopyrightError, }) {
     let statusCode;
     let contentType;

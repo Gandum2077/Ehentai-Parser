@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHNetworkError = exports.EHTimeoutError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHIgneousExpiredError = exports.EHAPIError = void 0;
+exports.EHNetworkError = exports.EHTimeoutError = exports.EHInsufficientFundError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHIgneousExpiredError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -60,6 +60,15 @@ class EHCopyrightError extends Error {
     }
 }
 exports.EHCopyrightError = EHCopyrightError;
+class EHInsufficientFundError extends Error {
+    constructor(detail) {
+        super();
+        this.name = "EHInsufficientFundError";
+        this.message = "资金不足";
+        this.detail = detail;
+    }
+}
+exports.EHInsufficientFundError = EHInsufficientFundError;
 class EHTimeoutError extends Error {
     constructor(detail) {
         super();

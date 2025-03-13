@@ -1212,22 +1212,79 @@ export function parseArchiverInfo(html: string): EHArchive {
   if (!r || r.length < 3) throw new Error("Invalid url");
   const gid = parseInt(r[1]);
   const token = r[2];
-  const download_options: EHArchive["download_options"] = [];
+
+  let credits = -1;
+  let gp = -1;
+  const pElem = $("#db > p").eq(1);
+  if (pElem.length > 0) {
+    gp = parseInt(
+      /[,\d]+/
+        .exec(pElem.contents().eq(0).text())
+        ?.at(0)
+        ?.replaceAll(",", "") ?? "-1"
+    );
+    credits = parseInt(
+      /[,\d]+/
+        .exec(pElem.contents().eq(2).text())
+        ?.at(0)
+        ?.replaceAll(",", "") ?? "-1"
+    );
+  }
+
+  const _parseCost = (text: string) => {
+    if (text.trim().toLowerCase().startsWith("free")) {
+      return 0;
+    } else {
+      return parseInt(/[,\d]+/.exec(text)?.at(0)?.replaceAll(",", "") ?? "-1");
+    }
+  };
+
+  const archiveElems = $("#db > div > div");
+  const originalArchiveElems = archiveElems.eq(0);
+  const originalCost = _parseCost(
+    originalArchiveElems.find("div > strong").text()
+  );
+  const originalSize = originalArchiveElems.find("p > strong").text();
+
+  const resampleArchiveElems = archiveElems.eq(1);
+  const resampleCost = _parseCost(
+    resampleArchiveElems.find("div > strong").text()
+  );
+  const resampleSize = resampleArchiveElems.find("p > strong").text();
+
+  const hath_download_options: EHArchive["hath_download_options"] = [];
   $("table td").each((i, elem) => {
     const td = $(elem);
     if (td.find("a").length === 0) return;
-    const solution =
+    const solutionText =
       /return do_hathdl\('(.*)'\)/
         .exec(td.find("a").attr("onclick") || "")
         ?.at(1) || "";
+    const original = solutionText === "org";
+
     const size = td.find("p:nth-child(2)").text();
-    const price = td.find("p:nth-child(3)").text();
-    download_options.push({ solution, size, price });
+    const cost = _parseCost(td.find("p:nth-child(3)").text());
+    if (original) {
+      hath_download_options.push({ original: true, size, cost });
+    } else {
+      const solution = parseInt(solutionText);
+      hath_download_options.push({ original: false, solution, size, cost });
+    }
   });
   return {
     gid,
     token,
-    download_options,
+    credits,
+    original_archive_option: {
+      cost: originalCost,
+      size: originalSize,
+    },
+    resample_archive_option: {
+      cost: resampleCost,
+      size: resampleSize,
+    },
+    gp,
+    hath_download_options,
   };
 }
 
@@ -1243,6 +1300,12 @@ export function parseArchiveResult(html: string): {
   const $ = cheerio.load(html);
   const message = $("p").eq(0).text();
   return { message };
+}
+
+export function parseArchiveDownloadInfo(html: string): { hath_url: string } {
+  const $ = cheerio.load(html);
+  const hath_url = $("#continue > a").attr("href") || "";
+  return { hath_url };
 }
 
 export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
@@ -1426,9 +1489,7 @@ export function parseCopyrightPage(
   const text = $(".d p")
     .first()
     .contents()
-    .filter((i, elem) => {
-      return elem.type === "text";
-    })
+    .filter((i, elem) => elem.type === "text")
     .first()
     .text()
     .trim();

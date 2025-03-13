@@ -360,12 +360,76 @@ const exhentaiUrls = {
     archiver: `https://exhentai.org/archiver.php`,
     gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
 };
+class CookieJar {
+    constructor(cookie) {
+        this._parsedCookieMap = new Map();
+        if (cookie) {
+            this.updateCookie(cookie);
+        }
+    }
+    updateCookie(cookie) {
+        if (typeof cookie === "string") {
+            const cookiePairs = cookie
+                .split(";")
+                .map((pair) => pair.trim());
+            for (const pair of cookiePairs) {
+                if (!pair)
+                    continue;
+                const [name, ...valueParts] = pair.split("=");
+                const value = valueParts.join("=");
+                // 这里只能获得 name 和 value，没有其他属性信息
+                this._parsedCookieMap.set(name, { name, value });
+            }
+        }
+        else {
+            for (const i of cookie) {
+                this._parsedCookieMap.set(i.name, i);
+            }
+        }
+    }
+    getParsedCookies() {
+        return [...this._parsedCookieMap.values()];
+    }
+    /**
+     * 生成用于 Cookie 请求头的字符串形式："name1=value1; name2=value2"
+     * 在生成 header 前会先删除过期的 cookie。
+     */
+    getCookieHeader() {
+        const now = new Date();
+        // 收集已过期的 cookie 名称
+        const expiredCookies = [];
+        this._parsedCookieMap.forEach((cookie, name) => {
+            if (cookie.expires) {
+                const expDate = new Date(cookie.expires);
+                if (expDate.getTime() <= now.getTime()) {
+                    expiredCookies.push(name);
+                }
+            }
+        });
+        // 删除已过期的 cookie
+        for (const name of expiredCookies) {
+            this._parsedCookieMap.delete(name);
+        }
+        // 生成 header 字符串
+        const cookies = Array.from(this._parsedCookieMap.values());
+        return cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    }
+    /**
+     * 删除指定名称的 cookie
+     */
+    deleteCookie(name) {
+        this._parsedCookieMap.delete(name);
+    }
+}
 class EHAPIHandler {
     constructor(exhentai = true, cookie) {
         this.ua = DEFAULT_USER_AGENT;
-        this.cookie = cookie || "";
+        this._cookiejar = new CookieJar(cookie);
         this._exhentai = exhentai;
         this.urls = exhentai ? exhentaiUrls : ehentaiUrls;
+    }
+    get cookie() {
+        return this._cookiejar.getCookieHeader();
     }
     get exhentai() {
         return this._exhentai;
@@ -385,7 +449,7 @@ class EHAPIHandler {
             throw new error_1.EHIPBannedError(text);
         }
         const setCookie = resp.setCookie();
-        if (setCookie.some((n) => n[0] === "igneous" && n[1] === "mystery")) {
+        if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
             throw new error_1.EHIgneousExpiredError();
         }
         return text;
@@ -551,7 +615,7 @@ class EHAPIHandler {
             Cookie: this.cookie,
         };
         const body = {
-            hathdl_xres: xres,
+            hathdl_xres: xres.toString(),
         };
         const resp = await (0, request_1.post)(url, header, body, 10);
         if (resp.statusCode !== 200)
@@ -573,6 +637,39 @@ class EHAPIHandler {
             throw new error_1.EHAPIError("启动Hath下载失败", resp.statusCode, `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\n原始回复: ${message}`);
         }
         return result;
+    }
+    /**
+     * 获取归档下载信息
+     */
+    async getArchiveDownloadInfo(gid, token, type) {
+        const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}`;
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Cookie: this.cookie,
+        };
+        const body = type
+            ? {
+                dltype: "org",
+                dlcheck: "Download Original Archive",
+            }
+            : {
+                dltype: "res",
+                dlcheck: "Download Resample Archive",
+            };
+        const resp = await (0, request_1.post)(url, header, body, 10);
+        if (resp.statusCode !== 200) {
+            throw new error_1.EHAPIError("获取存档下载信息失败", resp.statusCode, `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
+        }
+        const html = await resp.text();
+        if (html.startsWith("You do not have enough funds")) {
+            throw new error_1.EHInsufficientFundError();
+        }
+        const data = (0, parser_1.parseArchiveDownloadInfo)(html);
+        if (!data.hath_url) {
+            throw new error_1.EHAPIError("获取存档下载信息失败", resp.statusCode, `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
+        }
+        return data;
     }
     /**
      * 获取图库种子页信息 https://e-hentai.org/gallerytorrents.php?gid={gid}&token={token}
@@ -1218,21 +1315,20 @@ class EHAPIHandler {
         if (!this._exhentai) {
             throw new Error("getNewIgneous only work in exhentai");
         }
-        const tempCookieArray = this.cookie
-            .split(";")
-            .map((n) => n.trim().split("="))
-            .filter((n) => n[0] !== "igneous");
-        const tempCookie = tempCookieArray.map((n) => n.join("=")).join("; ");
+        this._cookiejar.deleteCookie("igneous");
         const resp = await (0, request_1.get)(this.urls.default, {
             "User-Agent": this.ua,
             "Content-Type": "application/json",
-            Cookie: tempCookie,
+            Cookie: this.cookie,
         }, 30);
         const setCookie = resp.setCookie();
-        const igneous = setCookie.find((n) => n[0] === "igneous" && n[1]?.length === 17);
+        const igneous = setCookie.find((n) => n.name === "igneous" && n.value.length === 17);
         if (igneous) {
-            tempCookieArray.push(igneous);
-            return tempCookieArray.map((n) => n.join("=")).join("; ");
+            this._cookiejar.updateCookie([igneous]);
+            return this._cookiejar.getParsedCookies();
+        }
+        else {
+            throw new error_1.EHAPIError("重新获取igneous失败", 404);
         }
     }
     /**
@@ -1251,12 +1347,85 @@ class EHAPIHandler {
     }
     /**
      * 获取资产金额
-     * @returns \{ credits: number, kgp: number }
+     * @returns \{ credits: number, gp: number }
      */
-    async getCreditAndKgpCount() {
-        const url = "https://e-hentai.org/exchange.php?t=gp";
+    async getCreditsAndGpCount() {
+        // const url = "https://e-hentai.org/exchange.php?t=gp";
+        // const html = await this._getHtml(url);
+        // return parseGpexchange(html);
+        const url = "https://e-hentai.org/archiver.php?gid=530350&token=8b3c7e4a21";
+        // 这是mpv demo用的那个图库
         const html = await this._getHtml(url);
-        return (0, parser_1.parseGpexchange)(html);
+        const data = (0, parser_1.parseArchiverInfo)(html);
+        return { credits: data.credits, gp: data.gp };
+    }
+    /**
+     * 购买配额(20k GP 买1w配额)
+     *
+     * 注意：此函数会可能会改变cookie，对非捐赠用户使用会下发一个iq的cookie
+     * @returns \{
+     *  unlocked: true;
+     *  used: number;
+     *  total: number;
+     *  restCost: number;
+     *  parsedCookies?: ParsedCookie[]
+     * } | { unlocked: false; parsedCookies?: ParsedCookie[] }
+     *
+     */
+    async UnlockQuota() {
+        const url = "https://e-hentai.org/home.php";
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Cookie: this.cookie,
+        };
+        const body = {
+            reset_imagelimit: "Unlock Quota",
+        };
+        const resp = await (0, request_1.post)(url, header, body, 10);
+        const text = await resp.text();
+        const result = (0, parser_1.parseOverview)(text);
+        const setCookie = resp.setCookie();
+        const iq = setCookie.find((n) => n.name === "iq");
+        if (iq) {
+            this._cookiejar.updateCookie([iq]);
+            result.parsedCookies = this._cookiejar.getParsedCookies();
+        }
+        return result;
+    }
+    /**
+     * 重置配额
+     *
+     * 注意：此函数会可能会改变cookie，对非捐赠用户使用会下发一个iq的cookie
+     * @returns \{
+     *  unlocked: true;
+     *  used: number;
+     *  total: number;
+     *  restCost: number;
+     *  parsedCookies?: ParsedCookie[]
+     * } | { unlocked: false; parsedCookies?: ParsedCookie[] }
+     *
+     */
+    async ResetQuota() {
+        const url = "https://e-hentai.org/home.php";
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Cookie: this.cookie,
+        };
+        const body = {
+            reset_imagelimit: "Reset Quota",
+        };
+        const resp = await (0, request_1.post)(url, header, body, 10);
+        const text = await resp.text();
+        const result = (0, parser_1.parseOverview)(text);
+        const setCookie = resp.setCookie();
+        const iq = setCookie.find((n) => n.name === "iq");
+        if (iq) {
+            this._cookiejar.updateCookie([iq]);
+            result.parsedCookies = this._cookiejar.getParsedCookies();
+        }
+        return result;
     }
 }
 exports.EHAPIHandler = EHAPIHandler;
