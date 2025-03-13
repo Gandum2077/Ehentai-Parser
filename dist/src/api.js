@@ -431,6 +431,9 @@ class EHAPIHandler {
     get cookie() {
         return this._cookiejar.getCookieHeader();
     }
+    updateCookie(cookie) {
+        this._cookiejar.updateCookie(cookie);
+    }
     get exhentai() {
         return this._exhentai;
     }

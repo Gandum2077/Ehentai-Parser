@@ -514,6 +514,10 @@ export class EHAPIHandler {
     return this._cookiejar.getCookieHeader();
   }
 
+  updateCookie(cookie: string | ParsedCookie[]) {
+    this._cookiejar.updateCookie(cookie)
+  }
+
   get exhentai() {
     return this._exhentai;
   }
