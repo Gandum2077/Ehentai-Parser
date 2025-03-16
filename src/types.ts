@@ -129,7 +129,15 @@ export interface EHTopList {
 
 export interface EHUploadList {
   type: "upload";
-  items: EHListUploadItem[];
+  apiuid: number;
+  apikey: string;
+  folders: {
+    name: string;
+    fid: number;
+    count: number;
+    collapsed: boolean;
+    items: EHListUploadItem[];
+  }[];
 }
 
 interface EHItemBase {
@@ -186,7 +194,6 @@ export interface EHListThumbnailItem extends EHItemBase {
 
 export interface EHListUploadItem {
   type: "upload";
-  folder_name: string;
   gid: number;
   token: string;
   url: string;

@@ -341,6 +341,7 @@ const ehentaiUrls = {
     gallerypopups: `https://e-hentai.org/gallerypopups.php`,
     toplist: "https://e-hentai.org/toplist.php",
     upload: `https://upld.e-hentai.org/manage?ss=d&sd=d`, // 自带按时间降序排序
+    uploadapi: `https://upload.e-hentai.org/api`,
     mytags: `https://e-hentai.org/mytags`,
     archiver: `https://e-hentai.org/archiver.php`,
     gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
@@ -356,6 +357,7 @@ const exhentaiUrls = {
     gallerypopups: `https://exhentai.org/gallerypopups.php`,
     toplist: "https://e-hentai.org/toplist.php",
     upload: `https://upld.exhentai.org/upld/manage?ss=d&sd=d`, // 自带按时间降序排序
+    uploadapi: `https://upld.exhentai.org/upld/api`,
     mytags: `https://exhentai.org/mytags`,
     archiver: `https://exhentai.org/archiver.php`,
     gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
@@ -619,6 +621,32 @@ class EHAPIHandler {
     async getUploadInfo() {
         const text = await this._getHtml(this.urls.upload);
         return (0, parser_1.parseMyUpload)(text);
+    }
+    async uncollapseFolder({ fid, apiuid, apikey, }) {
+        const header = {
+            "User-Agent": this.ua,
+            "Content-Type": "application/json",
+            Cookie: this.cookie,
+        };
+        const body = {
+            method: "managefolders",
+            apiuid,
+            apikey,
+            state: "p", // state表示是否为发布图库的文件夹（另一个为u）
+            fid,
+            ss: "d", // ss和sd表示按日期排序、降序，保持一致
+            sd: "d",
+        };
+        const resp = await this.post({
+            url: this.urls.uploadapi,
+            header,
+            body,
+            timeout: 10,
+        });
+        if (resp.statusCode !== 200)
+            throw new error_1.EHAPIError("展开上传文件夹失败", resp.statusCode, `展开上传文件夹失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
+        const json = await resp.json();
+        return (0, parser_1.parseUncollapseInfo)(json);
     }
     /**
      * 获取画廊信息 https://e-hentai.org/g/{gid}/{token}/
@@ -1158,20 +1186,16 @@ class EHAPIHandler {
      * @param ehgt 是否强制使用ehgt的缩略图
      */
     async downloadThumbnail(url, ehgt = true) {
+        const header = {
+            "User-Agent": this.ua,
+            Cookie: this.cookie,
+        };
         if (ehgt) {
             url = url.replace("s.exhentai.org", "ehgt.org");
-            const header = {
-                "User-Agent": this.ua,
-                // 不需要cookie
-            };
             const resp = await this.get({ url, header, timeout: 15 });
             return resp.rawData();
         }
         else {
-            const header = {
-                "User-Agent": this.ua,
-                Cookie: this.cookie,
-            };
             const resp = await this.get({ url, header, timeout: 15 });
             return resp.rawData();
         }

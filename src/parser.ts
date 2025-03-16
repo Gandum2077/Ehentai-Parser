@@ -21,6 +21,7 @@ import {
   EHMyTags,
   EHFavoriteInfo,
   EHGalleryTorrent,
+  EHListUploadItem,
 } from "./types";
 
 const _favcatColors = [
@@ -627,49 +628,121 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
 
 export function parseMyUpload(html: string): EHUploadList {
   const $ = cheerio.load(html);
-  const items: EHUploadList["items"] = [];
-  let folder_name = "";
-  $("form .s table > tbody > tr").each((i, elem) => {
-    const tr = $(elem);
 
-    if (tr.attr("class")?.includes("gtr")) {
-      folder_name = tr.find("span").eq(0).text();
-      return;
-    } else {
-      // 通过此链接来判断是否为已发布图库
-      const managegalleryUrl = tr.find(".gtc1 a").attr("href");
-      if (!managegalleryUrl || managegalleryUrl.includes("ulgid")) return;
-
-      const title = tr.find(".gtc1 a").text();
-      const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
-      const { gid, token } = extractGidToken(url);
-      const added_time = new Date(tr.find(".gtc2").text() + "Z");
-      const length = parseInt(tr.find(".gtc3").text());
-      let public_category: EHCategory;
-      const public_category_text = tr.find(".gtc4").text();
-      if (public_category_text === "-") {
-        public_category = "Private";
-      } else {
-        public_category = public_category_text as EHCategory;
-      }
-      items.push({
-        type: "upload",
-        folder_name,
-        gid,
-        token,
-        url,
-        title,
-        added_time: added_time.toISOString(),
-        length,
-        public_category,
-      });
+  let scriptText = "";
+  $("script").each((i, elem) => {
+    if ($(elem).html()?.includes("var apiuid = ")) {
+      scriptText = $(elem).html() || "";
     }
   });
+  const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
+  const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
+
+  const folders: EHUploadList["folders"] = [];
+  $("form div.s")
+    .eq(-1)
+    .find("table > tbody > tr")
+    .each((i, elem) => {
+      const tr = $(elem);
+
+      if (tr.attr("class")?.includes("gtr")) {
+        const name = tr.find("span").eq(0).text();
+        const count = parseInt(tr.find("strong").eq(0).text());
+        const fid = parseInt(
+          tr.find("a").attr("id")?.split("_")?.at(-1) || "-1"
+        );
+        const collapsed = (tr.find("a").attr("onclick") || "").includes("1");
+        folders.push({
+          name,
+          fid,
+          count,
+          collapsed,
+          items: [] as EHListUploadItem[],
+        });
+      } else {
+        // 通过此链接来判断是否为已发布图库
+        const managegalleryUrl = tr.find(".gtc1 a").attr("href");
+        if (!managegalleryUrl || managegalleryUrl.includes("ulgid")) return;
+
+        const title = tr.find(".gtc1 a").text();
+        const url = tr.find(".gtc5 a").eq(0).attr("href") || "";
+        const { gid, token } = extractGidToken(url);
+        const added_time = new Date(tr.find(".gtc2").text() + "Z");
+        const length = parseInt(tr.find(".gtc3").text());
+        let public_category: EHCategory;
+        const public_category_text = tr.find(".gtc4").text();
+        if (public_category_text === "-") {
+          public_category = "Private";
+        } else {
+          public_category = public_category_text as EHCategory;
+        }
+        folders.at(-1)!.items.push({
+          type: "upload",
+          gid,
+          token,
+          url,
+          title,
+          added_time: added_time.toISOString(),
+          length,
+          public_category,
+        });
+      }
+    });
 
   return {
     type: "upload",
-    items,
+    apiuid,
+    apikey,
+    folders,
   };
+}
+
+/**
+ *
+ * @param info
+ * @param info.c1
+ */
+export function parseUncollapseInfo(info: {
+  state: "p" | "u";
+  fid: number;
+  rows: {
+    c1: string; // html a标签，里面包含标题
+    c2: string; // 上传时间: 2025-02-19 21:23
+    c3: string; // 页数: 46
+    c4: string; // 类别: Doujinshi -代表Private
+    c5: string; // 和后面管理按钮有关的html，里面有gid和token
+    c6: string; // 和后面checkbox有关的html
+  }[];
+}): EHListUploadItem[] {
+  return info.rows.map((row) => {
+    const title = cheerio.load(row.c1)("a").text();
+    const url =
+      cheerio
+        .load(row.c5.slice(1, row.c5.indexOf("]")))("a")
+        .attr("href") || "";
+    const { gid, token } = extractGidToken(url);
+
+    const added_time = new Date(row.c2 + "Z");
+    const length = parseInt(row.c3);
+
+    let public_category: EHCategory;
+    const public_category_text = row.c4;
+    if (public_category_text === "-") {
+      public_category = "Private";
+    } else {
+      public_category = public_category_text as EHCategory;
+    }
+    return {
+      type: "upload" as "upload",
+      gid,
+      token,
+      url,
+      title,
+      added_time: added_time.toISOString(),
+      length,
+      public_category,
+    };
+  });
 }
 
 export function parseGallery(html: string): EHGallery {

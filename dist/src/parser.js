@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseOverview = exports.parseGpexchange = exports.parseCopyrightPage = exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveDownloadInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
+exports.parseOverview = exports.parseGpexchange = exports.parseCopyrightPage = exports.parseEditableComment = exports.parseShowpageInfo = exports.parseMyTags = exports.parseGalleryTorrentsInfo = exports.parseArchiveDownloadInfo = exports.parseArchiveResult = exports.parseArchiverInfo = exports.parsePageInfo = exports.parseFavcatFavnote = exports.parseConfig = exports.parseMPV = exports.parseGallery = exports.parseUncollapseInfo = exports.parseMyUpload = exports.parseList = exports.extractGidToken = void 0;
 const cheerio = __importStar(require("cheerio"));
 const _favcatColors = [
     "#000",
@@ -555,13 +555,32 @@ function _parseListThumbnailItems($) {
 }
 function parseMyUpload(html) {
     const $ = cheerio.load(html);
-    const items = [];
-    let folder_name = "";
-    $("form .s table > tbody > tr").each((i, elem) => {
+    let scriptText = "";
+    $("script").each((i, elem) => {
+        if ($(elem).html()?.includes("var apiuid = ")) {
+            scriptText = $(elem).html() || "";
+        }
+    });
+    const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
+    const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
+    const folders = [];
+    $("form div.s")
+        .eq(-1)
+        .find("table > tbody > tr")
+        .each((i, elem) => {
         const tr = $(elem);
         if (tr.attr("class")?.includes("gtr")) {
-            folder_name = tr.find("span").eq(0).text();
-            return;
+            const name = tr.find("span").eq(0).text();
+            const count = parseInt(tr.find("strong").eq(0).text());
+            const fid = parseInt(tr.find("a").attr("id")?.split("_")?.at(-1) || "-1");
+            const collapsed = (tr.find("a").attr("onclick") || "").includes("1");
+            folders.push({
+                name,
+                fid,
+                count,
+                collapsed,
+                items: [],
+            });
         }
         else {
             // 通过此链接来判断是否为已发布图库
@@ -581,9 +600,8 @@ function parseMyUpload(html) {
             else {
                 public_category = public_category_text;
             }
-            items.push({
+            folders.at(-1).items.push({
                 type: "upload",
-                folder_name,
                 gid,
                 token,
                 url,
@@ -596,10 +614,47 @@ function parseMyUpload(html) {
     });
     return {
         type: "upload",
-        items,
+        apiuid,
+        apikey,
+        folders,
     };
 }
 exports.parseMyUpload = parseMyUpload;
+/**
+ *
+ * @param info
+ * @param info.c1
+ */
+function parseUncollapseInfo(info) {
+    return info.rows.map((row) => {
+        const title = cheerio.load(row.c1)("a").text();
+        const url = cheerio
+            .load(row.c5.slice(1, row.c5.indexOf("]")))("a")
+            .attr("href") || "";
+        const { gid, token } = extractGidToken(url);
+        const added_time = new Date(row.c2 + "Z");
+        const length = parseInt(row.c3);
+        let public_category;
+        const public_category_text = row.c4;
+        if (public_category_text === "-") {
+            public_category = "Private";
+        }
+        else {
+            public_category = public_category_text;
+        }
+        return {
+            type: "upload",
+            gid,
+            token,
+            url,
+            title,
+            added_time: added_time.toISOString(),
+            length,
+            public_category,
+        };
+    });
+}
+exports.parseUncollapseInfo = parseUncollapseInfo;
 function parseGallery(html) {
     const $ = cheerio.load(html);
     let scriptText = "";
