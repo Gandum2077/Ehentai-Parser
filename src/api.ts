@@ -1,5 +1,5 @@
 import Url from "url-parse";
-import { get, post } from "./request";
+import { downloadWithTimeout, get, post } from "./request";
 import {
   parseList,
   parseGallery,
@@ -1577,15 +1577,20 @@ export class EHAPIHandler {
    * @param ehgt 是否强制使用ehgt的缩略图
    */
   async downloadThumbnail(url: string, ehgt: boolean = true): Promise<NSData> {
-    const header = {
-      "User-Agent": this.ua,
-      Cookie: this.cookie,
-    };
     if (ehgt) {
-      url = url.replace("s.exhentai.org", "ehgt.org");
-      const resp = await this.get({ url, header, timeout: 15 });
-      return resp.rawData();
+      url = url.replace("https://s.exhentai.org/", "https://ehgt.org/");
+    }
+    if (url.includes(".hath.network/")) {
+      const header = {
+        "User-Agent": this.ua,
+      };
+      const resp = await downloadWithTimeout({ url, header, timeout: 30 });
+      return resp.data;
     } else {
+      const header = {
+        "User-Agent": this.ua,
+        Cookie: this.cookie,
+      };
       const resp = await this.get({ url, header, timeout: 15 });
       return resp.rawData();
     }
@@ -1600,8 +1605,8 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       // 不需要cookie
     };
-    const resp = await this.get({ url, header, timeout: 30 });
-    return resp.rawData();
+    const resp = await downloadWithTimeout({ url, header, timeout: 30 });
+    return resp.data;
   }
 
   /**
@@ -1613,8 +1618,8 @@ export class EHAPIHandler {
       "User-Agent": this.ua,
       Cookie: this.cookie,
     };
-    const resp = await this.get({ url, header, timeout: 40 });
-    return resp.rawData();
+    const resp = await downloadWithTimeout({ url, header, timeout: 40 });
+    return resp.data;
   }
 
   /**

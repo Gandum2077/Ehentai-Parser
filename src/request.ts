@@ -361,3 +361,32 @@ export async function post(
 ): Promise<RequestResponse> {
   return await __request({ method: "POST", url, header, timeout, body });
 }
+
+// 定义一个有timeout的下载函数，通过Promise.race实现
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  const timeoutPromise = new Promise<T>((_, reject) =>
+    setTimeout(
+      () => reject(new EHTimeoutError("Timeout error on download")),
+      timeoutMs
+    )
+  );
+  return Promise.race([promise, timeoutPromise]);
+}
+
+async function _download(url: string, header: Record<string, any>) {
+  const resp = await $http.download({ url, header });
+  return resp;
+}
+
+export async function downloadWithTimeout({
+  url,
+  header,
+  timeout,
+}: {
+  url: string;
+  header: Record<string, any>;
+  timeout: number;
+}) {
+  const resp = await withTimeout(_download(url, header), timeout * 1000);
+  return resp;
+}

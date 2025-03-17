@@ -3,7 +3,7 @@
 // 只实现两种基本功能：GET、POST
 // 只处理三种返回：image、text、json
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.post = exports.get = void 0;
+exports.downloadWithTimeout = exports.post = exports.get = void 0;
 const error_1 = require("./error");
 const parser_1 = require("./parser");
 var ENV;
@@ -297,3 +297,17 @@ async function post(url, header, body, timeout) {
     return await __request({ method: "POST", url, header, timeout, body });
 }
 exports.post = post;
+// 定义一个有timeout的下载函数，通过Promise.race实现
+function withTimeout(promise, timeoutMs) {
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new error_1.EHTimeoutError("Timeout error on download")), timeoutMs));
+    return Promise.race([promise, timeoutPromise]);
+}
+async function _download(url, header) {
+    const resp = await $http.download({ url, header });
+    return resp;
+}
+async function downloadWithTimeout({ url, header, timeout, }) {
+    const resp = await withTimeout(_download(url, header), timeout * 1000);
+    return resp;
+}
+exports.downloadWithTimeout = downloadWithTimeout;
