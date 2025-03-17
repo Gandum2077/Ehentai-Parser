@@ -651,7 +651,7 @@ export function parseMyUpload(html: string): EHUploadList {
         const fid = parseInt(
           tr.find("a").attr("id")?.split("_")?.at(-1) || "-1"
         );
-        const collapsed = (tr.find("a").attr("onclick") || "").includes("1");
+        const collapsed = tr.find("a").text().includes("+");
         folders.push({
           name,
           fid,
