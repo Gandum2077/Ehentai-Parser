@@ -248,8 +248,6 @@ async function __request({ method, url, header, timeout, body, checkCopyrightErr
             timeout: timeout,
         });
         if (resp.error) {
-            console.error(resp.error);
-            console.error(resp.response);
             if (resp.error.code === -1001) {
                 // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
                 throw new error_1.EHTimeoutError(`Timeout Error! url: ${url}`);
@@ -303,7 +301,26 @@ function withTimeout(promise, timeoutMs) {
     return Promise.race([promise, timeoutPromise]);
 }
 async function _download(url, header) {
-    const resp = await $http.download({ url, header });
+    const resp = await $http.download({ url, header, showsProgress: false });
+    if (resp.error) {
+        if (resp.error.code === -1001) {
+            // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
+            throw new error_1.EHTimeoutError(`Timeout Error! url: ${url}`);
+        }
+        else if (!resp.response || !resp.response.statusCode) {
+            throw new error_1.EHNetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}`);
+        }
+    }
+    const statusCode = resp.response.statusCode;
+    if (statusCode === 509) {
+        throw new error_1.EHBandwidthLimitExceededError(`509 error! status: ${statusCode}\nurl: ${url}`);
+    }
+    else if (statusCode >= 500) {
+        throw new error_1.EHServerError(`Server error! status: ${statusCode}\nurl: ${url}`, statusCode);
+    }
+    else if (statusCode >= 400) {
+        throw new error_1.EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
+    }
     return resp;
 }
 async function downloadWithTimeout({ url, header, timeout, }) {

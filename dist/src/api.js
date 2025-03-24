@@ -1194,7 +1194,11 @@ class EHAPIHandler {
                 "User-Agent": this.ua,
             };
             const resp = await (0, request_1.downloadWithTimeout)({ url, header, timeout: 30 });
-            return resp.data;
+            const data = resp.data;
+            if (!data.info.mimeType.startsWith("image")) {
+                throw new error_1.EHNetworkError("下载的文件不是图片");
+            }
+            return data;
         }
         else {
             const header = {
@@ -1202,7 +1206,11 @@ class EHAPIHandler {
                 Cookie: this.cookie,
             };
             const resp = await this.get({ url, header, timeout: 15 });
-            return resp.rawData();
+            const data = resp.rawData();
+            if (!data.info.mimeType.startsWith("image")) {
+                throw new error_1.EHNetworkError("下载的文件不是图片");
+            }
+            return data;
         }
     }
     /**
@@ -1215,7 +1223,11 @@ class EHAPIHandler {
             // 不需要cookie
         };
         const resp = await (0, request_1.downloadWithTimeout)({ url, header, timeout: 30 });
-        return resp.data;
+        const data = resp.data;
+        if (!data.info.mimeType.startsWith("image")) {
+            throw new error_1.EHNetworkError("下载的文件不是图片");
+        }
+        return data;
     }
     /**
      * 下载原图
@@ -1227,7 +1239,11 @@ class EHAPIHandler {
             Cookie: this.cookie,
         };
         const resp = await (0, request_1.downloadWithTimeout)({ url, header, timeout: 40 });
-        return resp.data;
+        const data = resp.data;
+        if (!data.info.mimeType.startsWith("image")) {
+            throw new error_1.EHNetworkError("下载的文件不是图片");
+        }
+        return data;
     }
     /**
      * MyTags 新建标签集

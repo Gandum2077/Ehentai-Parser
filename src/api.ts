@@ -56,6 +56,7 @@ import {
   EHIgneousExpiredError,
   EHInsufficientFundError,
   EHIPBannedError,
+  EHNetworkError,
 } from "./error";
 
 const DEFAULT_USER_AGENT =
@@ -1585,14 +1586,22 @@ export class EHAPIHandler {
         "User-Agent": this.ua,
       };
       const resp = await downloadWithTimeout({ url, header, timeout: 30 });
-      return resp.data;
+      const data = resp.data;
+      if (!data.info.mimeType.startsWith("image")) {
+        throw new EHNetworkError("下载的文件不是图片");
+      }
+      return data;
     } else {
       const header = {
         "User-Agent": this.ua,
         Cookie: this.cookie,
       };
       const resp = await this.get({ url, header, timeout: 15 });
-      return resp.rawData();
+      const data = resp.rawData();
+      if (!data.info.mimeType.startsWith("image")) {
+        throw new EHNetworkError("下载的文件不是图片");
+      }
+      return data;
     }
   }
 
@@ -1606,7 +1615,11 @@ export class EHAPIHandler {
       // 不需要cookie
     };
     const resp = await downloadWithTimeout({ url, header, timeout: 30 });
-    return resp.data;
+    const data = resp.data;
+    if (!data.info.mimeType.startsWith("image")) {
+      throw new EHNetworkError("下载的文件不是图片");
+    }
+    return data;
   }
 
   /**
@@ -1619,7 +1632,11 @@ export class EHAPIHandler {
       Cookie: this.cookie,
     };
     const resp = await downloadWithTimeout({ url, header, timeout: 40 });
-    return resp.data;
+    const data = resp.data;
+    if (!data.info.mimeType.startsWith("image")) {
+      throw new EHNetworkError("下载的文件不是图片");
+    }
+    return data;
   }
 
   /**
