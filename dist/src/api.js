@@ -720,6 +720,9 @@ class EHAPIHandler {
         if (resp.statusCode !== 200)
             throw new error_1.EHAPIError("启动Hath下载失败", resp.statusCode, `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`);
         const html = await resp.text();
+        if (!html.startsWith("<!DOCTYPE html>") && html.includes("funds")) {
+            throw new error_1.EHInsufficientFundError();
+        }
         const { message } = (0, parser_1.parseArchiveResult)(html);
         let result;
         if (message ===
@@ -761,7 +764,7 @@ class EHAPIHandler {
             throw new error_1.EHAPIError("获取存档下载信息失败", resp.statusCode, `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`);
         }
         const html = await resp.text();
-        if (html.startsWith("You do not have enough funds")) {
+        if (!html.startsWith("<!DOCTYPE html>") && html.includes("funds")) {
             throw new error_1.EHInsufficientFundError();
         }
         const data = (0, parser_1.parseArchiveDownloadInfo)(html);

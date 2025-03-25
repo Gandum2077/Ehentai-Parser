@@ -936,6 +936,9 @@ export class EHAPIHandler {
         }，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`
       );
     const html = await resp.text();
+    if (!html.startsWith("<!DOCTYPE html>") && html.includes("funds")) {
+      throw new EHInsufficientFundError();
+    }
     const { message } = parseArchiveResult(html);
     let result: "success" | "offline" | "no-hath";
     if (
@@ -991,7 +994,7 @@ export class EHAPIHandler {
       );
     }
     const html = await resp.text();
-    if (html.startsWith("You do not have enough funds")) {
+    if (!html.startsWith("<!DOCTYPE html>") && html.includes("funds")) {
       throw new EHInsufficientFundError();
     }
     const data = parseArchiveDownloadInfo(html);
