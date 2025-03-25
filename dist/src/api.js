@@ -478,7 +478,7 @@ class EHAPIHandler {
             checkCopyrightError,
         });
         const text = await resp.text();
-        if (text.startsWith("Your IP address has been temporarily banned")) {
+        if (!text.startsWith("<!DOCTYPE html>")) {
             throw new error_1.EHIPBannedError(text);
         }
         return text;
