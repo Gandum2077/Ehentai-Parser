@@ -57,6 +57,7 @@ import {
   EHInsufficientFundError,
   EHIPBannedError,
   EHNetworkError,
+  EHTimeoutError,
 } from "./error";
 
 const DEFAULT_USER_AGENT =
@@ -416,6 +417,7 @@ const ehentaiUrls = {
   mytags: `https://e-hentai.org/mytags`,
   archiver: `https://e-hentai.org/archiver.php`,
   gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
+  imagelookup: "https://upload.e-hentai.org/image_lookup.php",
 };
 
 const exhentaiUrls = {
@@ -433,6 +435,7 @@ const exhentaiUrls = {
   mytags: `https://exhentai.org/mytags`,
   archiver: `https://exhentai.org/archiver.php`,
   gallerytorrents: `https://e-hentai.org/gallerytorrents.php?gid=3015818&t=a8787bf44a`,
+  imagelookup: "https://upld.exhentai.org/upld/image_lookup.php",
 };
 
 class CookieJar {
@@ -2062,5 +2065,76 @@ export class EHAPIHandler {
     const resp = await this.post({ url, header, body, timeout: 10 });
     const text = await resp.text();
     return parseOverview(text);
+  }
+
+  /**
+   * 以图搜图
+   */
+  async imageLookup({
+    data,
+    timeout,
+    fs_similar,
+    fs_covers,
+    progressHandler,
+  }: {
+    data: NSData;
+    timeout?: number;
+    fs_similar: boolean;
+    fs_covers: boolean;
+    progressHandler?: (percentage: number) => void;
+  }): Promise<EHFrontPageList> {
+    const resp = await $http.upload({
+      url: this.urls.imagelookup,
+      timeout: timeout || 30,
+      header: {
+        "User-Agent": this.ua,
+        Cookie: this.cookie,
+      },
+      form: {
+        f_sfile: "File Search",
+        fs_similar: fs_similar ? "on" : "off",
+        fs_covers: fs_covers ? "on" : "off",
+      },
+      files: [
+        {
+          data,
+          name: "sfile",
+          filename: "image",
+          "content-type": "image/webp",
+        },
+      ],
+      progress: (percentage) => {
+        progressHandler?.(percentage);
+      },
+    });
+    if (resp.error) {
+      if (resp.error.code === -1001) {
+        throw new EHTimeoutError(`超时`);
+      } else if (!resp.response || !resp.response.statusCode) {
+        throw new EHNetworkError(`未知网络错误`);
+      }
+    }
+
+    if (resp.response.statusCode >= 400) {
+      throw new EHAPIError(
+        "以图搜图失败",
+        resp.response.statusCode,
+        `以图搜图失败，状态码：${resp.response.statusCode}`
+      );
+    } else if (!resp.response.url.includes("f_shash")) {
+      throw new EHAPIError(
+        "以图搜图失败",
+        resp.response.statusCode,
+        `参数错误`
+      );
+    } else if (!resp.data || typeof resp.data !== "string") {
+      throw new EHAPIError(
+        "以图搜图失败",
+        resp.response.statusCode,
+        `返回数据错误`
+      );
+    }
+
+    return parseList(resp.data) as EHFrontPageList;
   }
 }
