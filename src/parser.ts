@@ -22,6 +22,7 @@ import {
   EHFavoriteInfo,
   EHGalleryTorrent,
   EHListUploadItem,
+  EHImageLookupList,
 } from "./types";
 
 const _favcatColors = [
@@ -74,14 +75,25 @@ export function parseList(
   | EHWatchedList
   | EHPopularList
   | EHFavoritesList
-  | EHTopList {
+  | EHTopList
+  | EHImageLookupList {
   const $ = cheerio.load(html);
 
-  let type: "front_page" | "watched" | "popular" | "favorites" | "toplist";
+  let type:
+    | "front_page"
+    | "watched"
+    | "popular"
+    | "favorites"
+    | "toplist"
+    | "image_lookup";
   let display_mode: EHListDisplayMode;
   const h1Text = $("h1").text();
   if (h1Text.includes("Hentai")) {
-    type = "front_page";
+    if ($("#searchbox a").eq(0).text().includes("Show File Search")) {
+      type = "image_lookup";
+    } else {
+      type = "front_page";
+    }
   } else if (h1Text.includes("Watched")) {
     type = "watched";
   } else if (h1Text.includes("Popular")) {
@@ -131,6 +143,21 @@ export function parseList(
         next_page_available,
         total_item_count,
         filtered_count,
+        items,
+      };
+    }
+    case "image_lookup": {
+      const prev_page_available = Boolean($("#uprev").attr("href"));
+      const next_page_available = Boolean($("#unext").attr("href"));
+      const searchtext = $(".searchtext").text().replace(/,/g, "");
+      const r = searchtext.match(/(\d+) result/);
+      const total_item_count = r && r.length > 1 ? parseInt(r[1]) : 0;
+      return {
+        type,
+        display_mode,
+        prev_page_available,
+        next_page_available,
+        total_item_count,
         items,
       };
     }

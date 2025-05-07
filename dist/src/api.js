@@ -176,6 +176,37 @@ function _popularSearchOptionsToParams(options) {
         f_sft,
     };
 }
+function _imageLookupOptionsToParams(options) {
+    // 检查搜索参数是否合法
+    if (options.minimumGid && options.maximumGid) {
+        throw new Error("prev和next参数不能同时使用");
+    }
+    if (options.jump && options.seek) {
+        throw new Error("jump和seek参数不能同时使用");
+    }
+    if (options.seek && /^\d\d\d\d-\d\d-\d\d$/.exec(options.seek) === null) {
+        throw new Error("seek参数必须是一个符合格式的日期字符串");
+    }
+    const f_shash = options.f_shash;
+    const fs_similar = options.fs_similar ? "on" : undefined;
+    const fs_covers = options.fs_covers ? "on" : undefined;
+    const prev = options.minimumGid || undefined;
+    const next = options.maximumGid || undefined;
+    const jump = options.jump
+        ? `${options.jump.value}${options.jump.unit}`
+        : undefined;
+    const seek = options.seek || undefined;
+    const params = {
+        f_shash,
+        fs_similar,
+        fs_covers,
+        prev,
+        next,
+        jump,
+        seek,
+    };
+    return params;
+}
 function _disassembleFsearch(fsearch) {
     // 双引号包裹的字符串视为一个整体，不会被分割。除此之外，空格分割。
     // 方法：首先有一个状态标记inQuote，初始为false。
@@ -1582,7 +1613,7 @@ class EHAPIHandler {
     /**
      * 以图搜图
      */
-    async imageLookup({ data, timeout, fs_similar, fs_covers, progressHandler, }) {
+    async uploadImageAndLookup({ data, timeout, fs_similar, fs_covers, progressHandler, }) {
         const resp = await $http.upload({
             url: this.urls.imagelookup,
             timeout: timeout || 30,
@@ -1619,7 +1650,8 @@ class EHAPIHandler {
         if (resp.response.statusCode >= 400) {
             throw new error_1.EHAPIError("以图搜图失败", resp.response.statusCode, `以图搜图失败，状态码：${resp.response.statusCode}`);
         }
-        else if (resp.data && resp.data === "Please wait a bit longer between each file search.") {
+        else if (resp.data &&
+            resp.data === "Please wait a bit longer between each file search.") {
             throw new error_1.EHImageLookupTooManyRequestsError();
         }
         else if (!resp.response.url.includes("f_shash")) {
@@ -1629,6 +1661,11 @@ class EHAPIHandler {
             throw new error_1.EHAPIError("以图搜图失败", resp.response.statusCode, `返回数据错误`);
         }
         return (0, parser_1.parseList)(resp.data);
+    }
+    async getImageLookupInfo(options) {
+        const url = _updateUrlQuery(this.urls.default, _imageLookupOptionsToParams(options), true);
+        const text = await this._getHtml(url);
+        return (0, parser_1.parseList)(text);
     }
 }
 exports.EHAPIHandler = EHAPIHandler;

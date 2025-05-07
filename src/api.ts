@@ -43,6 +43,9 @@ import {
   EHArchive,
   EHMPV,
   ParsedCookie,
+  EHImageLookupOptions,
+  EHImageLookupParams,
+  EHImageLookupList,
 } from "./types";
 import {
   ehQualifiers,
@@ -246,6 +249,39 @@ function _popularSearchOptionsToParams(options: EHPopularSearchOptions) {
     f_sfu,
     f_sft,
   };
+}
+
+function _imageLookupOptionsToParams(options: EHImageLookupOptions) {
+  // 检查搜索参数是否合法
+  if (options.minimumGid && options.maximumGid) {
+    throw new Error("prev和next参数不能同时使用");
+  }
+  if (options.jump && options.seek) {
+    throw new Error("jump和seek参数不能同时使用");
+  }
+  if (options.seek && /^\d\d\d\d-\d\d-\d\d$/.exec(options.seek) === null) {
+    throw new Error("seek参数必须是一个符合格式的日期字符串");
+  }
+  const f_shash = options.f_shash;
+  const fs_similar = options.fs_similar ? "on" : undefined;
+  const fs_covers = options.fs_covers ? "on" : undefined;
+  const prev = options.minimumGid || undefined;
+  const next = options.maximumGid || undefined;
+  const jump = options.jump
+    ? `${options.jump.value}${options.jump.unit}`
+    : undefined;
+  const seek = options.seek || undefined;
+
+  const params: EHImageLookupParams = {
+    f_shash,
+    fs_similar,
+    fs_covers,
+    prev,
+    next,
+    jump,
+    seek,
+  };
+  return params;
 }
 
 function _disassembleFsearch(fsearch: string) {
@@ -2071,7 +2107,7 @@ export class EHAPIHandler {
   /**
    * 以图搜图
    */
-  async imageLookup({
+  async uploadImageAndLookup({
     data,
     timeout,
     fs_similar,
@@ -2083,7 +2119,7 @@ export class EHAPIHandler {
     fs_similar: boolean;
     fs_covers: boolean;
     progressHandler?: (percentage: number) => void;
-  }): Promise<EHFrontPageList> {
+  }): Promise<EHImageLookupList> {
     const resp = await $http.upload({
       url: this.urls.imagelookup,
       timeout: timeout || 30,
@@ -2123,8 +2159,11 @@ export class EHAPIHandler {
         resp.response.statusCode,
         `以图搜图失败，状态码：${resp.response.statusCode}`
       );
-    } else if (resp.data && resp.data === "Please wait a bit longer between each file search.") {
-      throw new EHImageLookupTooManyRequestsError()
+    } else if (
+      resp.data &&
+      resp.data === "Please wait a bit longer between each file search."
+    ) {
+      throw new EHImageLookupTooManyRequestsError();
     } else if (!resp.response.url.includes("f_shash")) {
       throw new EHAPIError(
         "以图搜图失败",
@@ -2139,6 +2178,18 @@ export class EHAPIHandler {
       );
     }
 
-    return parseList(resp.data) as EHFrontPageList;
+    return parseList(resp.data) as EHImageLookupList;
+  }
+
+  async getImageLookupInfo(
+    options: EHImageLookupOptions
+  ): Promise<EHImageLookupList> {
+    const url = _updateUrlQuery(
+      this.urls.default,
+      _imageLookupOptionsToParams(options),
+      true
+    );
+    const text = await this._getHtml(url);
+    return parseList(text) as EHImageLookupList;
   }
 }

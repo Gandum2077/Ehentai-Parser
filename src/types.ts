@@ -140,6 +140,19 @@ export interface EHUploadList {
   }[];
 }
 
+export interface EHImageLookupList {
+  type: "image_lookup";
+  prev_page_available: boolean;
+  next_page_available: boolean;
+  total_item_count: number; // 全部数量
+  display_mode: EHListDisplayMode;
+  items:
+    | EHListMinimalItem[]
+    | EHListCompactItem[]
+    | EHListExtendedItem[]
+    | EHListThumbnailItem[];
+}
+
 interface EHItemBase {
   type: string;
   gid: number;
@@ -459,6 +472,19 @@ export interface EHTopListSearchOptions {
   page?: number; // 从0开始
 }
 
+export interface EHImageLookupOptions {
+  f_shash: string; // 32位的MD5值
+  fs_similar?: boolean; // 使用相似性查询
+  fs_covers?: boolean; // 仅搜索封面
+  minimumGid?: number; // 对应搜索参数prev，从表现来看就是往前翻页
+  maximumGid?: number; // 对应搜索参数next，从表现来看就是往后翻页
+  jump?: {
+    value: number;
+    unit: "d" | "w" | "m" | "y";
+  }; // 如果和prev或next一起使用，基点是prev或next的图库的日期
+  seek?: string; // 2024-03-04
+}
+
 export interface EHSearchParams {
   f_cats?: number;
   f_search?: string;
@@ -488,6 +514,16 @@ export interface EHFavoriteSearchParams {
   // published_time排序时，只使用gid；
   // favorited_time排序时，使用{gid}-{favorited_timestamp}的形式
   // 因此这里的prev/next参数类型是string
+  jump?: string; // 1d 1w 1m 1y
+  seek?: string; // 2024-03-04
+}
+
+export interface EHImageLookupParams {
+  f_shash: string; // 32位的MD5值
+  fs_similar?: "on"; // 使用相似性查询
+  fs_covers?: "on"; // 仅搜索封面
+  prev?: number; // gid must be greater than prev
+  next?: number; // gid must be smaller than next
   jump?: string; // 1d 1w 1m 1y
   seek?: string; // 2024-03-04
 }
