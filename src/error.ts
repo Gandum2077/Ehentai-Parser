@@ -113,3 +113,14 @@ export class EHNetworkError extends Error implements AppError {
     }
   }
 }
+
+export class EHImageLookupTooManyRequestsError extends Error implements AppError {
+  name = "EHImageLookupTooManyRequestsError";
+  message = "图片搜索过于频繁";
+  detail?: string;
+
+  constructor(detail?: string) {
+    super();
+    this.detail = detail;
+  }
+}

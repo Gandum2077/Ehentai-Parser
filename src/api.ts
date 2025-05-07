@@ -54,6 +54,7 @@ import {
 import {
   EHAPIError,
   EHIgneousExpiredError,
+  EHImageLookupTooManyRequestsError,
   EHInsufficientFundError,
   EHIPBannedError,
   EHNetworkError,
@@ -2086,6 +2087,7 @@ export class EHAPIHandler {
     const resp = await $http.upload({
       url: this.urls.imagelookup,
       timeout: timeout || 30,
+      showsProgress: false,
       header: {
         "User-Agent": this.ua,
         Cookie: this.cookie,
@@ -2121,6 +2123,8 @@ export class EHAPIHandler {
         resp.response.statusCode,
         `以图搜图失败，状态码：${resp.response.statusCode}`
       );
+    } else if (resp.data && resp.data === "Please wait a bit longer between each file search.") {
+      throw new EHImageLookupTooManyRequestsError()
     } else if (!resp.response.url.includes("f_shash")) {
       throw new EHAPIError(
         "以图搜图失败",

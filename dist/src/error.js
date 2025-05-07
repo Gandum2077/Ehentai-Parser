@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EHNetworkError = exports.EHTimeoutError = exports.EHInsufficientFundError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHIgneousExpiredError = exports.EHAPIError = void 0;
+exports.EHImageLookupTooManyRequestsError = exports.EHNetworkError = exports.EHTimeoutError = exports.EHInsufficientFundError = exports.EHCopyrightError = exports.EHBandwidthLimitExceededError = exports.EHServerError = exports.EHIPBannedError = exports.EHIgneousExpiredError = exports.EHAPIError = void 0;
 class EHAPIError extends Error {
     constructor(message, statusCode, detail) {
         super(message);
@@ -90,3 +90,12 @@ class EHNetworkError extends Error {
     }
 }
 exports.EHNetworkError = EHNetworkError;
+class EHImageLookupTooManyRequestsError extends Error {
+    constructor(detail) {
+        super();
+        this.name = "EHImageLookupTooManyRequestsError";
+        this.message = "图片搜索过于频繁";
+        this.detail = detail;
+    }
+}
+exports.EHImageLookupTooManyRequestsError = EHImageLookupTooManyRequestsError;
