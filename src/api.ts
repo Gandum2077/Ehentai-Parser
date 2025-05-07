@@ -2119,7 +2119,10 @@ export class EHAPIHandler {
     fs_similar: boolean;
     fs_covers: boolean;
     progressHandler?: (percentage: number) => void;
-  }): Promise<EHImageLookupList> {
+  }): Promise<{
+    options: EHImageLookupOptions;
+    data: EHImageLookupList;
+  }> {
     const resp = await $http.upload({
       url: this.urls.imagelookup,
       timeout: timeout || 30,
@@ -2130,15 +2133,15 @@ export class EHAPIHandler {
       },
       form: {
         f_sfile: "File Search",
-        fs_similar: fs_similar ? "on" : "off",
-        fs_covers: fs_covers ? "on" : "off",
+        fs_similar: fs_similar ? "on" : undefined,
+        fs_covers: fs_covers ? "on" : undefined,
       },
       files: [
         {
           data,
           name: "sfile",
           filename: "image",
-          "content-type": "image/webp",
+          "content-type": data.info.mimeType,
         },
       ],
       progress: (percentage) => {
@@ -2155,30 +2158,33 @@ export class EHAPIHandler {
 
     if (resp.response.statusCode >= 400) {
       throw new EHAPIError(
-        "以图搜图失败",
-        resp.response.statusCode,
-        `以图搜图失败，状态码：${resp.response.statusCode}`
-      );
-    } else if (
-      resp.data &&
-      resp.data === "Please wait a bit longer between each file search."
-    ) {
-      throw new EHImageLookupTooManyRequestsError();
-    } else if (!resp.response.url.includes("f_shash")) {
-      throw new EHAPIError(
-        "以图搜图失败",
-        resp.response.statusCode,
-        `参数错误`
+        `状态码：${resp.response.statusCode}`,
+        resp.response.statusCode
       );
     } else if (!resp.data || typeof resp.data !== "string") {
-      throw new EHAPIError(
-        "以图搜图失败",
-        resp.response.statusCode,
-        `返回数据错误`
-      );
+      throw new EHAPIError("返回数据错误", resp.response.statusCode);
+    } else if (
+      resp.data.includes("Please wait a bit longer between each file search")
+    ) {
+      throw new EHImageLookupTooManyRequestsError();
     }
 
-    return parseList(resp.data) as EHImageLookupList;
+    const u = new Url(resp.response.url, true);
+
+    if (!u.query.f_shash) {
+      throw new EHAPIError("参数错误", resp.response.statusCode);
+    }
+
+    const options: EHImageLookupOptions = {
+      f_shash: u.query.f_shash,
+      fs_covers: Boolean(u.query.fs_covers),
+      fs_similar: Boolean(u.query.fs_similar),
+    };
+
+    return {
+      options,
+      data: parseList(resp.data) as EHImageLookupList,
+    };
   }
 
   async getImageLookupInfo(

@@ -1624,15 +1624,15 @@ class EHAPIHandler {
             },
             form: {
                 f_sfile: "File Search",
-                fs_similar: fs_similar ? "on" : "off",
-                fs_covers: fs_covers ? "on" : "off",
+                fs_similar: fs_similar ? "on" : undefined,
+                fs_covers: fs_covers ? "on" : undefined,
             },
             files: [
                 {
                     data,
                     name: "sfile",
                     filename: "image",
-                    "content-type": "image/webp",
+                    "content-type": data.info.mimeType,
                 },
             ],
             progress: (percentage) => {
@@ -1648,19 +1648,27 @@ class EHAPIHandler {
             }
         }
         if (resp.response.statusCode >= 400) {
-            throw new error_1.EHAPIError("以图搜图失败", resp.response.statusCode, `以图搜图失败，状态码：${resp.response.statusCode}`);
-        }
-        else if (resp.data &&
-            resp.data === "Please wait a bit longer between each file search.") {
-            throw new error_1.EHImageLookupTooManyRequestsError();
-        }
-        else if (!resp.response.url.includes("f_shash")) {
-            throw new error_1.EHAPIError("以图搜图失败", resp.response.statusCode, `参数错误`);
+            throw new error_1.EHAPIError(`状态码：${resp.response.statusCode}`, resp.response.statusCode);
         }
         else if (!resp.data || typeof resp.data !== "string") {
-            throw new error_1.EHAPIError("以图搜图失败", resp.response.statusCode, `返回数据错误`);
+            throw new error_1.EHAPIError("返回数据错误", resp.response.statusCode);
         }
-        return (0, parser_1.parseList)(resp.data);
+        else if (resp.data.includes("Please wait a bit longer between each file search")) {
+            throw new error_1.EHImageLookupTooManyRequestsError();
+        }
+        const u = new url_parse_1.default(resp.response.url, true);
+        if (!u.query.f_shash) {
+            throw new error_1.EHAPIError("参数错误", resp.response.statusCode);
+        }
+        const options = {
+            f_shash: u.query.f_shash,
+            fs_covers: Boolean(u.query.fs_covers),
+            fs_similar: Boolean(u.query.fs_similar),
+        };
+        return {
+            options,
+            data: (0, parser_1.parseList)(resp.data),
+        };
     }
     async getImageLookupInfo(options) {
         const url = _updateUrlQuery(this.urls.default, _imageLookupOptionsToParams(options), true);
