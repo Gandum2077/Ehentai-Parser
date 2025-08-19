@@ -849,12 +849,12 @@ function parseGallery(html) {
         }
     }
     else if (thumbnail_size === "large" && total_pages > 1) {
-        // large有4种可能：20、50、100、200
+        // large有4种可能：20、40、100、200
         if (total_pages * 20 >= length) {
             num_of_images_on_each_page = 20;
         }
-        else if (total_pages * 50 >= length) {
-            num_of_images_on_each_page = 50;
+        else if (total_pages * 40 >= length) {
+            num_of_images_on_each_page = 40;
         }
         else if (total_pages * 100 >= length) {
             num_of_images_on_each_page = 100;

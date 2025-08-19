@@ -261,7 +261,7 @@ export interface EHGallery {
   total_pages: number;
   current_page: number; // 从0开始
   num_of_images_on_each_page?: number;
-  // large有4种可能：20、50、100、200；
+  // large有4种可能：20、40、100、200；
   // normal有4种可能：40、100、200、400，如果只有一页则没有这个字段
   images: Record<
     number,
