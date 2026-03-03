@@ -25,18 +25,7 @@ import {
   EHImageLookupList,
 } from "./types";
 
-const _favcatColors = [
-  "#000",
-  "#f00",
-  "#fa0",
-  "#dd0",
-  "#080",
-  "#9f4",
-  "#4bf",
-  "#00f",
-  "#508",
-  "#e8e",
-];
+const _favcatColors = ["#000", "#f00", "#fa0", "#dd0", "#080", "#9f4", "#4bf", "#00f", "#508", "#e8e"];
 
 export function extractGidToken(url: string): { gid: number; token: string } {
   const patt = /https:\/\/e[-x]hentai\.org\/\w+\/(\d+)\/(\w+)\/?/;
@@ -51,15 +40,11 @@ export function extractGidToken(url: string): { gid: number; token: string } {
   }
 }
 
-function sortTaglist(
-  unsorted: { namespace: TagNamespace; tag: string }[]
-): EHTagListItem[] {
+function sortTaglist(unsorted: { namespace: TagNamespace; tag: string }[]): EHTagListItem[] {
   const taglist: EHTagListItem[] = [];
   const namespaces = [...new Set(unsorted.map((x) => x.namespace))];
   for (const namespace of namespaces) {
-    const tags = unsorted
-      .filter((x) => x.namespace === namespace)
-      .map((x) => x.tag);
+    const tags = unsorted.filter((x) => x.namespace === namespace).map((x) => x.tag);
     taglist.push({
       namespace,
       tags,
@@ -69,23 +54,11 @@ function sortTaglist(
 }
 
 export function parseList(
-  html: string
-):
-  | EHFrontPageList
-  | EHWatchedList
-  | EHPopularList
-  | EHFavoritesList
-  | EHTopList
-  | EHImageLookupList {
+  html: string,
+): EHFrontPageList | EHWatchedList | EHPopularList | EHFavoritesList | EHTopList | EHImageLookupList {
   const $ = cheerio.load(html);
 
-  let type:
-    | "front_page"
-    | "watched"
-    | "popular"
-    | "favorites"
-    | "toplist"
-    | "image_lookup";
+  let type: "front_page" | "watched" | "popular" | "favorites" | "toplist" | "image_lookup";
   let display_mode: EHListDisplayMode;
   const h1Text = $("h1").text();
   if (h1Text.includes("Hentai")) {
@@ -190,8 +163,7 @@ export function parseList(
     case "favorites": {
       const prev_page_available = Boolean($("#uprev").attr("href"));
       const next_page_available = Boolean($("#unext").attr("href"));
-      const sort_order =
-        $("select").eq(0).val() === "p" ? "published_time" : "favorited_time";
+      const sort_order = $("select").eq(0).val() === "p" ? "published_time" : "favorited_time";
       let first_item_favorited_timestamp: number | undefined;
       let last_item_favorited_timestamp: number | undefined;
       if (sort_order === "favorited_time") {
@@ -200,7 +172,7 @@ export function parseList(
             $("#uprev")
               .attr("href")
               ?.match(/prev=\d+-(\d+)/)
-              ?.at(1) || "0"
+              ?.at(1) || "0",
           );
         }
         if (next_page_available) {
@@ -208,7 +180,7 @@ export function parseList(
             $("#unext")
               .attr("href")
               ?.match(/next=\d+-(\d+)/)
-              ?.at(1) || "0"
+              ?.at(1) || "0",
           );
         }
       }
@@ -290,43 +262,21 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
     .each((i, elem) => {
       const tr = $(elem);
       const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-      const category = tr
-        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
-        .eq(0)
-        .text() as EHCategory;
-      const postedDiv = tr
-        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
-        .eq(1);
+      const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
+      const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
       const posted_time = new Date(postedDiv.text() + "Z");
       const visible = postedDiv.find("s").length === 0;
       const favcat_title = postedDiv.attr("title");
       const favorited = Boolean(favcat_title);
       const favcatColor = postedDiv.attr("style")?.slice(13, 17);
       const favcat = favcatColor
-        ? (_favcatColors.indexOf(favcatColor) as
-            | 0
-            | 1
-            | 2
-            | 3
-            | 4
-            | 5
-            | 6
-            | 7
-            | 8
-            | 9)
+        ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
         : undefined;
       const starStyle = tr.find(".glthumb .ir").attr("style") || "";
-      const r =
-        /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
-          starStyle
-        );
+      const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
       const estimated_display_rating =
-        r && r.length >= 3
-          ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
-          : 0;
-      const is_my_rating = (
-        tr.find(".glthumb .ir").attr("class") || ""
-      ).includes("irb");
+        r && r.length >= 3 ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5 : 0;
+      const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
       const length = parseInt(tr.find(".glthumb .ir").next().text());
       const torrent_available = tr.find(".gldown a").length > 0;
       const title = tr.find(".glink").text();
@@ -345,14 +295,10 @@ function _parseListMinimalItems($: cheerio.Root): EHListMinimalItem[] {
 
       // 只有favorites页面有favorited_time
       const favorited_time =
-        tr.find(".glfm.glfav").length > 0
-          ? new Date(tr.find(".glfm.glfav").text() + "Z")
-          : undefined;
+        tr.find(".glfm.glfav").length > 0 ? new Date(tr.find(".glfm.glfav").text() + "Z") : undefined;
       // favorites页面没有uploader
       const uploader =
-        !favorited_time && tr.find(".gl5m.glhide a").length > 0
-          ? tr.find(".gl5m.glhide a").text()
-          : undefined;
+        !favorited_time && tr.find(".gl5m.glhide a").length > 0 ? tr.find(".gl5m.glhide a").text() : undefined;
       const disowned = Boolean(favorited_time) && !Boolean(uploader);
       items.push({
         type: "minimal",
@@ -389,43 +335,21 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
     .each((i, elem) => {
       const tr = $(elem);
       const thumbnail_url = tr.find(".glthumb img").attr("src") || "";
-      const category = tr
-        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
-        .eq(0)
-        .text() as EHCategory;
-      const postedDiv = tr
-        .find(".glthumb > div:nth-child(2) > div:nth-child(1) > div")
-        .eq(1);
+      const category = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(0).text() as EHCategory;
+      const postedDiv = tr.find(".glthumb > div:nth-child(2) > div:nth-child(1) > div").eq(1);
       const posted_time = new Date(postedDiv.text() + "Z");
       const visible = postedDiv.find("s").length === 0;
       const favcat_title = postedDiv.attr("title");
       const favorited = Boolean(favcat_title);
       const favcatColor = postedDiv.attr("style")?.slice(13, 17);
       const favcat = favcatColor
-        ? (_favcatColors.indexOf(favcatColor) as
-            | 0
-            | 1
-            | 2
-            | 3
-            | 4
-            | 5
-            | 6
-            | 7
-            | 8
-            | 9)
+        ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
         : undefined;
       const starStyle = tr.find(".glthumb .ir").attr("style") || "";
-      const r =
-        /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
-          starStyle
-        );
+      const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
       const estimated_display_rating =
-        r && r.length >= 3
-          ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
-          : 0;
-      const is_my_rating = (
-        tr.find(".glthumb .ir").attr("class") || ""
-      ).includes("irb");
+        r && r.length >= 3 ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5 : 0;
+      const is_my_rating = (tr.find(".glthumb .ir").attr("class") || "").includes("irb");
       const length = parseInt(tr.find(".glthumb .ir").next().text());
       const torrent_available = tr.find(".gldown a").length > 0;
       const title = tr.find(".glink").text();
@@ -447,18 +371,10 @@ function _parseListCompactItems($: cheerio.Root): EHListCompactItem[] {
       // 只有favorites页面有favorited_time
       const favorited_time =
         tr.find(".glfav").length > 0
-          ? new Date(
-              tr.find(".glfav p").eq(0).text() +
-                " " +
-                tr.find(".glfav p").eq(1).text() +
-                "Z"
-            )
+          ? new Date(tr.find(".glfav p").eq(0).text() + " " + tr.find(".glfav p").eq(1).text() + "Z")
           : undefined;
       // favorites页面没有uploader
-      const uploader =
-        !favorited_time && tr.find(".glhide a").length > 0
-          ? tr.find(".glhide a").text()
-          : undefined;
+      const uploader = !favorited_time && tr.find(".glhide a").length > 0 ? tr.find(".glhide a").text() : undefined;
       const disowned = Boolean(favorited_time) && !Boolean(uploader);
       items.push({
         type: "compact",
@@ -502,38 +418,18 @@ function _parseListExtendedItems($: cheerio.Root): EHListExtendedItem[] {
     const favorited = Boolean(favcat_title);
     const favcatColor = postedDiv.attr("style")?.slice(13, 17);
     const favcat = favcatColor
-      ? (_favcatColors.indexOf(favcatColor) as
-          | 0
-          | 1
-          | 2
-          | 3
-          | 4
-          | 5
-          | 6
-          | 7
-          | 8
-          | 9)
+      ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
       : undefined;
     const starStyle = gl3eDivs.eq(2).attr("style") || "";
-    const r =
-      /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
-        starStyle
-      );
+    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
     const estimated_display_rating =
-      r && r.length >= 3
-        ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
-        : 0;
+      r && r.length >= 3 ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5 : 0;
     const is_my_rating = (gl3eDivs.eq(2).attr("class") || "").includes("irb");
-    const uploader = gl3eDivs.eq(3).find("a")
-      ? gl3eDivs.eq(3).find("a").text()
-      : undefined;
+    const uploader = gl3eDivs.eq(3).find("a") ? gl3eDivs.eq(3).find("a").text() : undefined;
     const disowned = !Boolean(uploader);
     const length = parseInt(gl3eDivs.eq(4).text());
     const torrent_available = gl3eDivs.find(".gldown a").length > 0;
-    const favorited_time =
-      gl3eDivs.length > 6
-        ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z")
-        : undefined;
+    const favorited_time = gl3eDivs.length > 6 ? new Date(gl3eDivs.eq(6).find("p").eq(1).text() + "Z") : undefined;
     const title = tr.find(".glink").text();
     const url = tr.find(".gl2e > div > a").attr("href") || "";
     const taglist: EHTagListItem[] = [];
@@ -592,27 +488,12 @@ function _parseListThumbnailItems($: cheerio.Root): EHListThumbnailItem[] {
     const favorited = Boolean(favcat_title);
     const favcatColor = postedDiv.attr("style")?.slice(13, 17);
     const favcat = favcatColor
-      ? (_favcatColors.indexOf(favcatColor) as
-          | 0
-          | 1
-          | 2
-          | 3
-          | 4
-          | 5
-          | 6
-          | 7
-          | 8
-          | 9)
+      ? (_favcatColors.indexOf(favcatColor) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
       : undefined;
     const starStyle = div.find(".ir").attr("style") || "";
-    const r =
-      /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(
-        starStyle
-      );
+    const r = /background-position:-?(\d{1,2})px -?(\d{1,2})px; ?opacity:[0-9.]*/g.exec(starStyle);
     const estimated_display_rating =
-      r && r.length >= 3
-        ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5
-        : 0;
+      r && r.length >= 3 ? 5 - parseInt(r[1]) / 16 - Math.floor(parseInt(r[2]) / 21) * 0.5 : 0;
     const is_my_rating = (div.find(".ir").attr("class") || "").includes("irb");
     const length = parseInt(div.find(".ir").next().text());
     const torrent_available = div.find(".gldown a").length > 0;
@@ -675,9 +556,7 @@ export function parseMyUpload(html: string): EHUploadList {
       if (tr.attr("class")?.includes("gtr")) {
         const name = tr.find("span").eq(0).text();
         const count = parseInt(tr.find("strong").eq(0).text());
-        const fid = parseInt(
-          tr.find("a").attr("id")?.split("_")?.at(-1) || "-1"
-        );
+        const fid = parseInt(tr.find("a").attr("id")?.split("_")?.at(-1) || "-1");
         const collapsed = tr.find("a").text().includes("+");
         folders.push({
           name,
@@ -784,28 +663,18 @@ export function parseGallery(html: string): EHGallery {
   const token = /var token = "(\w*)";/.exec(scriptText)?.at(1) || "";
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
-  const average_rating = parseFloat(
-    /var average_rating = (.*);/.exec(scriptText)?.at(1) || "0"
-  );
-  const display_rating = parseFloat(
-    /var display_rating = (.*);/.exec(scriptText)?.at(1) || "0"
-  );
+  const average_rating = parseFloat(/var average_rating = (.*);/.exec(scriptText)?.at(1) || "0");
+  const display_rating = parseFloat(/var display_rating = (.*);/.exec(scriptText)?.at(1) || "0");
   // metadata
   const english_title = $("#gn").text();
   const japanese_title = $("#gj").text();
-  const thumbnail_url =
-    /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
+  const thumbnail_url = /\((.*)\)/g.exec($("#gd1 > div").attr("style") || "")?.at(1) || "";
   const category = $("#gdc").text() as EHCategory;
   const uploader = $("#gdn a").length > 0 ? $("#gdn a").text() : undefined;
   const disowned = !Boolean(uploader);
-  const posted_time = new Date(
-    $("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z"
-  );
+  const posted_time = new Date($("#gdd tr:nth-of-type(1) td:nth-of-type(2)").text() + "Z");
   const parentElement = $("#gdd tr:nth-of-type(2) td:nth-of-type(2)");
-  const parent_url =
-    parentElement.text() !== "None"
-      ? parentElement.find("a").attr("href")
-      : undefined;
+  const parent_url = parentElement.text() !== "None" ? parentElement.find("a").attr("href") : undefined;
   let parent_gid: number | undefined = undefined;
   let parent_token: string | undefined = undefined;
   if (parent_url) {
@@ -816,10 +685,7 @@ export function parseGallery(html: string): EHGallery {
   const visible_text = $("#gdd tr:nth-of-type(3) td:nth-of-type(2)").text();
   const visible = visible_text === "Yes";
   let invisible_cause: EHGallery["invisible_cause"];
-  const invisible_cause_tmp = /\((.*)\)/
-    .exec(visible_text)
-    ?.at(1)
-    ?.toLowerCase();
+  const invisible_cause_tmp = /\((.*)\)/.exec(visible_text)?.at(1)?.toLowerCase();
   if (visible) {
     invisible_cause = undefined;
   } else if (
@@ -833,38 +699,26 @@ export function parseGallery(html: string): EHGallery {
   }
   const languageElement = $("#gdd tr:nth-of-type(4) td:nth-of-type(2)");
   const language = languageElement.contents().eq(0).text().trim().toLowerCase();
-  const translated =
-    languageElement.find("span").length > 0 &&
-    languageElement.find("span").text().trim() === "TR";
-  const rewrited =
-    languageElement.find("span").length > 0 &&
-    languageElement.find("span").text().trim() === "RW";
+  const translated = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "TR";
+  const rewrited = languageElement.find("span").length > 0 && languageElement.find("span").text().trim() === "RW";
 
   const file_size = $("#gdd tr:nth-of-type(5) td:nth-of-type(2)").text();
-  const length = parseInt(
-    $("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6)
-  );
+  const length = parseInt($("#gdd tr:nth-of-type(6) td:nth-of-type(2)").text().slice(0, -6));
 
   const rating_count = parseInt($("#rating_count").text());
   const ratingImageClassAttr = $("#rating_image").attr("class") || "";
   const is_my_rating = ratingImageClassAttr.includes("irb");
 
-  const torrent_count = parseInt(
-    /\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0"
-  );
+  const torrent_count = parseInt(/\d+/.exec($("#gd5 > p:nth-child(3)").text())?.at(0) || "0");
 
   let favorite_count: number;
-  const favorite_count_text = $(
-    "#gdd tr:nth-of-type(7) td:nth-of-type(2)"
-  ).text();
+  const favorite_count_text = $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text();
   if (favorite_count_text === "Never") {
     favorite_count = 0;
   } else if (favorite_count_text === "Once") {
     favorite_count = 1;
   } else {
-    favorite_count = parseInt(
-      $("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6)
-    );
+    favorite_count = parseInt($("#gdd tr:nth-of-type(7) td:nth-of-type(2)").text().slice(0, -6));
   }
   let favorited: boolean;
   let favcat: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | undefined;
@@ -878,10 +732,17 @@ export function parseGallery(html: string): EHGallery {
     favorited = true;
     favcat_title = favElement.attr("title");
     const style = favElement.attr("style") || "";
-    favcat = Math.floor(
-      parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") /
-        19
-    ) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+    favcat = Math.floor(parseInt(/background-position:0px -(\d+)px/.exec(style)?.at(1) || "0") / 19) as
+      | 0
+      | 1
+      | 2
+      | 3
+      | 4
+      | 5
+      | 6
+      | 7
+      | 8
+      | 9;
   }
 
   // taglist
@@ -934,8 +795,7 @@ export function parseGallery(html: string): EHGallery {
       height: number;
     };
   }[] = [];
-  let thumbnail_size: "normal" | "large" =
-    $("div#gdt.gt200").length > 0 ? "large" : "normal";
+  let thumbnail_size: "normal" | "large" = $("div#gdt.gt200").length > 0 ? "large" : "normal";
   // 2024-11-5更新：大小图共用一套代码
   $("#gdt a").each((i, elem) => {
     const div = $(elem).find("div[title]");
@@ -945,7 +805,7 @@ export function parseGallery(html: string): EHGallery {
 
     const r2 =
       /width:(\d+)(px)?;height:(\d+)(px)?;background:transparent url\(([^(]+)\) -?(\d+)(px)? -?(\d+)(px)? no-repeat/.exec(
-        div.attr("style") || ""
+        div.attr("style") || "",
       );
     const frame = {
       x: parseInt(r2?.at(6) ?? "0"),
@@ -1000,16 +860,10 @@ export function parseGallery(html: string): EHGallery {
       const divc3 = div.find("div.c3");
       const divc3a = divc3.find("a");
       const commenter = divc3a.length >= 1 ? divc3a.eq(0).text() : undefined;
-      const dateText =
-        /\d{2} \w+ \d{4}, \d{2}:\d{2}/
-          .exec(divc3.contents().eq(0).text())
-          ?.at(0) || "";
+      const dateText = /\d{2} \w+ \d{4}, \d{2}:\d{2}/.exec(divc3.contents().eq(0).text())?.at(0) || "";
       const posted_time = new Date(dateText + " UTC");
       const comment_div = div.find("div.c6").html() || "";
-      const is_uploader = div
-        .find("div.c4")
-        .text()
-        .includes("Uploader Comment");
+      const is_uploader = div.find("div.c4").text().includes("Uploader Comment");
       let score: number | undefined;
       let comment_id: number | undefined;
       let votes:
@@ -1036,9 +890,7 @@ export function parseGallery(html: string): EHGallery {
         score = parseInt(div.find(".c5 > span").text());
         comment_id = parseInt(div.find(".c6").attr("id")!.slice(8));
         const baseText = div.find(".c7").contents().eq(0).text();
-        const base = baseText.match(/^Base \+\d+$/)
-          ? parseInt(baseText.slice(5))
-          : parseInt(baseText.slice(5, -2));
+        const base = baseText.match(/^Base \+\d+$/) ? parseInt(baseText.slice(5)) : parseInt(baseText.slice(5, -2));
         const voters: { voter: string; score: number }[] = [];
         div.find(".c7 span").each((i, e) => {
           const r = /(.*) ([+-]\d+)/.exec($(e).text());
@@ -1150,8 +1002,7 @@ export function parseMPV(html: string): EHMPV {
   const lengthText = /var pagecount = (\d*);/.exec(text)?.at(1) || "0";
   const length = parseInt(lengthText);
   const imageJSONText = text.slice(text.indexOf("["), text.indexOf("]") + 1);
-  const imageJSON: { n: string; k: string; t: string }[] =
-    JSON.parse(imageJSONText);
+  const imageJSON: { n: string; k: string; t: string }[] = JSON.parse(imageJSONText);
 
   const frames: { x: number; y: number; width: number; height: number }[] = [];
   $("#pane_thumbs a > div").each((i, elem) => {
@@ -1228,9 +1079,7 @@ export function parseFavcatFavnote(html: string): EHFavoriteInfo {
   const divs = $(".nosel > div");
   if (divs.length === 11) favorited = true;
   divs.slice(0, 10).each((i, el) => favcat_titles.push($(el).text().trim()));
-  const selected_favcat = parseInt(
-    $(".nosel input[checked='checked']").val() || "0"
-  );
+  const selected_favcat = parseInt($(".nosel input[checked='checked']").val() || "0");
   const favnote = $("textarea").text();
   const favnote_used_info = $("textarea").parent().find("div").text();
   const r = /(\d+) \/ (\d+)/.exec(favnote_used_info);
@@ -1278,9 +1127,7 @@ export function parsePageInfo(html: string): EHPage {
     fullSizeUrl = urlOfLastA;
     downloadButtonText = lastA.text();
   }
-  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(
-    downloadButtonText
-  );
+  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
   if (regexResult && regexResult.length === 4) {
@@ -1317,18 +1164,8 @@ export function parseArchiverInfo(html: string): EHArchive {
   let gp = -1;
   const pElem = $("#db > p").eq(1);
   if (pElem.length > 0) {
-    gp = parseInt(
-      /[,\d]+/
-        .exec(pElem.contents().eq(0).text())
-        ?.at(0)
-        ?.replaceAll(",", "") ?? "-1"
-    );
-    credits = parseInt(
-      /[,\d]+/
-        .exec(pElem.contents().eq(2).text())
-        ?.at(0)
-        ?.replaceAll(",", "") ?? "-1"
-    );
+    gp = parseInt(/[,\d]+/.exec(pElem.contents().eq(0).text())?.at(0)?.replaceAll(",", "") ?? "-1");
+    credits = parseInt(/[,\d]+/.exec(pElem.contents().eq(2).text())?.at(0)?.replaceAll(",", "") ?? "-1");
   }
 
   const _parseCost = (text: string) => {
@@ -1341,25 +1178,18 @@ export function parseArchiverInfo(html: string): EHArchive {
 
   const archiveElems = $("#db > div > div");
   const originalArchiveElems = archiveElems.eq(0);
-  const originalCost = _parseCost(
-    originalArchiveElems.find("div > strong").text()
-  );
+  const originalCost = _parseCost(originalArchiveElems.find("div > strong").text());
   const originalSize = originalArchiveElems.find("p > strong").text();
 
   const resampleArchiveElems = archiveElems.eq(1);
-  const resampleCost = _parseCost(
-    resampleArchiveElems.find("div > strong").text()
-  );
+  const resampleCost = _parseCost(resampleArchiveElems.find("div > strong").text());
   const resampleSize = resampleArchiveElems.find("p > strong").text();
 
   const hath_download_options: EHArchive["hath_download_options"] = [];
   $("table td").each((i, elem) => {
     const td = $(elem);
     if (td.find("a").length === 0) return;
-    const solutionText =
-      /return do_hathdl\('(.*)'\)/
-        .exec(td.find("a").attr("onclick") || "")
-        ?.at(1) || "";
+    const solutionText = /return do_hathdl\('(.*)'\)/.exec(td.find("a").attr("onclick") || "")?.at(1) || "";
     const original = solutionText === "org";
 
     const size = td.find("p:nth-child(2)").text();
@@ -1416,16 +1246,9 @@ export function parseGalleryTorrentsInfo(html: string): EHGalleryTorrent[] {
     const titleA = table.find("tr:nth-child(3) > td > a");
     const url = titleA.attr("href") || "";
     const title = titleA.text();
-    const uploader = table
-      .find("tr:nth-child(2) > td:nth-child(1)")
-      .contents()
-      .eq(1)
-      .text()
-      .trim();
+    const uploader = table.find("tr:nth-child(2) > td:nth-child(1)").contents().eq(1).text().trim();
     const tr1_tds = table.find("tr:nth-child(1) > td");
-    const posted_time = new Date(
-      tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z"
-    );
+    const posted_time = new Date(tr1_tds.eq(0).find("span").eq(1).text().trim() + "Z");
     const size = tr1_tds.eq(1).contents().eq(1).text().trim();
     const seeds = parseInt(tr1_tds.eq(3).contents().eq(1).text().trim());
     const peers = parseInt(tr1_tds.eq(4).contents().eq(1).text().trim());
@@ -1460,10 +1283,8 @@ export function parseMyTags(html: string): EHMyTags {
   // scriptText中可获取: apiuid, apikey, tagset_name, tagset_color
   const apiuid = parseInt(/var apiuid = (\d*);/.exec(scriptText)?.at(1) || "0");
   const apikey = /var apikey = "(\w*)";/.exec(scriptText)?.at(1) || "";
-  const tagset_name =
-    /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
-  let tagset_color =
-    /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+  const tagset_name = /var tagset_name = "([^"]*)";/.exec(scriptText)?.at(1) || "";
+  let tagset_color = /var tagset_color = "([^"]*)";/.exec(scriptText)?.at(1) || "";
   // 此时tagset_color是没有"#"前缀的
   if (tagset_color) tagset_color = "#" + tagset_color;
   const tagsets: {
@@ -1550,9 +1371,7 @@ export function parseShowpageInfo(info: {
     downloadButtonText = lastA.text();
   }
 
-  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(
-    downloadButtonText
-  );
+  const regexResult = /Download original (\d+) x (\d+) (.*)/.exec(downloadButtonText);
   let fullSize: { width: number; height: number };
   let fullFileSize: string;
   if (regexResult && regexResult.length === 4) {
@@ -1583,7 +1402,7 @@ export function parseEditableComment(html: string) {
 }
 
 export function parseCopyrightPage(
-  html: string
+  html: string,
 ): { unavailable: true; copyrightOwner?: string } | { unavailable: false } {
   const $ = cheerio.load(html);
   const text = $(".d p")
@@ -1603,18 +1422,8 @@ export function parseCopyrightPage(
 
 export function parseGpexchange(html: string) {
   const $ = cheerio.load(html);
-  const credits = parseInt(
-    /[,\d]+/
-      .exec($("#buyform").parent().next().text())
-      ?.at(0)
-      ?.replaceAll(",", "") ?? "-1"
-  );
-  const kgp = parseInt(
-    /[,\d]+/
-      .exec($("#sellform").parent().next().text())
-      ?.at(0)
-      ?.replaceAll(",", "") ?? "-1"
-  );
+  const credits = parseInt(/[,\d]+/.exec($("#buyform").parent().next().text())?.at(0)?.replaceAll(",", "") ?? "-1");
+  const kgp = parseInt(/[,\d]+/.exec($("#sellform").parent().next().text())?.at(0)?.replaceAll(",", "") ?? "-1");
   return { credits, kgp };
 }
 
@@ -1627,28 +1436,11 @@ export function parseOverview(html: string):
     }
   | { unlocked: false } {
   const $ = cheerio.load(html);
-  const unlocked =
-    $('.stuffbox > .homebox > form > p > input[value="Reset Quota"]').length >
-    0;
+  const unlocked = $('.stuffbox > .homebox > form > p > input[value="Reset Quota"]').length > 0;
   if (unlocked) {
-    const used = parseInt(
-      $(".stuffbox > .homebox > p > strong:nth-child(1)")
-        .eq(0)
-        .text()
-        .replaceAll(",", "")
-    );
-    const total = parseInt(
-      $(".stuffbox > .homebox > p > strong:nth-child(2)")
-        .eq(0)
-        .text()
-        .replaceAll(",", "")
-    );
-    const restCost = parseInt(
-      $(".stuffbox > .homebox > p:nth-child(3) > strong")
-        .eq(0)
-        .text()
-        .replaceAll(",", "")
-    );
+    const used = parseInt($(".stuffbox > .homebox > p > strong:nth-child(1)").eq(0).text().replaceAll(",", ""));
+    const total = parseInt($(".stuffbox > .homebox > p > strong:nth-child(2)").eq(0).text().replaceAll(",", ""));
+    const restCost = parseInt($(".stuffbox > .homebox > p:nth-child(3) > strong").eq(0).text().replaceAll(",", ""));
     return {
       unlocked: true,
       used,

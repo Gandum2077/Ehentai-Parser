@@ -67,16 +67,10 @@ import {
 const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
-function _updateUrlQuery(
-  url: string,
-  query: Record<string, any>,
-  removeUndefined: boolean = false
-): string {
+function _updateUrlQuery(url: string, query: Record<string, any>, removeUndefined: boolean = false): string {
   const u = new Url(url, true);
   const newQuery = removeUndefined
-    ? Object.fromEntries(
-        Object.entries(query).filter(([k, v]) => v !== undefined)
-      )
+    ? Object.fromEntries(Object.entries(query).filter(([k, v]) => v !== undefined))
     : query;
   u.set("query", newQuery);
   return u.toString();
@@ -99,11 +93,7 @@ export function assembleSearchTerms(searchTerms?: EHSearchTerm[]) {
   if (!searchTerms || searchTerms.length === 0) return "";
   return searchTerms
     .map((searchTerm) => {
-      if (
-        searchTerm.namespace &&
-        searchTerm.qualifier &&
-        searchTerm.qualifier !== "weak"
-      ) {
+      if (searchTerm.namespace && searchTerm.qualifier && searchTerm.qualifier !== "weak") {
         throw new Error("命名空间和修饰词不能同时使用(weak除外)");
       }
       let result = "";
@@ -131,19 +121,13 @@ export function assembleSearchTerms(searchTerms?: EHSearchTerm[]) {
 // SearchOptions to SearchParams
 function _searchOptionsToParams(options: EHSearchOptions) {
   // 检查搜索参数是否合法
-  if (
-    options.range &&
-    (options.minimumGid || options.maximumGid || options.jump || options.seek)
-  ) {
+  if (options.range && (options.minimumGid || options.maximumGid || options.jump || options.seek)) {
     throw new Error("range参数与prev、next、jump、seek参数不兼容");
   }
   if (options.minimumGid && options.maximumGid) {
     throw new Error("prev和next参数不能同时使用");
   }
-  if (
-    (options.jump || options.seek) &&
-    !(options.minimumGid || options.maximumGid)
-  ) {
+  if ((options.jump || options.seek) && !(options.minimumGid || options.maximumGid)) {
     throw new Error("jump和seek参数必须和prev或next参数一起使用");
   }
   if (options.jump && options.seek) {
@@ -152,10 +136,7 @@ function _searchOptionsToParams(options: EHSearchOptions) {
 
   let f_cats: number | undefined;
   if (options.excludedCategories && options.excludedCategories.length > 0)
-    f_cats = options.excludedCategories.reduce(
-      (acc, cur) => acc + EHCategoryNumber[cur],
-      0
-    );
+    f_cats = options.excludedCategories.reduce((acc, cur) => acc + EHCategoryNumber[cur], 0);
   if (f_cats === 1023) f_cats = undefined;
   const f_search = assembleSearchTerms(options.searchTerms) || undefined;
   // // 只要用到了高级搜索，就要设置advsearch参数
@@ -179,9 +160,7 @@ function _searchOptionsToParams(options: EHSearchOptions) {
   const range = options.range || undefined;
   const prev = options.minimumGid || undefined;
   const next = options.maximumGid || undefined;
-  const jump = options.jump
-    ? `${options.jump.value}${options.jump.unit}`
-    : undefined;
+  const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
   const seek = options.seek || undefined;
 
   const params: EHSearchParams = {
@@ -219,14 +198,10 @@ function _favoriteSearchOptionsToParams(options: EHFavoriteSearchOptions) {
   const f_search = assembleSearchTerms(options.searchTerms) || undefined;
   const favcat = options.favcat;
   let prev = options.minimumGid?.toString();
-  if (prev && options.minimumFavoritedTimestamp)
-    prev += `-${options.minimumFavoritedTimestamp}`;
+  if (prev && options.minimumFavoritedTimestamp) prev += `-${options.minimumFavoritedTimestamp}`;
   let next = options.maximumGid?.toString();
-  if (next && options.maximumFavoritedTimestamp)
-    next += `-${options.maximumFavoritedTimestamp}`;
-  const jump = options.jump
-    ? `${options.jump.value}${options.jump.unit}`
-    : undefined;
+  if (next && options.maximumFavoritedTimestamp) next += `-${options.maximumFavoritedTimestamp}`;
+  const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
   const seek = options.seek;
 
   const params: EHFavoriteSearchParams = {
@@ -267,9 +242,7 @@ function _imageLookupOptionsToParams(options: EHImageLookupOptions) {
   const fs_covers = options.fs_covers ? "on" : undefined;
   const prev = options.minimumGid || undefined;
   const next = options.maximumGid || undefined;
-  const jump = options.jump
-    ? `${options.jump.value}${options.jump.unit}`
-    : undefined;
+  const jump = options.jump ? `${options.jump.value}${options.jump.unit}` : undefined;
   const seek = options.seek || undefined;
 
   const params: EHImageLookupParams = {
@@ -349,9 +322,7 @@ function _parseSingleFsearch(fsearch: string): EHSearchTerm {
   // 第二个部分为tagNamespace或tagNamespaceAlternates，否则报错
   else if (parts.length === 3) {
     if (parts[0] !== "weak") {
-      throw new Error(
-        "Invalid fsearch term with 3 parts, first part must be `weak`"
-      );
+      throw new Error("Invalid fsearch term with 3 parts, first part must be `weak`");
     }
     if (
       !tagNamespaces.includes(parts[1] as TagNamespace) &&
@@ -382,9 +353,7 @@ function _parseSingleFsearch(fsearch: string): EHSearchTerm {
       qualifier = parts[0] as EHQualifier;
     } else if (tagNamespaces.includes(parts[0] as TagNamespace)) {
       namespace = parts[0] as TagNamespace;
-    } else if (
-      tagNamespaceAlternates.includes(parts[0] as TagNamespaceAlternate)
-    ) {
+    } else if (tagNamespaceAlternates.includes(parts[0] as TagNamespaceAlternate)) {
       namespace = tagNamespaceAlternateMap[parts[0] as TagNamespaceAlternate];
     } else {
       throw new Error("Invalid tag namespace in fsearch term");
@@ -485,9 +454,7 @@ class CookieJar {
 
   updateCookie(cookie: string | ParsedCookie[]) {
     if (typeof cookie === "string") {
-      const cookiePairs: string[] = cookie
-        .split(";")
-        .map((pair) => pair.trim());
+      const cookiePairs: string[] = cookie.split(";").map((pair) => pair.trim());
       for (const pair of cookiePairs) {
         if (!pair) continue;
         const [name, ...valueParts] = pair.split("=");
@@ -596,10 +563,7 @@ export class EHAPIHandler {
     this.urls = value ? exhentaiUrls : ehentaiUrls;
   }
 
-  private async _getHtml(
-    url: string,
-    checkCopyrightError = false
-  ): Promise<string> {
+  private async _getHtml(url: string, checkCopyrightError = false): Promise<string> {
     const header = {
       "User-Agent": this.ua,
       Cookie: this.cookie,
@@ -617,18 +581,8 @@ export class EHAPIHandler {
     return text;
   }
 
-  async get(options: {
-    url: string;
-    header: Record<string, string>;
-    timeout: number;
-    checkCopyrightError?: boolean;
-  }) {
-    const resp = await get(
-      options.url,
-      options.header,
-      options.timeout,
-      options.checkCopyrightError
-    );
+  async get(options: { url: string; header: Record<string, string>; timeout: number; checkCopyrightError?: boolean }) {
+    const resp = await get(options.url, options.header, options.timeout, options.checkCopyrightError);
     const setCookie = resp.setCookie();
     if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
       throw new EHIgneousExpiredError();
@@ -656,12 +610,7 @@ export class EHAPIHandler {
     body: Record<string, string | number>;
     timeout: number;
   }) {
-    const resp = await post(
-      options.url,
-      options.header,
-      options.body,
-      options.timeout
-    );
+    const resp = await post(options.url, options.header, options.body, options.timeout);
     const setCookie = resp.setCookie();
     if (setCookie.some((n) => n.name === "igneous" && n.value === "mystery")) {
       throw new EHIgneousExpiredError();
@@ -690,35 +639,19 @@ export class EHAPIHandler {
       | { type: "popular"; options: EHPopularSearchOptions }
       | { type: "favorites"; options: EHFavoriteSearchOptions }
       | { type: "toplist"; options: EHTopListSearchOptions }
-      | { type: "upload" }
+      | { type: "upload" },
   ) {
     if (args.type === "front_page") {
-      const url = _updateUrlQuery(
-        this.urls.default,
-        _searchOptionsToParams(args.options),
-        true
-      );
+      const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(args.options), true);
       return url;
     } else if (args.type === "watched") {
-      const url = _updateUrlQuery(
-        this.urls.watched,
-        _searchOptionsToParams(args.options),
-        true
-      );
+      const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(args.options), true);
       return url;
     } else if (args.type === "popular") {
-      const url = _updateUrlQuery(
-        this.urls.popular,
-        _popularSearchOptionsToParams(args.options),
-        true
-      );
+      const url = _updateUrlQuery(this.urls.popular, _popularSearchOptionsToParams(args.options), true);
       return url;
     } else if (args.type === "favorites") {
-      const url = _updateUrlQuery(
-        this.urls.favorites,
-        _favoriteSearchOptionsToParams(args.options),
-        true
-      );
+      const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(args.options), true);
       return url;
     } else if (args.type === "toplist") {
       const map = {
@@ -727,11 +660,7 @@ export class EHAPIHandler {
         past_year: 12,
         all: 11,
       };
-      const url = _updateUrlQuery(
-        this.urls.toplist,
-        { p: args.options.page, tl: map[args.options.timeRange] },
-        true
-      );
+      const url = _updateUrlQuery(this.urls.toplist, { p: args.options.page, tl: map[args.options.timeRange] }, true);
       return url;
     } else {
       return this.urls.upload;
@@ -743,14 +672,8 @@ export class EHAPIHandler {
    * @param options EHSearchOptions
    * @returns EHFrontPageList
    */
-  async getFrontPageInfo(
-    options: EHSearchOptions = {}
-  ): Promise<EHFrontPageList> {
-    const url = _updateUrlQuery(
-      this.urls.default,
-      _searchOptionsToParams(options),
-      true
-    );
+  async getFrontPageInfo(options: EHSearchOptions = {}): Promise<EHFrontPageList> {
+    const url = _updateUrlQuery(this.urls.default, _searchOptionsToParams(options), true);
     const text = await this._getHtml(url);
     return parseList(text) as EHFrontPageList;
   }
@@ -761,11 +684,7 @@ export class EHAPIHandler {
    * @returns EHWatchedList
    */
   async getWatchedInfo(options: EHSearchOptions = {}): Promise<EHWatchedList> {
-    const url = _updateUrlQuery(
-      this.urls.watched,
-      _searchOptionsToParams(options),
-      true
-    );
+    const url = _updateUrlQuery(this.urls.watched, _searchOptionsToParams(options), true);
     const text = await this._getHtml(url);
     return parseList(text) as EHWatchedList;
   }
@@ -774,14 +693,8 @@ export class EHAPIHandler {
    * 获取当前热门信息 https://e-hentai.org/popular
    * @returns EHPopularList
    */
-  async getPopularInfo(
-    options: EHPopularSearchOptions = {}
-  ): Promise<EHPopularList> {
-    const url = _updateUrlQuery(
-      this.urls.popular,
-      _popularSearchOptionsToParams(options),
-      true
-    );
+  async getPopularInfo(options: EHPopularSearchOptions = {}): Promise<EHPopularList> {
+    const url = _updateUrlQuery(this.urls.popular, _popularSearchOptionsToParams(options), true);
     const text = await this._getHtml(url);
     return parseList(text) as EHPopularList;
   }
@@ -791,14 +704,8 @@ export class EHAPIHandler {
    * @param options EHFavoriteSearchOptions
    * @returns EHFavoritesList
    */
-  async getFavoritesInfo(
-    options: EHFavoriteSearchOptions = {}
-  ): Promise<EHFavoritesList> {
-    const url = _updateUrlQuery(
-      this.urls.favorites,
-      _favoriteSearchOptionsToParams(options),
-      true
-    );
+  async getFavoritesInfo(options: EHFavoriteSearchOptions = {}): Promise<EHFavoritesList> {
+    const url = _updateUrlQuery(this.urls.favorites, _favoriteSearchOptionsToParams(options), true);
     const text = await this._getHtml(url);
     return parseList(text) as EHFavoritesList;
   }
@@ -816,11 +723,7 @@ export class EHAPIHandler {
       past_year: 12,
       all: 11,
     };
-    const url = _updateUrlQuery(
-      this.urls.toplist,
-      { p: options.page, tl: map[options.timeRange] },
-      true
-    );
+    const url = _updateUrlQuery(this.urls.toplist, { p: options.page, tl: map[options.timeRange] }, true);
     const text = await this._getHtml(url);
     return parseList(text) as EHTopList;
   }
@@ -834,15 +737,7 @@ export class EHAPIHandler {
     return parseMyUpload(text) as EHUploadList;
   }
 
-  async uncollapseFolder({
-    fid,
-    apiuid,
-    apikey,
-  }: {
-    fid: number;
-    apiuid: number;
-    apikey: string;
-  }) {
+  async uncollapseFolder({ fid, apiuid, apikey }: { fid: number; apiuid: number; apikey: string }) {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -867,9 +762,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "展开上传文件夹失败",
         resp.statusCode,
-        `展开上传文件夹失败，状态码：${
-          resp.statusCode
-        }，body：\n${JSON.stringify(body, null, 2)}`
+        `展开上传文件夹失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`,
       );
     const json = await resp.json();
     return parseUncollapseInfo(json);
@@ -883,18 +776,9 @@ export class EHAPIHandler {
    * @param page 缩略图页码，从0开始
    * @returns EHGallery
    */
-  async getGalleryInfo(
-    gid: number,
-    token: string,
-    fullComments: boolean,
-    page: number = 0
-  ): Promise<EHGallery> {
+  async getGalleryInfo(gid: number, token: string, fullComments: boolean, page: number = 0): Promise<EHGallery> {
     const baseUrl = this.urls.default + `g/${gid}/${token}/`;
-    const url = _updateUrlQuery(
-      baseUrl,
-      { hc: fullComments ? 1 : undefined, p: page || undefined },
-      true
-    );
+    const url = _updateUrlQuery(baseUrl, { hc: fullComments ? 1 : undefined, p: page || undefined }, true);
     const text = await this._getHtml(url, true);
     return parseGallery(text);
   }
@@ -919,16 +803,8 @@ export class EHAPIHandler {
    * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
    * @returns EHPage
    */
-  async getPageInfo(
-    gid: number,
-    imgkey: string,
-    page: number,
-    reloadKey?: string
-  ): Promise<EHPage> {
-    const url =
-      this.urls.default +
-      `s/${imgkey}/${gid}-${page + 1}` +
-      (reloadKey ? `?nl=${reloadKey}` : "");
+  async getPageInfo(gid: number, imgkey: string, page: number, reloadKey?: string): Promise<EHPage> {
+    const url = this.urls.default + `s/${imgkey}/${gid}-${page + 1}` + (reloadKey ? `?nl=${reloadKey}` : "");
     const text = await this._getHtml(url);
     return parsePageInfo(text);
   }
@@ -955,7 +831,7 @@ export class EHAPIHandler {
   async startHathDownload(
     gid: number,
     token: string,
-    xres: "org" | number
+    xres: "org" | number,
   ): Promise<"success" | "offline" | "no-hath"> {
     const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}`;
     const header = {
@@ -971,9 +847,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "启动Hath下载失败",
         resp.statusCode,
-        `启动Hath下载失败，状态码：${
-          resp.statusCode
-        }，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`
+        `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     const html = await resp.text();
     if (!html.startsWith("<!DOCTYPE html>") && html.includes("funds")) {
@@ -981,10 +855,7 @@ export class EHAPIHandler {
     }
     const { message } = parseArchiveResult(html);
     let result: "success" | "offline" | "no-hath";
-    if (
-      message ===
-      "You must have a H@H client assigned to your account to use this feature."
-    ) {
+    if (message === "You must have a H@H client assigned to your account to use this feature.") {
       result = "no-hath";
     } else if (message === "Your H@H client appears to be offline.") {
       result = "offline";
@@ -994,7 +865,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "启动Hath下载失败",
         resp.statusCode,
-        `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\n原始回复: ${message}`
+        `启动Hath下载失败，状态码：${resp.statusCode}，url:${url}\n原始回复: ${message}`,
       );
     }
     return result;
@@ -1003,11 +874,7 @@ export class EHAPIHandler {
   /**
    * 获取归档下载信息
    */
-  async getArchiveDownloadInfo(
-    gid: number,
-    token: string,
-    type: "org" | "res"
-  ) {
+  async getArchiveDownloadInfo(gid: number, token: string, type: "org" | "res") {
     const url = this.urls.default + `archiver.php?gid=${gid}&token=${token}`;
     const header = {
       "User-Agent": this.ua,
@@ -1028,9 +895,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "获取存档下载信息失败",
         resp.statusCode,
-        `获取存档下载信息失败，状态码：${
-          resp.statusCode
-        }，body：\n${JSON.stringify(body, null, 2)}`
+        `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`,
       );
     }
     const html = await resp.text();
@@ -1042,9 +907,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "获取存档下载信息失败",
         resp.statusCode,
-        `获取存档下载信息失败，状态码：${
-          resp.statusCode
-        }，body：\n${JSON.stringify(body, null, 2)}`
+        `获取存档下载信息失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`,
       );
     }
     return data;
@@ -1056,10 +919,7 @@ export class EHAPIHandler {
    * @param token
    * @returns
    */
-  async getGalleryTorrentsInfo(
-    gid: number,
-    token: string
-  ): Promise<EHGalleryTorrent[]> {
+  async getGalleryTorrentsInfo(gid: number, token: string): Promise<EHGalleryTorrent[]> {
     const url = this.urls.default + `gallerytorrents.php?gid=${gid}&t=${token}`;
     const text = await this._getHtml(url);
     return parseGalleryTorrentsInfo(text);
@@ -1105,9 +965,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "提交配置信息失败",
         resp.statusCode,
-        `提交配置信息失败，状态码：${
-          resp.statusCode
-        }，提交的配置信息：\n${JSON.stringify(config, null, 2)}`
+        `提交配置信息失败，状态码：${resp.statusCode}，提交的配置信息：\n${JSON.stringify(config, null, 2)}`,
       );
     return true;
   }
@@ -1118,9 +976,7 @@ export class EHAPIHandler {
    * @returns EHMyTags
    */
   async getMyTags(tagset: number = 0): Promise<EHMyTags> {
-    const url = tagset
-      ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
-      : this.urls.mytags;
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       Cookie: this.cookie,
@@ -1135,9 +991,7 @@ export class EHAPIHandler {
    * @param sortOrder "favorited_time" 代表按收藏时间排序，"published_time" 代表按发布时间排序
    * @returns boolean
    */
-  async setFavoritesSortOrder(
-    sortOrder: "favorited_time" | "published_time"
-  ): Promise<boolean> {
+  async setFavoritesSortOrder(sortOrder: "favorited_time" | "published_time"): Promise<boolean> {
     const url = _updateUrlQuery(this.urls.favorites, {
       inline_set: sortOrder === "favorited_time" ? "fs_f" : "fs_p",
     });
@@ -1150,7 +1004,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "设置收藏页排序方式失败",
         resp.statusCode,
-        `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}`
+        `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}`,
       );
     return true;
   }
@@ -1183,12 +1037,7 @@ export class EHAPIHandler {
    * @param favnote
    * @returns boolean
    */
-  async addOrModifyFav(
-    gid: number,
-    token: string,
-    favcat: number,
-    favnote: string = ""
-  ): Promise<boolean> {
+  async addOrModifyFav(gid: number, token: string, favcat: number, favnote: string = ""): Promise<boolean> {
     const url = _updateUrlQuery(this.urls.gallerypopups, {
       gid: gid,
       t: token,
@@ -1209,11 +1058,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "添加或修改收藏失败",
         resp.statusCode,
-        `url: ${url}\nheader: ${JSON.stringify(
-          header,
-          null,
-          2
-        )}\nbody: ${JSON.stringify(body, null, 2)}`
+        `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`,
       );
     return true;
   }
@@ -1245,11 +1090,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "删除收藏失败",
         resp.statusCode,
-        `url: ${url}\nheader: ${JSON.stringify(
-          header,
-          null,
-          2
-        )}\nbody: ${JSON.stringify(body, null, 2)}`
+        `url: ${url}\nheader: ${JSON.stringify(header, null, 2)}\nbody: ${JSON.stringify(body, null, 2)}`,
       );
     return true;
   }
@@ -1268,7 +1109,7 @@ export class EHAPIHandler {
     token: string,
     apikey: string,
     apiuid: number,
-    rating: 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4 | 4.5 | 5
+    rating: 0.5 | 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4 | 4.5 | 5,
   ): Promise<boolean> {
     const ratingForUpload = (rating * 2).toString();
     const header = {
@@ -1294,11 +1135,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "评分失败",
         resp.statusCode,
-        `评分失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(
-          body,
-          null,
-          2
-        )}`
+        `评分失败，状态码：${resp.statusCode}，body：\n${JSON.stringify(body, null, 2)}`,
       );
     return true;
   }
@@ -1310,11 +1147,7 @@ export class EHAPIHandler {
    * @param text
    * @returns EHGallery
    */
-  async postNewComment(
-    gid: number,
-    token: string,
-    text: string
-  ): Promise<EHGallery> {
+  async postNewComment(gid: number, token: string, text: string): Promise<EHGallery> {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const header = {
       "User-Agent": this.ua,
@@ -1332,11 +1165,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "发布评论失败",
         resp.statusCode,
-        `发布评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(
-          body,
-          null,
-          2
-        )}`
+        `发布评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     const html = await resp.text();
     return parseGallery(html);
@@ -1350,13 +1179,7 @@ export class EHAPIHandler {
    * @param apiuid
    * @param comment_id
    */
-  async getEditComment(
-    gid: number,
-    token: string,
-    apikey: string,
-    apiuid: number,
-    comment_id: number
-  ) {
+  async getEditComment(gid: number, token: string, apikey: string, apiuid: number, comment_id: number) {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -1380,11 +1203,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "获取评论编辑失败",
         resp.statusCode,
-        `获取评论编辑失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(
-          body,
-          null,
-          2
-        )}`
+        `获取评论编辑失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     const data = await resp.json();
     const text = parseEditableComment(data.editable_comment);
@@ -1399,12 +1218,7 @@ export class EHAPIHandler {
    * @param text
    * @returns EHGallery
    */
-  async postEditComment(
-    gid: number,
-    token: string,
-    comment_id: number,
-    text: string
-  ): Promise<EHGallery> {
+  async postEditComment(gid: number, token: string, comment_id: number, text: string): Promise<EHGallery> {
     const gallery_url = this.urls.default + `g/${gid}/${token}/`;
     const body = {
       edit_comment: comment_id,
@@ -1425,9 +1239,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "发布修改后的评论失败",
         resp.statusCode,
-        `发布修改后的评论失败，状态码：${
-          resp.statusCode
-        }\nbody：\n${JSON.stringify(body, null, 2)}`
+        `发布修改后的评论失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     const html = await resp.text();
     return parseGallery(html);
@@ -1448,7 +1260,7 @@ export class EHAPIHandler {
     comment_id: number,
     apikey: string,
     apiuid: number,
-    comment_vote: 1 | -1 // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
+    comment_vote: 1 | -1, // 1 for upvote, -1 for downvote, 但是同一个数字既代表投票也代表取消投票，需要先判断当前投票
   ): Promise<{
     comment_id: number;
     comment_score: number;
@@ -1478,11 +1290,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "给评论打分失败",
         resp.statusCode,
-        `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(
-          body,
-          null,
-          2
-        )}`
+        `给评论打分失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     const data = (await resp.json()) as {
       comment_id: number;
@@ -1501,13 +1309,7 @@ export class EHAPIHandler {
    * @param reloadKey 可选，重新加载所需的参数，若如此做，获取到的图片Url将是新的
    * @returns EHPage
    */
-  async fetchImageInfo(
-    gid: number,
-    key: string,
-    mpvkey: string,
-    page: number,
-    reloadKey?: string
-  ): Promise<EHPage> {
+  async fetchImageInfo(gid: number, key: string, mpvkey: string, page: number, reloadKey?: string): Promise<EHPage> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -1548,9 +1350,7 @@ export class EHAPIHandler {
     const fileSize = info.d.split(" :: ")[1];
     const fullSizeUrl = this.urls.default + info.lf;
     const reloadKeyNext = info.s;
-    const regexResult = /Download original (\d+) x (\d+) (.*) source/.exec(
-      info.o
-    );
+    const regexResult = /Download original (\d+) x (\d+) (.*) source/.exec(info.o);
     let fullSize: { width: number; height: number };
     let fullFileSize: string;
     if (regexResult && regexResult.length === 4) {
@@ -1574,12 +1374,7 @@ export class EHAPIHandler {
     };
   }
 
-  async fetchImageInfoByShowpage(
-    gid: number,
-    imgkey: string,
-    showkey: string,
-    page: number
-  ): Promise<EHPage> {
+  async fetchImageInfoByShowpage(gid: number, imgkey: string, showkey: string, page: number): Promise<EHPage> {
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/json",
@@ -1704,9 +1499,7 @@ export class EHAPIHandler {
     tagset_enable?: boolean;
     tagset_color?: string;
   }): Promise<EHMyTags> {
-    const url = tagset
-      ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
-      : this.urls.mytags;
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -1768,9 +1561,7 @@ export class EHAPIHandler {
     tagset_enable?: boolean;
     tagset_color?: string;
   }): Promise<EHMyTags> {
-    const url = tagset
-      ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
-      : this.urls.mytags;
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -1794,13 +1585,7 @@ export class EHAPIHandler {
    * @param {string} param0.tagset_color 要启用的标签集的颜色
    * @returns
    */
-  async enableTagset({
-    tagset,
-    tagset_color,
-  }: {
-    tagset: number;
-    tagset_color?: string;
-  }): Promise<EHMyTags> {
+  async enableTagset({ tagset, tagset_color }: { tagset: number; tagset_color?: string }): Promise<EHMyTags> {
     return this._enableOrDisableTagset({
       tagset,
       tagset_enable: true,
@@ -1815,13 +1600,7 @@ export class EHAPIHandler {
    * @param {string} param0.tagset_color 要禁用的标签集的颜色
    * @returns
    */
-  async disableTagset({
-    tagset,
-    tagset_color,
-  }: {
-    tagset: number;
-    tagset_color?: string;
-  }): Promise<EHMyTags> {
+  async disableTagset({ tagset, tagset_color }: { tagset: number; tagset_color?: string }): Promise<EHMyTags> {
     return this._enableOrDisableTagset({
       tagset,
       tagset_enable: false,
@@ -1859,12 +1638,9 @@ export class EHAPIHandler {
     weight?: number;
   }): Promise<EHMyTags> {
     if (!weight) weight = 10;
-    if (weight < -99 || weight > 99)
-      throw new Error("tagweight必须在-99到99之间");
+    if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
     if (watched && hidden) throw new Error("不能同时设置watched和hidden");
-    const url = tagset
-      ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
-      : this.urls.mytags;
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -1891,16 +1667,8 @@ export class EHAPIHandler {
    * @param {number} param0.tagid
    * @returns
    */
-  async deleteTag({
-    tagset,
-    tagid,
-  }: {
-    tagset?: number;
-    tagid: number;
-  }): Promise<EHMyTags> {
-    const url = tagset
-      ? _updateUrlQuery(this.urls.mytags, { tagset: tagset })
-      : this.urls.mytags;
+  async deleteTag({ tagset, tagid }: { tagset?: number; tagid: number }): Promise<EHMyTags> {
+    const url = tagset ? _updateUrlQuery(this.urls.mytags, { tagset: tagset }) : this.urls.mytags;
     const header = {
       "User-Agent": this.ua,
       "Content-Type": "application/x-www-form-urlencoded",
@@ -1950,8 +1718,7 @@ export class EHAPIHandler {
     color?: string;
     weight: number;
   }): Promise<boolean> {
-    if (weight < -99 || weight > 99)
-      throw new Error("tagweight必须在-99到99之间");
+    if (weight < -99 || weight > 99) throw new Error("tagweight必须在-99到99之间");
     if (watched && hidden) throw new Error("不能同时设置watched和hidden");
     const body = {
       method: "setusertag",
@@ -1978,11 +1745,7 @@ export class EHAPIHandler {
       throw new EHAPIError(
         "更新标签失败",
         resp.statusCode,
-        `更新标签失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(
-          body,
-          null,
-          2
-        )}`
+        `更新标签失败，状态码：${resp.statusCode}\nbody：\n${JSON.stringify(body, null, 2)}`,
       );
     return true;
   }
@@ -2004,12 +1767,10 @@ export class EHAPIHandler {
         "Content-Type": "application/json",
         Cookie: this.cookie,
       },
-      30
+      30,
     );
     const setCookie = resp.setCookie();
-    const igneous = setCookie.find(
-      (n) => n.name === "igneous" && n.value.length === 17
-    );
+    const igneous = setCookie.find((n) => n.name === "igneous" && n.value.length === 17);
     if (igneous) {
       this._cookiejar.updateCookie([igneous]);
       const parsed = this.parsedCookie;
@@ -2157,15 +1918,10 @@ export class EHAPIHandler {
     }
 
     if (resp.response.statusCode >= 400) {
-      throw new EHAPIError(
-        `状态码：${resp.response.statusCode}`,
-        resp.response.statusCode
-      );
+      throw new EHAPIError(`状态码：${resp.response.statusCode}`, resp.response.statusCode);
     } else if (!resp.data || typeof resp.data !== "string") {
       throw new EHAPIError("返回数据错误", resp.response.statusCode);
-    } else if (
-      resp.data.includes("Please wait a bit longer between each file search")
-    ) {
+    } else if (resp.data.includes("Please wait a bit longer between each file search")) {
       throw new EHImageLookupTooManyRequestsError();
     }
 
@@ -2187,14 +1943,8 @@ export class EHAPIHandler {
     };
   }
 
-  async getImageLookupInfo(
-    options: EHImageLookupOptions
-  ): Promise<EHImageLookupList> {
-    const url = _updateUrlQuery(
-      this.urls.default,
-      _imageLookupOptionsToParams(options),
-      true
-    );
+  async getImageLookupInfo(options: EHImageLookupOptions): Promise<EHImageLookupList> {
+    const url = _updateUrlQuery(this.urls.default, _imageLookupOptionsToParams(options), true);
     const text = await this._getHtml(url);
     return parseList(text) as EHImageLookupList;
   }

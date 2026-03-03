@@ -36,10 +36,7 @@ export const tagNamespaceAlternates: TagNamespaceAlternate[] = [
   "temp",
 ];
 
-export const tagNamespaceMostUsedAlternateMap: Record<
-  TagNamespace,
-  TagNamespaceAlternate
-> = {
+export const tagNamespaceMostUsedAlternateMap: Record<TagNamespace, TagNamespaceAlternate> = {
   artist: "a",
   character: "c",
   cosplayer: "cos",
@@ -55,10 +52,7 @@ export const tagNamespaceMostUsedAlternateMap: Record<
   temp: "temp",
 };
 
-export const tagNamespaceAlternateMap: Record<
-  TagNamespaceAlternate,
-  TagNamespace
-> = {
+export const tagNamespaceAlternateMap: Record<TagNamespaceAlternate, TagNamespace> = {
   a: "artist",
   c: "character",
   cos: "cosplayer",

@@ -19,9 +19,7 @@ enum ENV {
 
 let env: ENV;
 if (
-  (typeof process !== "undefined" &&
-    process.versions &&
-    process.versions.node > "17.5") ||
+  (typeof process !== "undefined" && process.versions && process.versions.node > "17.5") ||
   typeof fetch !== "undefined"
 ) {
   env = ENV.NODE;
@@ -208,9 +206,7 @@ class RequestResponse {
       const setCookieStrs = this._response.headers.getSetCookie();
       return setCookieStrs.map((n) => parseCookieString(n));
     } else if (env === ENV.JSBOX && this._resp) {
-      const setCookieStrs = splitCookiesString(
-        this._resp.response.headers["Set-Cookie"]
-      );
+      const setCookieStrs = splitCookiesString(this._resp.response.headers["Set-Cookie"]);
       return setCookieStrs.map((n) => parseCookieString(n));
     } else {
       throw new Error("环境不支持");
@@ -260,14 +256,9 @@ async function __request({
             signal: AbortSignal.timeout(timeout * 1000),
           });
     if (response.status === 509) {
-      throw new EHBandwidthLimitExceededError(
-        `509 error! status: ${response.status}\nurl: ${url}`
-      );
+      throw new EHBandwidthLimitExceededError(`509 error! status: ${response.status}\nurl: ${url}`);
     } else if (response.status >= 500) {
-      throw new EHServerError(
-        `Server error! status: ${response.status}\nurl: ${url}`,
-        response.status
-      );
+      throw new EHServerError(`Server error! status: ${response.status}\nurl: ${url}`, response.status);
     } else if (!response.ok) {
       if (response.status === 404 && checkCopyrightError) {
         const result = parseCopyrightPage(await response.text());
@@ -275,10 +266,7 @@ async function __request({
           throw new EHCopyrightError(result.copyrightOwner);
         }
       }
-      throw new EHNetworkError(
-        `HTTP error! status: ${response.status}\nurl: ${url}`,
-        response.status
-      );
+      throw new EHNetworkError(`HTTP error! status: ${response.status}\nurl: ${url}`, response.status);
     }
     statusCode = response.status;
     contentType = response.headers.get("Content-Type") || "";
@@ -297,37 +285,23 @@ async function __request({
         throw new EHTimeoutError(`Timeout Error! url: ${url}`);
       } else if (!resp.response || !resp.response.statusCode) {
         throw new EHNetworkError(
-          `Network Error! \nurl: ${url}\nheader: ${JSON.stringify(
-            header
-          )}\nbody: ${JSON.stringify(body)}`
+          `Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}\nbody: ${JSON.stringify(body)}`,
         );
       }
     }
     statusCode = resp.response.statusCode;
     if (statusCode === 509) {
-      throw new EHBandwidthLimitExceededError(
-        `509 error! status: ${statusCode}\nurl: ${url}`
-      );
+      throw new EHBandwidthLimitExceededError(`509 error! status: ${statusCode}\nurl: ${url}`);
     } else if (statusCode >= 500) {
-      throw new EHServerError(
-        `Server error! status: ${statusCode}\nurl: ${url}`,
-        statusCode
-      );
+      throw new EHServerError(`Server error! status: ${statusCode}\nurl: ${url}`, statusCode);
     } else if (statusCode >= 400) {
-      if (
-        statusCode === 404 &&
-        checkCopyrightError &&
-        typeof resp.data === "string"
-      ) {
+      if (statusCode === 404 && checkCopyrightError && typeof resp.data === "string") {
         const result = parseCopyrightPage(resp.data);
         if (result.unavailable) {
           throw new EHCopyrightError(result.copyrightOwner);
         }
       }
-      throw new EHNetworkError(
-        `HTTP error! status: ${statusCode}\nurl: ${url}`,
-        statusCode
-      );
+      throw new EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
     }
     contentType = resp.response.headers["Content-Type"] || "";
     return new RequestResponse({ statusCode, contentType, resp });
@@ -340,7 +314,7 @@ export async function get(
   url: string,
   header: Record<string, string>,
   timeout: number,
-  checkCopyrightError?: boolean
+  checkCopyrightError?: boolean,
 ): Promise<RequestResponse> {
   return await __request({
     method: "GET",
@@ -355,7 +329,7 @@ export async function post(
   url: string,
   header: Record<string, string>,
   body: Record<string, string | number>,
-  timeout: number
+  timeout: number,
 ): Promise<RequestResponse> {
   return await __request({ method: "POST", url, header, timeout, body });
 }
@@ -363,10 +337,7 @@ export async function post(
 // 定义一个有timeout的下载函数，通过Promise.race实现
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   const timeoutPromise = new Promise<T>((_, reject) =>
-    setTimeout(
-      () => reject(new EHTimeoutError("Timeout error on download")),
-      timeoutMs
-    )
+    setTimeout(() => reject(new EHTimeoutError("Timeout error on download")), timeoutMs),
   );
   return Promise.race([promise, timeoutPromise]);
 }
@@ -378,26 +349,16 @@ async function _download(url: string, header: Record<string, any>) {
       // HttpTypes.NSURLErrorDomain.NSURLErrorTimedOut
       throw new EHTimeoutError(`Timeout Error! url: ${url}`);
     } else if (!resp.response || !resp.response.statusCode) {
-      throw new EHNetworkError(
-        `Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}`
-      );
+      throw new EHNetworkError(`Network Error! \nurl: ${url}\nheader: ${JSON.stringify(header)}`);
     }
   }
   const statusCode = resp.response.statusCode;
   if (statusCode === 509) {
-    throw new EHBandwidthLimitExceededError(
-      `509 error! status: ${statusCode}\nurl: ${url}`
-    );
+    throw new EHBandwidthLimitExceededError(`509 error! status: ${statusCode}\nurl: ${url}`);
   } else if (statusCode >= 500) {
-    throw new EHServerError(
-      `Server error! status: ${statusCode}\nurl: ${url}`,
-      statusCode
-    );
+    throw new EHServerError(`Server error! status: ${statusCode}\nurl: ${url}`, statusCode);
   } else if (statusCode >= 400) {
-    throw new EHNetworkError(
-      `HTTP error! status: ${statusCode}\nurl: ${url}`,
-      statusCode
-    );
+    throw new EHNetworkError(`HTTP error! status: ${statusCode}\nurl: ${url}`, statusCode);
   }
   return resp;
 }

@@ -32,15 +32,7 @@ export type TagNamespaceAlternate =
   | "series"
   | "temp";
 
-export type EHQualifier =
-  | "tag"
-  | "weak"
-  | "title"
-  | "uploader"
-  | "uploaduid"
-  | "gid"
-  | "comment"
-  | "favnote";
+export type EHQualifier = "tag" | "weak" | "title" | "uploader" | "uploaduid" | "gid" | "comment" | "favnote";
 
 export type EHSearchedCategory =
   | "Doujinshi"
@@ -56,11 +48,7 @@ export type EHSearchedCategory =
 
 export type EHCategory = EHSearchedCategory | "Private";
 
-export type EHListDisplayMode =
-  | "minimal"
-  | "compact"
-  | "extended"
-  | "thumbnail";
+export type EHListDisplayMode = "minimal" | "compact" | "extended" | "thumbnail";
 
 export interface EHFrontPageList {
   type: "front_page";
@@ -69,11 +57,7 @@ export interface EHFrontPageList {
   total_item_count: number; // 全部数量
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items:
-    | EHListMinimalItem[]
-    | EHListCompactItem[]
-    | EHListExtendedItem[]
-    | EHListThumbnailItem[];
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHWatchedList {
@@ -82,22 +66,14 @@ export interface EHWatchedList {
   next_page_available: boolean;
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items:
-    | EHListMinimalItem[]
-    | EHListCompactItem[]
-    | EHListExtendedItem[]
-    | EHListThumbnailItem[];
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHPopularList {
   type: "popular";
   filtered_count: number; // 当前页面被过滤的数量
   display_mode: EHListDisplayMode;
-  items:
-    | EHListMinimalItem[]
-    | EHListCompactItem[]
-    | EHListExtendedItem[]
-    | EHListThumbnailItem[];
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 export interface EHFavoritesList {
@@ -110,11 +86,7 @@ export interface EHFavoritesList {
   last_item_favorited_timestamp?: number;
   // 本页面上最后一个项目被收藏的时间戳，用于翻页的参数（向后翻页）
   display_mode: EHListDisplayMode;
-  items:
-    | EHListMinimalItem[]
-    | EHListCompactItem[]
-    | EHListExtendedItem[]
-    | EHListThumbnailItem[];
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
   favcat_infos: {
     count: number;
     title: string;
@@ -148,11 +120,7 @@ export interface EHImageLookupList {
   next_page_available: boolean;
   total_item_count: number; // 全部数量
   display_mode: EHListDisplayMode;
-  items:
-    | EHListMinimalItem[]
-    | EHListCompactItem[]
-    | EHListExtendedItem[]
-    | EHListThumbnailItem[];
+  items: EHListMinimalItem[] | EHListCompactItem[] | EHListExtendedItem[] | EHListThumbnailItem[];
 }
 
 interface EHItemBase {
