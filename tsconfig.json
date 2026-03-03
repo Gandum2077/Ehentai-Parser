@@ -108,8 +108,7 @@
   },
   "include": [
     "src/*.ts",
-    "node_modules/jsbox-types/*.d.ts",
-    "node_modules/jsbox-types/*/*.d.ts",
+    "node_modules/jsbox-types/index.d.ts",
     "index.ts"  
   ],
   "files": ["index.ts"]
